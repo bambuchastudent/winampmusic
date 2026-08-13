@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#17191f" />
   <title>Winamp Music</title>
-  <meta name="description" content="A tiny mobile-first player for your YouTube music library." />
+  <meta name="description" content="A mobile and desktop Winamp-style player for your YouTube music library." />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./youtube-player.css" />
@@ -17,10 +17,24 @@
         <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER.</div>
         <h1>WINAMP MUSIC</h1>
       </div>
-      <button id="installButton" class="ghost" hidden>Install</button>
+      <div class="top-actions">
+        <button id="desktopAppButton" class="ghost">Desktop app</button>
+        <button id="installButton" class="ghost" hidden>Install</button>
+      </div>
     </header>
 
-    <section class="player" aria-label="Player">
+    <section class="player skin-surface" aria-label="Player">
+      <div class="skin-toolbar">
+        <div class="skin-label">SKIN <strong id="skinName">Classic</strong></div>
+        <div class="skin-actions">
+          <input id="skinFile" type="file" accept=".wsz,.zip,application/zip" hidden />
+          <button id="skinButton" class="mini-button">Load .WSZ skin</button>
+          <button id="resetSkin" class="mini-button">Reset</button>
+          <button id="eqToggle" class="mini-button active">EQ</button>
+          <button id="videoModeButton" class="mini-button">Large video</button>
+        </div>
+      </div>
+
       <div class="screen">
         <div id="status" class="status">READY</div>
         <div id="nowTitle" class="now-title">No track selected</div>
@@ -44,10 +58,36 @@
         <input id="volume" type="range" min="0" max="100" value="75" aria-label="Volume" />
       </div>
 
+      <section id="equalizerPanel" class="equalizer skin-eq-surface" aria-label="Equalizer">
+        <div class="eq-header">
+          <div><span class="eyebrow">WINAMP EQUALIZER</span><strong>10 BAND</strong></div>
+          <div class="eq-actions">
+            <button id="eqOn" class="mini-button">EQ OFF</button>
+            <select id="eqPreset" aria-label="Equalizer preset">
+              <option value="">Preset…</option>
+            </select>
+          </div>
+        </div>
+        <div class="eq-bands">
+          <label class="eq-band"><span>PRE</span><input data-eq-band="preamp" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>60</span><input data-eq-band="60" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>170</span><input data-eq-band="170" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>310</span><input data-eq-band="310" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>600</span><input data-eq-band="600" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>1K</span><input data-eq-band="1k" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>3K</span><input data-eq-band="3k" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>6K</span><input data-eq-band="6k" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>12K</span><input data-eq-band="12k" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>14K</span><input data-eq-band="14k" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>16K</span><input data-eq-band="16k" type="range" min="-12" max="12" value="0" orient="vertical" /><span class="eq-value">0</span></label>
+        </div>
+        <p class="eq-note">EQ state and presets are ready in the Winamp UI. YouTube iframe audio cannot be routed through Web Audio filters, so the bands are visual/stateful for this source.</p>
+      </section>
+
       <div id="youtubePlayer" class="youtube-player"></div>
     </section>
 
-    <section class="library-panel">
+    <section class="library-panel skin-playlist-surface">
       <div class="library-header">
         <div>
           <div class="eyebrow">PLAYLIST</div>
@@ -63,7 +103,7 @@
       <ol id="trackList" class="track-list"></ol>
       <div id="emptyState" class="empty-state">
         <strong>No music yet.</strong>
-        <span>Open a YouTube playlist, paste the importer script in DevTools, and this page will receive the tracks.</span>
+        <span>Open a playing YouTube track, playlist, or Liked videos, paste the importer script in DevTools, and this page will receive the music.</span>
         <button id="emptyImportButton">Show import script</button>
       </div>
     </section>
@@ -74,21 +114,38 @@
       <div class="dialog-heading">
         <div>
           <div class="eyebrow">YOUTUBE IMPORTER</div>
-          <h2>Import playlist tracks</h2>
+          <h2>Import playing track + playlist</h2>
         </div>
         <button class="icon-button" value="cancel" aria-label="Close">✕</button>
       </div>
-      <p>Open your playlist or Liked videos on <strong>youtube.com</strong>, open DevTools → Console, paste the script below, and press Enter. It scans the current list, opens this player, and sends the library here.</p>
+      <p>Open the track you are listening to, a playlist, or Liked videos on <strong>youtube.com</strong>, open DevTools → Console, paste the script below, and press Enter. It explicitly captures the current video and then scans the visible list.</p>
       <textarea id="importScript" readonly spellcheck="false"></textarea>
       <div class="dialog-actions">
         <button id="copyScriptButton" type="button">Copy script</button>
         <button value="cancel" class="ghost">Close</button>
       </div>
-      <p class="fine-print">The importer only reads metadata already rendered in your browser. Playback uses the visible YouTube player; it does not download or re-host audio.</p>
+      <p class="fine-print">The importer reads metadata already rendered in your browser. Playback uses the visible YouTube player; it does not download or re-host audio.</p>
+    </form>
+  </dialog>
+
+  <dialog id="desktopDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">DESKTOP PWA</div>
+          <h2>Use Winamp Music as a Mac app</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Close">✕</button>
+      </div>
+      <p><strong>Safari on macOS:</strong> File → Add to Dock. The site opens as its own standalone app window, keeps the library locally, and contains the YouTube video surface so you can watch or just listen.</p>
+      <p><strong>Chrome / Edge:</strong> use Install from the address bar or the Install button when it appears.</p>
+      <div class="dialog-actions"><button value="cancel" class="ghost">Close</button></div>
     </form>
   </dialog>
 
   <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="./app.js" defer></script>
+  <script src="./winamp-features.js" defer></script>
 </body>
 </html>
