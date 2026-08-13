@@ -355,6 +355,12 @@ ui.install.addEventListener('click', async () => {
   ui.install.hidden = true;
 });
 
+// Small public bridge used by feature modules loaded after app.js.
+// Keep the canonical library/player state owned by this file; helpers call through here.
+window.importTracks = importTracks;
+window.renderLibrary = renderLibrary;
+window.playIndex = playIndex;
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
