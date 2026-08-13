@@ -9,6 +9,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./youtube-player.css" />
+  <link rel="stylesheet" href="./winamp-features.css" />
 </head>
 <body>
   <main class="app-shell">
@@ -63,9 +64,7 @@
           <div><span class="eyebrow">WINAMP EQUALIZER</span><strong>10 BAND</strong></div>
           <div class="eq-actions">
             <button id="eqOn" class="mini-button">EQ OFF</button>
-            <select id="eqPreset" aria-label="Equalizer preset">
-              <option value="">Preset…</option>
-            </select>
+            <select id="eqPreset" aria-label="Equalizer preset"><option value="">Preset…</option></select>
           </div>
         </div>
         <div class="eq-bands">
@@ -89,54 +88,28 @@
 
     <section class="library-panel skin-playlist-surface">
       <div class="library-header">
-        <div>
-          <div class="eyebrow">PLAYLIST</div>
-          <h2>Your library <span id="trackCount">0</span></h2>
-        </div>
-        <div class="header-actions">
-          <button id="importHelpButton" class="ghost">Import</button>
-          <button id="clearButton" class="ghost danger">Clear</button>
-        </div>
+        <div><div class="eyebrow">PLAYLIST</div><h2>Your library <span id="trackCount">0</span></h2></div>
+        <div class="header-actions"><button id="importHelpButton" class="ghost">Import</button><button id="clearButton" class="ghost danger">Clear</button></div>
       </div>
-
       <input id="search" class="search" type="search" placeholder="Search tracks…" autocomplete="off" />
       <ol id="trackList" class="track-list"></ol>
-      <div id="emptyState" class="empty-state">
-        <strong>No music yet.</strong>
-        <span>Open a playing YouTube track, playlist, or Liked videos, paste the importer script in DevTools, and this page will receive the music.</span>
-        <button id="emptyImportButton">Show import script</button>
-      </div>
+      <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Open a playing YouTube track, playlist, or Liked videos, paste the importer script in DevTools, and this page will receive the music.</span><button id="emptyImportButton">Show import script</button></div>
     </section>
   </main>
 
   <dialog id="importDialog">
     <form method="dialog" class="dialog-card">
-      <div class="dialog-heading">
-        <div>
-          <div class="eyebrow">YOUTUBE IMPORTER</div>
-          <h2>Import playing track + playlist</h2>
-        </div>
-        <button class="icon-button" value="cancel" aria-label="Close">✕</button>
-      </div>
+      <div class="dialog-heading"><div><div class="eyebrow">YOUTUBE IMPORTER</div><h2>Import playing track + playlist</h2></div><button class="icon-button" value="cancel" aria-label="Close">✕</button></div>
       <p>Open the track you are listening to, a playlist, or Liked videos on <strong>youtube.com</strong>, open DevTools → Console, paste the script below, and press Enter. It explicitly captures the current video and then scans the visible list.</p>
       <textarea id="importScript" readonly spellcheck="false"></textarea>
-      <div class="dialog-actions">
-        <button id="copyScriptButton" type="button">Copy script</button>
-        <button value="cancel" class="ghost">Close</button>
-      </div>
+      <div class="dialog-actions"><button id="copyScriptButton" type="button">Copy script</button><button value="cancel" class="ghost">Close</button></div>
       <p class="fine-print">The importer reads metadata already rendered in your browser. Playback uses the visible YouTube player; it does not download or re-host audio.</p>
     </form>
   </dialog>
 
   <dialog id="desktopDialog">
     <form method="dialog" class="dialog-card">
-      <div class="dialog-heading">
-        <div>
-          <div class="eyebrow">DESKTOP PWA</div>
-          <h2>Use Winamp Music as a Mac app</h2>
-        </div>
-        <button class="icon-button" value="cancel" aria-label="Close">✕</button>
-      </div>
+      <div class="dialog-heading"><div><div class="eyebrow">DESKTOP PWA</div><h2>Use Winamp Music as a Mac app</h2></div><button class="icon-button" value="cancel" aria-label="Close">✕</button></div>
       <p><strong>Safari on macOS:</strong> File → Add to Dock. The site opens as its own standalone app window, keeps the library locally, and contains the YouTube video surface so you can watch or just listen.</p>
       <p><strong>Chrome / Edge:</strong> use Install from the address bar or the Install button when it appears.</p>
       <div class="dialog-actions"><button value="cancel" class="ghost">Close</button></div>
