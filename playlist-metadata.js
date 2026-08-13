@@ -5,7 +5,13 @@
   const BADGE_SEP = '␟';
   const list = document.getElementById('trackList');
   const durationDisplay = document.getElementById('duration');
+  const resetButton = document.getElementById('clearButton');
   if (!list || typeof window.renderLibrary !== 'function') return;
+
+  if (resetButton) {
+    resetButton.textContent = 'Reset cache';
+    resetButton.title = 'Clear playlist and current track';
+  }
 
   let busy = false;
 
