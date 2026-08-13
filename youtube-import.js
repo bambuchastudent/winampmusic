@@ -10,6 +10,12 @@
     return;
   }
 
+  const playerWindow = window.open(APP_URL, 'winampmusic-import');
+  if (!playerWindow) {
+    alert('Winamp Music importer: allow popups for YouTube, then run the script again.');
+    return;
+  }
+
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const tracks = new Map();
 
@@ -152,15 +158,12 @@
   }
 
   async function sendToPlayer(payload) {
-    const popup = window.open(APP_URL, 'winampmusic-import');
-    if (!popup) throw new Error('Popup blocked');
-
     return new Promise((resolve, reject) => {
       let attempts = 0;
       const timeout = setInterval(() => {
         attempts += 1;
         try {
-          popup.postMessage(payload, APP_ORIGIN);
+          playerWindow.postMessage(payload, APP_ORIGIN);
         } catch {}
         if (attempts >= 30) {
           clearInterval(timeout);
@@ -171,13 +174,14 @@
 
       function onMessage(event) {
         if (event.origin !== APP_ORIGIN) return;
+        if (event.source !== playerWindow) return;
         if (event.data?.type !== 'WINAMP_MUSIC_IMPORT_ACK') return;
         clearInterval(timeout);
         window.removeEventListener('message', onMessage);
         resolve(event.data);
       }
       window.addEventListener('message', onMessage);
-      popup.postMessage(payload, APP_ORIGIN);
+      playerWindow.postMessage(payload, APP_ORIGIN);
     });
   }
 
@@ -204,7 +208,7 @@
       setTimeout(() => document.getElementById('winampmusic-import-badge')?.remove(), 7000);
     } catch (error) {
       console.error('[Winamp Music importer]', error);
-      showBadge(`Winamp Music: ${error.message}. Allow popups and run the script again.`);
+      showBadge(`Winamp Music: ${error.message}. Keep the player tab open and run the script again.`);
     }
   })();
 })();
