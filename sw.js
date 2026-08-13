@@ -1,14 +1,15 @@
-const CACHE = 'winampmusic-shell-v3';
+const CACHE = 'winampmusic-shell-v4';
 const SHELL = [
   './',
   './index.html',
   './styles.css',
   './youtube-player.css',
   './winamp-features.css',
+  './paste-import.css',
   './manifest.webmanifest',
   './icon.svg',
 ];
-const NETWORK_FIRST = new Set(['app.js', 'youtube-import.js', 'winamp-features.js', 'sw.js']);
+const NETWORK_FIRST = new Set(['app.js', 'youtube-import.js', 'paste-import.js', 'winamp-features.js', 'sw.js']);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
