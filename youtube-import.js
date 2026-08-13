@@ -18,6 +18,7 @@
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const tracks = new Map();
+  let currentTrackId = null;
 
   function videoIdFromHref(href) {
     if (!href) return null;
@@ -41,6 +42,48 @@
       if (text) return text;
     }
     return '';
+  }
+
+  function currentVideoId() {
+    try {
+      return new URL(location.href).searchParams.get('v');
+    } catch {
+      return null;
+    }
+  }
+
+  function collectCurrentTrack() {
+    const id = currentVideoId();
+    if (!id || !/^[\w-]{6,20}$/.test(id)) return;
+
+    const title = bestText(document, [
+      'h1.ytd-watch-metadata yt-formatted-string',
+      'h1.title yt-formatted-string',
+      'ytmusic-player-bar .title',
+      'ytmusic-player-bar yt-formatted-string.title',
+      'meta[name="title"]',
+    ]) || clean(document.querySelector('meta[property="og:title"]')?.content) || clean(document.title.replace(/\s*-\s*YouTube.*$/i, ''));
+
+    const artist = bestText(document, [
+      'ytd-watch-metadata ytd-channel-name a',
+      '#owner ytd-channel-name a',
+      'ytmusic-player-bar .byline a',
+      'ytmusic-player-bar .subtitle a',
+      'ytmusic-player-bar a[href*="/channel/"]',
+      'ytmusic-player-bar a[href*="/@"]',
+    ]) || clean(document.querySelector('meta[itemprop="author"]')?.content) || 'YouTube';
+
+    if (!title) return;
+    currentTrackId = id;
+    tracks.set(id, {
+      id,
+      title,
+      artist,
+      thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+      playlist: clean(document.querySelector('h1 yt-formatted-string, ytmusic-detail-header-renderer h2, h1')?.textContent),
+      importedAt: new Date().toISOString(),
+      current: true,
+    });
   }
 
   function collectFromRow(row) {
@@ -69,6 +112,7 @@
 
     const image = row.querySelector('img');
     const thumbnail = image?.currentSrc || image?.src || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    const previous = tracks.get(id);
 
     tracks.set(id, {
       id,
@@ -77,10 +121,12 @@
       thumbnail,
       playlist: clean(document.querySelector('h1 yt-formatted-string, ytmusic-detail-header-renderer h2, h1')?.textContent),
       importedAt: new Date().toISOString(),
+      current: previous?.current || id === currentTrackId,
     });
   }
 
   function collectVisible() {
+    collectCurrentTrack();
     const selectors = [
       'ytd-playlist-video-renderer',
       'ytd-video-renderer',
@@ -103,6 +149,7 @@
           thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
           playlist: clean(document.title.replace(/\s*-\s*YouTube.*$/i, '')),
           importedAt: new Date().toISOString(),
+          current: id === currentTrackId,
         });
       });
     }
@@ -139,7 +186,7 @@
 
     for (let round = 0; round < MAX_SCROLL_ROUNDS; round += 1) {
       collectVisible();
-      showBadge(`Winamp Music: scanning… ${tracks.size} tracks`);
+      showBadge(`Winamp Music: scanning… ${tracks.size} tracks${currentTrackId ? ' + current' : ''}`);
 
       const scrollingElement = document.scrollingElement || document.documentElement;
       const currentHeight = scrollingElement.scrollHeight;
@@ -188,9 +235,10 @@
   (async () => {
     try {
       showBadge('Winamp Music: scanning current YouTube page…');
+      collectCurrentTrack();
       await scrollAndCollect();
       if (!tracks.size) {
-        showBadge('Winamp Music: no tracks found. Open a playlist or Liked videos first.');
+        showBadge('Winamp Music: no tracks found. Open a playing track, playlist, or Liked videos first.');
         return;
       }
 
@@ -199,12 +247,13 @@
         version: 1,
         source: location.href,
         title: document.title,
+        currentTrackId,
         tracks: [...tracks.values()],
       };
 
-      showBadge(`Winamp Music: sending ${tracks.size} tracks…`);
+      showBadge(`Winamp Music: sending ${tracks.size} tracks${currentTrackId ? ' including current' : ''}…`);
       const ack = await sendToPlayer(payload);
-      showBadge(`Winamp Music: done — ${ack.added} new, ${ack.total} total. Player opened.`);
+      showBadge(`Winamp Music: done — ${ack.added} new, ${ack.total} total${currentTrackId ? ', current track included' : ''}.`);
       setTimeout(() => document.getElementById('winampmusic-import-badge')?.remove(), 7000);
     } catch (error) {
       console.error('[Winamp Music importer]', error);
