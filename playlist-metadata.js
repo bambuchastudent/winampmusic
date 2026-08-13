@@ -1,5 +1,8 @@
 (() => {
   const STORAGE_KEY = 'winampmusic.library.v1';
+  const META_PREFIX = 'WMETA␞';
+  const META_SEP = '␞';
+  const BADGE_SEP = '␟';
   const list = document.getElementById('trackList');
   const durationDisplay = document.getElementById('duration');
   if (!list || typeof window.renderLibrary !== 'function') return;
@@ -43,10 +46,28 @@
     return result;
   }
 
-  function normalizeTrack(track) {
-    if (!track || typeof track !== 'object') return track;
+  function unpackMetadata(track) {
+    const playlist = String(track?.playlist || '');
+    if (!playlist.startsWith(META_PREFIX)) return track;
+    const [, duration = '', badgeBlob = '', realPlaylist = ''] = playlist.split(META_SEP, 4);
+    return {
+      ...track,
+      playlist: clean(realPlaylist),
+      duration: validDuration(track.duration) || validDuration(duration),
+      badges: normalizeBadges(track.badges?.length ? track.badges : badgeBlob.split(BADGE_SEP)),
+    };
+  }
+
+  function normalizeTrack(rawTrack) {
+    if (!rawTrack || typeof rawTrack !== 'object') return rawTrack;
+    const track = unpackMetadata(rawTrack);
     const parsed = splitLeadingDuration(track.title, track.duration || track.durationText);
-    return { ...track, title: parsed.title, duration: parsed.duration, badges: normalizeBadges(track.badges || track.youtubeBadges || track.labels) };
+    return {
+      ...track,
+      title: parsed.title,
+      duration: parsed.duration,
+      badges: normalizeBadges(track.badges || track.youtubeBadges || track.labels),
+    };
   }
 
   function readLibrary() {
@@ -87,6 +108,9 @@
         if (!track) return;
         const title = row.querySelector('.track-title');
         if (title) { title.textContent = track.title; title.title = track.title; }
+
+        const artist = row.querySelector('.track-artist');
+        if (artist) { artist.textContent = track.artist || 'YouTube'; artist.title = track.artist || ''; }
 
         const main = row.querySelector('.track-main');
         let labels = row.querySelector('.track-youtube-labels');
