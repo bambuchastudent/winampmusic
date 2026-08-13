@@ -21,7 +21,14 @@ jobs:
           node --check app.js
           node --check youtube-import.js
           node --check paste-import.js
+          node --check playlist-metadata.js
           node --check winamp-features.js
           node --check sw.js
+      - name: Check playlist metadata wiring
+        run: |
+          grep -q 'playlist-metadata.css' index.html
+          grep -q 'playlist-metadata.js' index.html
+          grep -q 'track-duration' playlist-metadata.js
+          grep -q 'track-youtube-labels' playlist-metadata.js
       - name: Check web manifest JSON
         run: python -m json.tool manifest.webmanifest >/dev/null
