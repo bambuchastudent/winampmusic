@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Winamp Music">
+  <rect width="512" height="512" rx="112" fill="#17191f"/>
+  <rect x="84" y="92" width="344" height="328" rx="44" fill="#232832" stroke="#414958" stroke-width="10"/>
+  <rect x="116" y="126" width="280" height="112" rx="18" fill="#172018" stroke="#39453a" stroke-width="8"/>
+  <path d="M158 182h36l18-30 28 62 26-50 24 36h64" fill="none" stroke="#a9f08b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="326" r="58" fill="#f0c94d"/>
+  <path d="M238 292l58 34-58 34z" fill="#17191f"/>
+</svg>

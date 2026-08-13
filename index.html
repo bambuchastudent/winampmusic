@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#17191f" />
+  <title>Winamp Music</title>
+  <meta name="description" content="A tiny mobile-first player for your YouTube music library." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./youtube-player.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER.</div>
+        <h1>WINAMP MUSIC</h1>
+      </div>
+      <button id="installButton" class="ghost" hidden>Install</button>
+    </header>
+
+    <section class="player" aria-label="Player">
+      <div class="screen">
+        <div id="status" class="status">READY</div>
+        <div id="nowTitle" class="now-title">No track selected</div>
+        <div id="nowArtist" class="now-artist">Import a YouTube playlist to begin</div>
+        <div class="time-row">
+          <span id="elapsed">00:00</span>
+          <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" />
+          <span id="duration">00:00</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="prevButton" aria-label="Previous">⏮</button>
+        <button id="playButton" class="primary" aria-label="Play or pause">▶</button>
+        <button id="nextButton" aria-label="Next">⏭</button>
+        <button id="shuffleButton" aria-label="Shuffle" title="Shuffle">⤨</button>
+      </div>
+
+      <div class="volume-row">
+        <span>VOL</span>
+        <input id="volume" type="range" min="0" max="100" value="75" aria-label="Volume" />
+      </div>
+
+      <div id="youtubePlayer" class="youtube-player"></div>
+    </section>
+
+    <section class="library-panel">
+      <div class="library-header">
+        <div>
+          <div class="eyebrow">PLAYLIST</div>
+          <h2>Your library <span id="trackCount">0</span></h2>
+        </div>
+        <div class="header-actions">
+          <button id="importHelpButton" class="ghost">Import</button>
+          <button id="clearButton" class="ghost danger">Clear</button>
+        </div>
+      </div>
+
+      <input id="search" class="search" type="search" placeholder="Search tracks…" autocomplete="off" />
+      <ol id="trackList" class="track-list"></ol>
+      <div id="emptyState" class="empty-state">
+        <strong>No music yet.</strong>
+        <span>Open a YouTube playlist, paste the importer script in DevTools, and this page will receive the tracks.</span>
+        <button id="emptyImportButton">Show import script</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="importDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">YOUTUBE IMPORTER</div>
+          <h2>Import playlist tracks</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Close">✕</button>
+      </div>
+      <p>Open your playlist or Liked videos on <strong>youtube.com</strong>, open DevTools → Console, paste the script below, and press Enter. It scans the current list, opens this player, and sends the library here.</p>
+      <textarea id="importScript" readonly spellcheck="false"></textarea>
+      <div class="dialog-actions">
+        <button id="copyScriptButton" type="button">Copy script</button>
+        <button value="cancel" class="ghost">Close</button>
+      </div>
+      <p class="fine-print">The importer only reads metadata already rendered in your browser. Playback uses the visible YouTube player; it does not download or re-host audio.</p>
+    </form>
+  </dialog>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

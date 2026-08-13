@@ -1,0 +1,20 @@
+.youtube-player {
+  position: relative;
+  left: auto;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid #343a46;
+  border-radius: 8px;
+  background: #000;
+}
+
+.youtube-player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
+}
