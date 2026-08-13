@@ -20,6 +20,7 @@ jobs:
         run: |
           node --check app.js
           node --check youtube-import.js
+          node --check paste-import.js
           node --check winamp-features.js
           node --check sw.js
       - name: Check web manifest JSON
