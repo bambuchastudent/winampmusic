@@ -1,12 +1,15 @@
 {
   "name": "Winamp Music",
   "short_name": "Winamp Music",
-  "description": "Mobile-first player for your imported YouTube music library.",
+  "description": "Winamp-style desktop and mobile player for your imported YouTube music library.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#0d0f13",
   "theme_color": "#17191f",
+  "categories": ["music", "entertainment"],
   "icons": [
     {
       "src": "./icon.svg",
