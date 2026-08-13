@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./youtube-player.css" />
   <link rel="stylesheet" href="./winamp-features.css" />
+  <link rel="stylesheet" href="./captions.css" />
 </head>
 <body>
   <main class="app-shell">
@@ -84,6 +85,11 @@
       </section>
 
       <div id="youtubePlayer" class="youtube-player"></div>
+      <aside id="lyricsBar" class="lyrics-bar" aria-live="polite" hidden>
+        <div id="lyricsStatus" class="lyrics-status">ORIGINAL - LYRICS</div>
+        <div id="lyricsCurrent" class="lyrics-current"></div>
+        <div id="lyricsNext" class="lyrics-next"></div>
+      </aside>
     </section>
 
     <section class="library-panel skin-playlist-surface">
@@ -120,5 +126,6 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="./app.js" defer></script>
   <script src="./winamp-features.js" defer></script>
+  <script src="./lyrics.js" defer></script>
 </body>
 </html>
