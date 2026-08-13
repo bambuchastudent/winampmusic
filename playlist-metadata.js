@@ -36,7 +36,7 @@
     const result = [];
     for (const raw of items) {
       const badge = clean(raw);
-      if (!badge || badge.length > 48 || validDuration(badge)) continue;
+      if (!badge || badge.length > 80 || validDuration(badge)) continue;
       const key = badge.toLocaleLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -70,6 +70,15 @@
     };
   }
 
+  function visibleLabels(track) {
+    const labels = [...normalizeBadges(track.badges)];
+    const hashtags = track.title?.match(/#[\p{L}\p{N}_-]+/gu) || [];
+    labels.push(...hashtags);
+    const playlist = clean(track.playlist);
+    if (playlist && playlist !== track.title && !playlist.startsWith('WMETA')) labels.push(playlist);
+    return normalizeBadges(labels).slice(0, 5);
+  }
+
   function readLibrary() {
     try {
       const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -95,6 +104,7 @@
     const node = document.createElement('span');
     node.className = 'youtube-label';
     node.textContent = text;
+    node.title = text;
     return node;
   }
 
@@ -114,9 +124,10 @@
 
         const main = row.querySelector('.track-main');
         let labels = row.querySelector('.track-youtube-labels');
-        if (track.badges.length) {
+        const items = visibleLabels(track);
+        if (items.length) {
           if (!labels) { labels = document.createElement('div'); labels.className = 'track-youtube-labels'; main?.appendChild(labels); }
-          labels.replaceChildren(...track.badges.map(badgeNode));
+          labels.replaceChildren(...items.map(badgeNode));
         } else labels?.remove();
 
         let duration = row.querySelector('.track-duration');
