@@ -8,6 +8,7 @@
   <meta name="description" content="A tiny mobile-first player for your YouTube music library." />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./youtube-player.css" />
 </head>
 <body>
   <main class="app-shell">
@@ -43,7 +44,7 @@
         <input id="volume" type="range" min="0" max="100" value="75" aria-label="Volume" />
       </div>
 
-      <div id="youtubePlayer" class="youtube-player" aria-hidden="true"></div>
+      <div id="youtubePlayer" class="youtube-player"></div>
     </section>
 
     <section class="library-panel">
@@ -73,17 +74,17 @@
       <div class="dialog-heading">
         <div>
           <div class="eyebrow">YOUTUBE IMPORTER</div>
-          <h2>Import visible playlist tracks</h2>
+          <h2>Import playlist tracks</h2>
         </div>
         <button class="icon-button" value="cancel" aria-label="Close">✕</button>
       </div>
-      <p>Open your playlist on <strong>youtube.com</strong>, open DevTools → Console, paste the script below, and press Enter. It scrolls the current playlist, collects video metadata, opens this player, and sends the library here.</p>
+      <p>Open your playlist or Liked videos on <strong>youtube.com</strong>, open DevTools → Console, paste the script below, and press Enter. It scans the current list, opens this player, and sends the library here.</p>
       <textarea id="importScript" readonly spellcheck="false"></textarea>
       <div class="dialog-actions">
         <button id="copyScriptButton" type="button">Copy script</button>
         <button value="cancel" class="ghost">Close</button>
       </div>
-      <p class="fine-print">The importer only reads metadata already rendered in your browser. Playback uses YouTube embeds; it does not download audio files.</p>
+      <p class="fine-print">The importer only reads metadata already rendered in your browser. Playback uses the visible YouTube player; it does not download or re-host audio.</p>
     </form>
   </dialog>
 
