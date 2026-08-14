@@ -41,6 +41,9 @@ jobs:
           grep -q 'pastepile.com/api/public/pastes' compact-share.js
           grep -q 'AES-GCM' compact-share.js
           grep -q 'winampmusic.geniusMap.v1' compact-share.js
+          grep -q 'winampmusic.player.v1' compact-share.js
+          grep -q 'tracks.slice(currentIndex)' compact-share.js
+          grep -q 'startTrackId' compact-share.js
       - name: Check lyrics, comments and icon wiring
         run: |
           grep -q 'id="geniusEmbedHost"' index.html
@@ -63,5 +66,7 @@ jobs:
           grep -q 'lyrics.js' sw.js
           grep -q 'compact-share.js' sw.js
           grep -q 'fca600' icon.svg
+          grep -q 'winamp-logo' metadata-refresh.js
+          grep -q "icon.href = './icon.svg'" metadata-refresh.js
       - name: Check web manifest JSON
         run: python -m json.tool manifest.webmanifest >/dev/null
