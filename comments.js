@@ -1,86 +1,140 @@
 (() => {
-  const API_KEY_STORAGE = 'winampmusic.youtubeApiKey.v1';
   const PLAYER_STATE_KEY = 'winampmusic.player.v1';
-  const COMMENTS_CACHE_KEY = 'winampmusic.comments.v1';
+  const COMMENTS_CACHE_KEY = 'winampmusic.comments.v2';
+  const GOOGLE_CLIENT_ID_KEY = 'winampmusic.googleClientId.v1';
+  const TOKEN_KEY = 'winampmusic.youtubeOAuthToken.v1';
   const CACHE_TTL_MS = 10 * 60 * 1000;
   const MAX_COMMENTS = 20;
+  const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube.readonly';
 
-  const lyricsBar = document.getElementById('lyricsBar');
-  const youtubePlayer = document.getElementById('youtubePlayer');
+  if (window.__WINAMP_YOUTUBE_COMMENTS_V4__) return;
+  window.__WINAMP_YOUTUBE_COMMENTS_V4__ = true;
+
   const titleNode = document.getElementById('nowTitle');
-  if (!titleNode || document.getElementById('commentsPanel')) return;
-
-  const css = document.createElement('link');
-  css.rel = 'stylesheet';
-  css.href = './comments.css?v=0.3.1';
-  document.head.appendChild(css);
-
-  const eyebrow = document.querySelector('.topbar .eyebrow');
-  if (eyebrow && !/v0\.3\.1/i.test(eyebrow.textContent || '')) {
-    eyebrow.textContent = 'YOUR YOUTUBE. YOUR PLAYER. · v0.3.1';
-  }
-  document.title = 'Winamp Music v0.3.1';
-
-  const panel = document.createElement('section');
-  panel.id = 'commentsPanel';
-  panel.className = 'comments-panel';
-  panel.innerHTML = `
-    <div class="comments-header">
-      <div>
-        <div class="eyebrow">YOUTUBE COMMENTS</div>
-        <strong id="commentsTitle">Current track</strong>
-      </div>
-      <div class="comments-actions">
-        <button id="commentsRefresh" class="mini-button" type="button">Refresh</button>
-        <button id="commentsSetup" class="mini-button" type="button">API key</button>
-      </div>
-    </div>
-    <div id="commentsStatus" class="comments-status">Waiting for a track…</div>
-    <div id="commentsList" class="comments-list"></div>`;
-  (lyricsBar || youtubePlayer)?.insertAdjacentElement('afterend', panel);
-
+  const panel = document.getElementById('commentsPanel');
   const commentsTitle = document.getElementById('commentsTitle');
   const commentsStatus = document.getElementById('commentsStatus');
   const commentsList = document.getElementById('commentsList');
+  const connectButton = document.getElementById('commentsConnect');
   const refreshButton = document.getElementById('commentsRefresh');
+  const disconnectButton = document.getElementById('commentsDisconnect');
   const setupButton = document.getElementById('commentsSetup');
+  if (!titleNode || !panel || !commentsStatus || !commentsList) return;
 
   let activeVideoId = '';
   let requestController = null;
+  let tokenClient = null;
+  let tokenPromiseResolve = null;
+  let tokenPromiseReject = null;
 
-  function readJson(key, fallback) {
+  function clean(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function readJson(storage, key, fallback) {
     try {
-      const value = JSON.parse(localStorage.getItem(key) || 'null');
-      return value ?? fallback;
+      const parsed = JSON.parse(storage.getItem(key) || 'null');
+      return parsed ?? fallback;
     } catch {
       return fallback;
     }
   }
 
   function currentVideoId() {
-    const saved = readJson(PLAYER_STATE_KEY, {});
+    const saved = readJson(localStorage, PLAYER_STATE_KEY, {});
     return /^[\w-]{6,20}$/.test(saved.currentId || '') ? saved.currentId : '';
   }
 
-  function apiKey() {
-    return String(localStorage.getItem(API_KEY_STORAGE) || '').trim();
+  function configuredClientId() {
+    return clean(window.WINAMP_MUSIC_GOOGLE_CLIENT_ID || localStorage.getItem(GOOGLE_CLIENT_ID_KEY));
+  }
+
+  function tokenState() {
+    const token = readJson(sessionStorage, TOKEN_KEY, null);
+    if (!token?.accessToken || !Number(token.expiresAt)) return null;
+    if (Date.now() > Number(token.expiresAt) - 30000) return null;
+    return token;
+  }
+
+  function saveToken(payload) {
+    const expiresIn = Math.max(60, Number(payload?.expires_in || 3600));
+    const state = {
+      accessToken: payload.access_token,
+      expiresAt: Date.now() + expiresIn * 1000,
+      scope: payload.scope || YOUTUBE_SCOPE,
+    };
+    sessionStorage.setItem(TOKEN_KEY, JSON.stringify(state));
+    return state;
+  }
+
+  function clearToken() {
+    sessionStorage.removeItem(TOKEN_KEY);
+    tokenClient = null;
   }
 
   function readCache() {
-    return readJson(COMMENTS_CACHE_KEY, {});
+    return readJson(localStorage, COMMENTS_CACHE_KEY, {});
   }
 
   function saveCache(videoId, comments) {
     const cache = readCache();
     cache[videoId] = { savedAt: Date.now(), comments };
-    const entries = Object.entries(cache).sort((a, b) => Number(b[1]?.savedAt || 0) - Number(a[1]?.savedAt || 0));
-    localStorage.setItem(COMMENTS_CACHE_KEY, JSON.stringify(Object.fromEntries(entries.slice(0, 40))));
+    const entries = Object.entries(cache)
+      .sort((a, b) => Number(b[1]?.savedAt || 0) - Number(a[1]?.savedAt || 0))
+      .slice(0, 40);
+    localStorage.setItem(COMMENTS_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
   }
 
   function cachedComments(videoId) {
     const entry = readCache()[videoId];
     if (!entry || Date.now() - Number(entry.savedAt || 0) > CACHE_TTL_MS) return null;
     return Array.isArray(entry.comments) ? entry.comments : null;
+  }
+
+  async function waitForGoogleIdentity() {
+    const started = Date.now();
+    while (!window.google?.accounts?.oauth2?.initTokenClient) {
+      if (Date.now() - started > 12000) throw new Error('Google sign-in did not load. Reload the page and try again.');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  async function oauthToken({ prompt = '' } = {}) {
+    const existing = tokenState();
+    if (existing && !prompt) return existing.accessToken;
+    const clientId = configuredClientId();
+    if (!clientId) throw Object.assign(new Error('YouTube OAuth client is not configured yet.'), { kind: 'setup' });
+    await waitForGoogleIdentity();
+
+    if (!tokenClient) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: YOUTUBE_SCOPE,
+        callback: (response) => {
+          if (response?.error) {
+            tokenPromiseReject?.(Object.assign(new Error(response.error_description || response.error), { kind: 'oauth' }));
+          } else if (response?.access_token) {
+            const state = saveToken(response);
+            tokenPromiseResolve?.(state.accessToken);
+          } else {
+            tokenPromiseReject?.(Object.assign(new Error('YouTube sign-in returned no access token.'), { kind: 'oauth' }));
+          }
+          tokenPromiseResolve = null;
+          tokenPromiseReject = null;
+        },
+        error_callback: (error) => {
+          tokenPromiseReject?.(Object.assign(new Error(error?.message || error?.type || 'YouTube sign-in failed.'), { kind: 'oauth' }));
+          tokenPromiseResolve = null;
+          tokenPromiseReject = null;
+        },
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      tokenPromiseResolve = resolve;
+      tokenPromiseReject = reject;
+      tokenClient.requestAccessToken({ prompt: prompt || (tokenState() ? '' : 'consent') });
+    });
   }
 
   function formatAge(value) {
@@ -97,7 +151,32 @@
     return formatter.format(Math.round(deltaSeconds / 31536000), 'year');
   }
 
+  function setConnectedUi(connected) {
+    if (connectButton) connectButton.hidden = connected;
+    if (disconnectButton) disconnectButton.hidden = !connected;
+    if (refreshButton) refreshButton.disabled = !connected;
+    panel.classList.toggle('comments-connected', connected);
+  }
+
+  function renderConnectState(message = '') {
+    setConnectedUi(false);
+    commentsList.replaceChildren();
+    commentsStatus.textContent = message || (configuredClientId()
+      ? 'Connect your YouTube account to show public comments for the current video.'
+      : 'One-time site setup is needed, then comments use a normal YouTube login.');
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'comments-connect';
+    action.textContent = configuredClientId() ? 'Connect YouTube' : 'Set up YouTube login';
+    action.addEventListener('click', () => {
+      if (configuredClientId()) connectYouTube().catch(() => {});
+      else openSetupDialog();
+    });
+    commentsList.appendChild(action);
+  }
+
   function renderComments(items, { cached = false } = {}) {
+    setConnectedUi(true);
     commentsList.replaceChildren();
     if (!items.length) {
       commentsStatus.textContent = 'No public comments returned for this video.';
@@ -153,39 +232,30 @@
     commentsStatus.textContent = cached ? `${items.length} comments · cached` : `${items.length} comments · YouTube`;
   }
 
-  function renderNeedsKey() {
-    commentsList.replaceChildren();
-    commentsStatus.textContent = 'Add a YouTube Data API key once to show public comments inside Winamp.';
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.className = 'comments-connect';
-    action.textContent = 'Connect YouTube comments';
-    action.addEventListener('click', openSetupDialog);
-    commentsList.appendChild(action);
-  }
-
   function normalizeApiError(payload, status) {
     const reason = payload?.error?.errors?.[0]?.reason || '';
     const message = payload?.error?.message || `YouTube API HTTP ${status}`;
     if (reason === 'commentsDisabled') return { kind: 'disabled', message: 'Comments are disabled for this video.' };
-    if (['keyInvalid', 'accessNotConfigured', 'forbidden'].includes(reason) || status === 401) {
-      return { kind: 'key', message: 'YouTube API key is missing, invalid, or not enabled for YouTube Data API v3.' };
-    }
-    if (reason === 'quotaExceeded') return { kind: 'quota', message: 'YouTube comments quota is exhausted for today.' };
+    if (reason === 'quotaExceeded') return { kind: 'quota', message: 'YouTube API quota is exhausted for today.' };
+    if (status === 401 || ['authError', 'unauthorized'].includes(reason)) return { kind: 'auth', message: 'YouTube login expired. Connect again.' };
+    if (status === 403 && reason === 'forbidden') return { kind: 'forbidden', message: 'YouTube did not allow comments for this request.' };
     return { kind: 'other', message };
   }
 
-  async function fetchComments(videoId, signal) {
+  async function fetchComments(videoId, signal, accessToken) {
     const url = new URL('https://www.googleapis.com/youtube/v3/commentThreads');
     url.searchParams.set('part', 'snippet');
     url.searchParams.set('videoId', videoId);
     url.searchParams.set('maxResults', String(MAX_COMMENTS));
     url.searchParams.set('order', 'relevance');
     url.searchParams.set('textFormat', 'plainText');
-    url.searchParams.set('key', apiKey());
     url.searchParams.set('fields', 'items(id,snippet(totalReplyCount,topLevelComment(snippet(authorDisplayName,authorProfileImageUrl,textDisplay,likeCount,publishedAt))))');
 
-    const response = await fetch(url, { signal, cache: 'no-store' });
+    const response = await fetch(url, {
+      signal,
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = normalizeApiError(payload, response.status);
@@ -208,6 +278,28 @@
     }).filter((item) => item.text);
   }
 
+  async function connectYouTube() {
+    commentsStatus.textContent = 'Opening YouTube login…';
+    try {
+      await oauthToken({ prompt: 'consent' });
+      setConnectedUi(true);
+      await loadComments({ force: true });
+    } catch (error) {
+      if (error.kind === 'setup') openSetupDialog();
+      else renderConnectState(error.message || 'Could not connect YouTube.');
+    }
+  }
+
+  async function disconnectYouTube() {
+    const token = tokenState()?.accessToken;
+    clearToken();
+    localStorage.removeItem(COMMENTS_CACHE_KEY);
+    if (token && window.google?.accounts?.oauth2?.revoke) {
+      try { google.accounts.oauth2.revoke(token, () => {}); } catch {}
+    }
+    renderConnectState('YouTube disconnected from this browser session.');
+  }
+
   async function loadComments({ force = false } = {}) {
     const videoId = currentVideoId();
     activeVideoId = videoId;
@@ -217,16 +309,24 @@
     if (!videoId) {
       commentsStatus.textContent = 'Play a track to load its YouTube comments.';
       commentsList.replaceChildren();
+      setConnectedUi(Boolean(tokenState()));
       return;
     }
-    if (!apiKey()) {
-      renderNeedsKey();
+
+    if (!configuredClientId()) {
+      renderConnectState();
       return;
     }
 
     const cached = !force && cachedComments(videoId);
-    if (cached) {
+    if (cached && tokenState()) {
       renderComments(cached, { cached: true });
+      return;
+    }
+
+    let accessToken = tokenState()?.accessToken;
+    if (!accessToken) {
+      renderConnectState();
       return;
     }
 
@@ -234,77 +334,78 @@
     commentsStatus.textContent = 'Loading YouTube comments in background…';
     if (force) commentsList.replaceChildren();
     try {
-      const items = await fetchComments(videoId, requestController.signal);
+      const items = await fetchComments(videoId, requestController.signal, accessToken);
       if (videoId !== activeVideoId) return;
       saveCache(videoId, items);
       renderComments(items);
     } catch (error) {
       if (error.name === 'AbortError') return;
+      if (error.kind === 'auth') {
+        clearToken();
+        renderConnectState(error.message);
+        return;
+      }
       commentsList.replaceChildren();
       commentsStatus.textContent = error.message || 'Could not load YouTube comments.';
-      if (error.kind === 'key') {
-        const action = document.createElement('button');
-        action.type = 'button';
-        action.className = 'comments-connect';
-        action.textContent = 'Fix API key';
-        action.addEventListener('click', openSetupDialog);
-        commentsList.appendChild(action);
-      }
     }
   }
 
   function ensureSetupDialog() {
-    let dialog = document.getElementById('commentsSetupDialog');
+    let dialog = document.getElementById('youtubeOAuthSetupDialog');
     if (dialog) return dialog;
     dialog = document.createElement('dialog');
-    dialog.id = 'commentsSetupDialog';
+    dialog.id = 'youtubeOAuthSetupDialog';
     dialog.innerHTML = `
       <form method="dialog" class="dialog-card comments-dialog-card">
         <div class="dialog-heading">
-          <div><div class="eyebrow">YOUTUBE COMMENTS</div><h2>Connect public comments</h2></div>
+          <div><div class="eyebrow">ONE-TIME YOUTUBE LOGIN SETUP</div><h2>Connect Winamp Music to YouTube</h2></div>
           <button class="icon-button" value="cancel" aria-label="Close">✕</button>
         </div>
-        <p>Paste a browser API key with <strong>YouTube Data API v3</strong> enabled. Winamp stores it only in this browser.</p>
-        <label class="comments-key-label">API key<input id="commentsApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" /></label>
-        <p class="fine-print">Recommended: restrict the key to this GitHub Pages site as an HTTP referrer and restrict the API to YouTube Data API v3.</p>
+        <p>Comments now use Google/YouTube OAuth instead of an API key. The site owner needs one public <strong>Web OAuth Client ID</strong>; after that users only press <strong>Connect YouTube</strong>.</p>
+        <label class="comments-key-label">Google OAuth Client ID<input id="youtubeOAuthClientId" type="text" autocomplete="off" spellcheck="false" placeholder="1234567890-….apps.googleusercontent.com" /></label>
+        <p class="fine-print">In Google Cloud enable YouTube Data API v3, create a Web application OAuth client, and add <strong>https://bambuchastudent.github.io</strong> as an authorized JavaScript origin. The client ID is public; no client secret is stored in Winamp Music.</p>
         <div class="dialog-actions">
-          <button id="commentsKeySave" type="button">Save key</button>
-          <button id="commentsKeyClear" type="button" class="ghost danger">Clear key</button>
+          <button id="youtubeOAuthSave" type="button">Save & connect</button>
+          <button id="youtubeOAuthClear" type="button" class="ghost danger">Clear setup</button>
           <button value="cancel" class="ghost">Cancel</button>
         </div>
       </form>`;
     document.body.appendChild(dialog);
 
-    const input = dialog.querySelector('#commentsApiKeyInput');
-    dialog.querySelector('#commentsKeySave').addEventListener('click', () => {
-      const value = String(input.value || '').trim();
-      if (!value) {
+    const input = dialog.querySelector('#youtubeOAuthClientId');
+    dialog.querySelector('#youtubeOAuthSave').addEventListener('click', async () => {
+      const value = clean(input.value);
+      if (!/\.apps\.googleusercontent\.com$/i.test(value)) {
         input.focus();
         return;
       }
-      localStorage.setItem(API_KEY_STORAGE, value);
+      localStorage.setItem(GOOGLE_CLIENT_ID_KEY, value);
+      clearToken();
       dialog.close();
-      loadComments({ force: true }).catch(() => {});
+      await connectYouTube();
     });
-    dialog.querySelector('#commentsKeyClear').addEventListener('click', () => {
-      localStorage.removeItem(API_KEY_STORAGE);
+    dialog.querySelector('#youtubeOAuthClear').addEventListener('click', () => {
+      localStorage.removeItem(GOOGLE_CLIENT_ID_KEY);
       localStorage.removeItem(COMMENTS_CACHE_KEY);
+      clearToken();
       input.value = '';
       dialog.close();
-      renderNeedsKey();
+      renderConnectState();
     });
     return dialog;
   }
 
   function openSetupDialog() {
     const dialog = ensureSetupDialog();
-    const input = dialog.querySelector('#commentsApiKeyInput');
-    input.value = apiKey();
+    const input = dialog.querySelector('#youtubeOAuthClientId');
+    input.value = configuredClientId();
     dialog.showModal();
     setTimeout(() => input.focus(), 0);
   }
 
+  connectButton?.addEventListener('click', () => connectYouTube().catch(() => {}));
   refreshButton?.addEventListener('click', () => loadComments({ force: true }).catch(() => {}));
+  disconnectButton?.addEventListener('click', () => disconnectYouTube().catch(() => {}));
   setupButton?.addEventListener('click', openSetupDialog);
 
   let lastSeenId = '';
@@ -314,9 +415,11 @@
     lastSeenId = id;
     loadComments().catch(() => {});
   }, 700);
+
   new MutationObserver(() => {
     commentsTitle.textContent = titleNode.textContent?.trim() || 'Current track';
   }).observe(titleNode, { childList: true, subtree: true, characterData: true });
 
+  setConnectedUi(Boolean(tokenState()));
   setTimeout(() => loadComments().catch(() => {}), 300);
 })();
