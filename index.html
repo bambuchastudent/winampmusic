@@ -97,9 +97,9 @@
     <section class="library-panel skin-playlist-surface">
       <div class="library-header">
         <div><div class="eyebrow">PLAYLIST</div><h2>Your library <span id="trackCount">0</span></h2></div>
-        <div class="header-actions"><button id="importHelpButton" class="ghost">Import</button><button id="clearButton" class="ghost danger">Clear</button></div>
+        <div class="header-actions"><button id="importHelpButton" class="ghost">Import</button><button id="clearButton" class="ghost danger">Reset cache</button></div>
       </div>
-      <input id="search" class="search" type="search" placeholder="Search or paste YouTube URL…" autocomplete="off" />
+      <input id="search" class="search" type="search" placeholder="Search title, artist, playlist, tag or paste YouTube URL…" autocomplete="off" />
       <ol id="trackList" class="track-list"></ol>
       <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Paste a YouTube song or playlist link above. For a page that already has a visible queue, the importer script can still capture that rendered list.</span><button id="emptyImportButton">Show import script</button></div>
     </section>
@@ -127,8 +127,8 @@
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="./app.js" defer></script>
-  <script src="./playlist-metadata.js" defer></script>
   <script src="./paste-import.js" defer></script>
+  <script src="./metadata-refresh.js" defer></script>
   <script src="./winamp-features.js" defer></script>
   <script src="./lyrics.js" defer></script>
 </body>
