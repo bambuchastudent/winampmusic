@@ -1,5 +1,6 @@
 (() => {
   const STORAGE_KEY = 'winampmusic.library.v1';
+  const PLAYER_STATE_KEY = 'winampmusic.player.v1';
   const GENIUS_MAP_KEY = 'winampmusic.geniusMap.v1';
   const REMOTE_PARAM = 's';
   const FALLBACK_PARAM = 'p';
@@ -22,10 +23,23 @@
     return Array.isArray(value) ? value : [];
   }
 
-  function compactIds() {
+  function currentTrackId() {
+    const id = String(readJson(PLAYER_STATE_KEY, {}).currentId || '').trim();
+    return ID_PATTERN.test(id) ? id : '';
+  }
+
+  function shareTracks() {
+    const tracks = readLibrary();
+    const currentId = currentTrackId();
+    if (!currentId) return tracks;
+    const currentIndex = tracks.findIndex((track) => track?.id === currentId);
+    return currentIndex >= 0 ? tracks.slice(currentIndex) : tracks;
+  }
+
+  function compactIds(tracks = shareTracks()) {
     const seen = new Set();
     const ids = [];
-    for (const track of readLibrary()) {
+    for (const track of tracks) {
       const id = String(track?.id || '').trim();
       if (!ID_PATTERN.test(id) || seen.has(id)) continue;
       seen.add(id);
@@ -72,11 +86,12 @@
     return new Uint8Array(await new Response(stream).arrayBuffer());
   }
 
-  function sanitizeGeniusMap(value) {
+  function sanitizeGeniusMap(value, allowedIds = null) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const allowed = allowedIds ? new Set(allowedIds) : null;
     const result = {};
     for (const [videoId, raw] of Object.entries(value)) {
-      if (!ID_PATTERN.test(videoId) || !raw || typeof raw !== 'object') continue;
+      if (!ID_PATTERN.test(videoId) || (allowed && !allowed.has(videoId)) || !raw || typeof raw !== 'object') continue;
       try {
         const url = new URL(String(raw.url || ''));
         if (!/(^|\.)genius\.com$/i.test(url.hostname)) continue;
@@ -91,12 +106,14 @@
     return result;
   }
 
-  function shareBundle() {
+  function shareBundle(tracks = shareTracks()) {
+    const ids = compactIds(tracks);
     return {
-      v: 2,
+      v: 3,
       createdAt: new Date().toISOString(),
-      tracks: readLibrary(),
-      geniusMap: sanitizeGeniusMap(readJson(GENIUS_MAP_KEY, {})),
+      startTrackId: ids[0] || '',
+      tracks,
+      geniusMap: sanitizeGeniusMap(readJson(GENIUS_MAP_KEY, {}), ids),
     };
   }
 
@@ -156,8 +173,8 @@
     return url.toString();
   }
 
-  async function createRemoteShare() {
-    const encrypted = await encryptBundle(shareBundle());
+  async function createRemoteShare(tracks = shareTracks()) {
+    const encrypted = await encryptBundle(shareBundle(tracks));
     const body = {
       title: 'Winamp Music playlist',
       content: JSON.stringify(encrypted.envelope),
@@ -179,7 +196,7 @@
   function shareData(url, count) {
     return {
       title: 'Winamp Music playlist',
-      text: `Listen to my ${count}-track Winamp Music playlist`,
+      text: `Listen from the current track · ${count} tracks`,
       url,
     };
   }
@@ -200,7 +217,8 @@
   }
 
   async function shareCompactPlaylist() {
-    const ids = compactIds();
+    const tracks = shareTracks();
+    const ids = compactIds(tracks);
     if (!ids.length) {
       if (STATUS) STATUS.textContent = 'NO TRACKS TO SHARE';
       return;
@@ -208,7 +226,7 @@
 
     if (STATUS) STATUS.textContent = 'CREATING SHORT LINK';
     try {
-      const remoteUrl = await createRemoteShare();
+      const remoteUrl = await createRemoteShare(tracks);
       await deliverShare(remoteUrl, ids.length);
     } catch (error) {
       console.warn('[Winamp Music share] remote short link failed, using URL fallback', error);
@@ -237,10 +255,18 @@
     localStorage.setItem(GENIUS_MAP_KEY, JSON.stringify({ ...current, ...incoming }));
   }
 
+  function setSharedStartTrack(bundle) {
+    const startId = String(bundle?.startTrackId || bundle?.tracks?.[0]?.id || '').trim();
+    if (!ID_PATTERN.test(startId)) return;
+    const state = readJson(PLAYER_STATE_KEY, {});
+    localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify({ ...state, currentId: startId }));
+  }
+
   function applyBundle(bundle) {
     if (!bundle || !Array.isArray(bundle.tracks) || typeof window.importTracks !== 'function') return false;
     const result = window.importTracks(bundle.tracks);
     mergeSharedGeniusMap(bundle.geniusMap);
+    setSharedStartTrack(bundle);
     if (STATUS) {
       STATUS.textContent = result.added
         ? `SHARED PLAYLIST IMPORTED (${result.total})`
@@ -274,7 +300,7 @@
   function loadFallbackPlaylist(value) {
     const ids = parseCompactIds(value);
     if (!ids.length || typeof window.importTracks !== 'function') return false;
-    return applyBundle({ v: 1, tracks: ids.map((id) => ({ id })) });
+    return applyBundle({ v: 1, startTrackId: ids[0], tracks: ids.map((id) => ({ id })) });
   }
 
   async function loadSharedPlaylist() {
@@ -309,6 +335,7 @@
     buildFallbackUrl: buildFallbackShareUrl,
     createRemoteShare,
     share: shareCompactPlaylist,
+    tracksFromCurrent: shareTracks,
   };
   window.sharePlaylist = shareCompactPlaylist;
 
