@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v7';
+const CACHE = 'winampmusic-shell-v8';
 const SHELL = [
   './',
   './index.html',
@@ -7,7 +7,11 @@ const SHELL = [
   './winamp-features.css',
   './paste-import.css',
   './playlist-metadata.css',
+  './captions.css',
+  './comments.css',
   './metadata-refresh.js',
+  './lyrics.js',
+  './comments.js',
   './manifest.webmanifest',
   './icon.svg',
 ];
@@ -18,10 +22,14 @@ const NETWORK_FIRST = new Set([
   'winamp-features.css',
   'paste-import.css',
   'playlist-metadata.css',
+  'captions.css',
+  'comments.css',
   'app.js',
   'youtube-import.js',
   'paste-import.js',
   'metadata-refresh.js',
+  'lyrics.js',
+  'comments.js',
   'winamp-features.js',
   'sw.js',
 ]);
