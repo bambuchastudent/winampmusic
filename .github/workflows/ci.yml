@@ -36,16 +36,21 @@ jobs:
           grep -q 'track-youtube-labels' app.js
           grep -q 'Search title, artist, playlist, tag' index.html
           grep -q "startsWith('winampmusic-shell-')" app.js
-      - name: Check v0.3 comments and lyrics wiring
+      - name: Check visible v0.3.1 lyrics and comments wiring
         run: |
-          grep -q "comments.js" lyrics.js
+          grep -q 'v0.3.1' index.html
+          grep -q 'id="lyricsBar"' index.html
+          ! grep 'id="lyricsBar"' index.html | grep -q 'hidden'
+          grep -q 'lyrics.js?v=0.3.1' index.html
+          grep -q 'comments.js?v=0.3.1' index.html
+          grep -q 'comments.css?v=0.3.1' index.html
           grep -q "commentThreads" comments.js
           grep -q "winampmusic.youtubeApiKey.v1" comments.js
           grep -q "winampmusic.lyrics.v2" lyrics.js
           grep -q "plainLyrics" lyrics.js
+          grep -q "document.getElementById('commentsPanel')" comments.js
+          grep -q "winampmusic-shell-v9" sw.js
           grep -q "comments.js" sw.js
           grep -q "lyrics.js" sw.js
-          grep -q "comments.css" sw.js
-          grep -q "captions.css" sw.js
       - name: Check web manifest JSON
         run: python -m json.tool manifest.webmanifest >/dev/null
