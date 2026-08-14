@@ -37,7 +37,8 @@
   function loadCompactShare() {
     if (document.querySelector('script[data-winamp-compact-share]')) return;
     const script = document.createElement('script');
-    script.src = './compact-share.js';
+    script.src = './compact-share.js?v=0.5';
+    script.async = false;
     script.dataset.winampCompactShare = '1';
     (document.head || document.documentElement).appendChild(script);
   }
