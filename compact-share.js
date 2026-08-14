@@ -4,7 +4,8 @@
   const GENIUS_MAP_KEY = 'winampmusic.geniusMap.v1';
   const REMOTE_PARAM = 's';
   const FALLBACK_PARAM = 'p';
-  const SHARE_API = 'https://pastepile.com/api/public/pastes';
+  const SHARE_CREATE_API = 'https://www.pastepile.com/api/paste';
+  const SHARE_RAW_BASE = 'https://www.pastepile.com/raw';
   const ID_PATTERN = /^[\w-]{6,20}$/;
   const SLUG_PATTERN = /^[a-zA-Z0-9-]{3,64}$/;
   const STATUS = document.getElementById('status');
@@ -109,7 +110,7 @@
   function shareBundle(tracks = shareTracks()) {
     const ids = compactIds(tracks);
     return {
-      v: 3,
+      v: 4,
       createdAt: new Date().toISOString(),
       startTrackId: ids[0] || '',
       tracks,
@@ -173,24 +174,29 @@
     return url.toString();
   }
 
+  function slugFromPasteUrl(value) {
+    const text = String(value || '').trim();
+    try {
+      const url = new URL(text);
+      const match = url.pathname.match(/\/p\/([a-zA-Z0-9-]{3,64})\/?$/);
+      return match?.[1] || '';
+    } catch {
+      const match = text.match(/(?:^|\/p\/)([a-zA-Z0-9-]{3,64})\/?$/);
+      return match?.[1] || '';
+    }
+  }
+
   async function createRemoteShare(tracks = shareTracks()) {
     const encrypted = await encryptBundle(shareBundle(tracks));
-    const body = {
-      title: 'Winamp Music playlist',
-      content: JSON.stringify(encrypted.envelope),
-      language: 'json',
-      expiry: '1w',
-      visibility: 'unlisted',
-    };
-    const response = await fetch(SHARE_API, {
+    const response = await fetch(SHARE_CREATE_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8', Accept: 'text/plain' },
+      body: JSON.stringify(encrypted.envelope),
     });
     if (!response.ok) throw new Error(`Share service HTTP ${response.status}`);
-    const data = await response.json();
-    if (!SLUG_PATTERN.test(data?.slug || '')) throw new Error('Share service returned an invalid id');
-    return buildRemoteShareUrl(data.slug, encrypted.key);
+    const slug = slugFromPasteUrl(await response.text());
+    if (!SLUG_PATTERN.test(slug)) throw new Error('Share service returned an invalid id');
+    return buildRemoteShareUrl(slug, encrypted.key);
   }
 
   function shareData(url, count) {
@@ -201,19 +207,80 @@
     };
   }
 
-  async function deliverShare(url, count) {
-    if (navigator.share) {
-      await navigator.share(shareData(url, count));
-      if (STATUS) STATUS.textContent = 'PLAYLIST SHARED';
-      return;
+  function ensureShareDialog() {
+    let dialog = document.getElementById('winampShareDialog');
+    if (dialog) return dialog;
+
+    dialog = document.createElement('dialog');
+    dialog.id = 'winampShareDialog';
+    dialog.style.cssText = 'width:min(calc(100% - 24px),620px);border:1px solid #343a46;border-radius:14px;color:#fff;background:#15181e;padding:0;box-shadow:0 30px 100px rgba(0,0,0,.7);';
+    dialog.innerHTML = `
+      <div style="padding:16px;display:grid;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div><div style="font-size:10px;letter-spacing:.16em;color:#8f98a8;font-weight:800">SHARE PLAYLIST</div><strong id="winampShareHeading">Short link ready</strong></div>
+          <button id="winampShareClose" type="button" aria-label="Close" style="border:0;background:transparent;color:#8f98a8;font-size:18px">✕</button>
+        </div>
+        <p id="winampShareNote" style="margin:0;color:#b4bbc7;font-size:12px;line-height:1.4">Starts from the current track.</p>
+        <input id="winampShareUrl" readonly style="width:100%;min-height:42px;border:1px solid #343a46;border-radius:8px;background:#0c0e12;color:#b7f29e;padding:0 10px;font:11px SFMono-Regular,Consolas,monospace" />
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="winampShareCopy" type="button" style="min-height:40px;padding:0 14px;border:1px solid #4a515e;border-radius:8px;background:#2a3039;color:#fff;font-weight:800">Copy link</button>
+          <button id="winampShareSystem" type="button" style="min-height:40px;padding:0 14px;border:1px solid #8f7724;border-radius:8px;background:#d8b63f;color:#171717;font-weight:800">Share…</button>
+        </div>
+      </div>`;
+    document.body.appendChild(dialog);
+
+    dialog.querySelector('#winampShareClose').addEventListener('click', () => dialog.close());
+    dialog.querySelector('#winampShareCopy').addEventListener('click', async () => {
+      const input = dialog.querySelector('#winampShareUrl');
+      try {
+        await navigator.clipboard.writeText(input.value);
+        if (STATUS) STATUS.textContent = 'SHORT LINK COPIED';
+      } catch {
+        input.focus();
+        input.select();
+        document.execCommand?.('copy');
+        if (STATUS) STATUS.textContent = 'LINK SELECTED';
+      }
+    });
+    dialog.querySelector('#winampShareSystem').addEventListener('click', async () => {
+      const input = dialog.querySelector('#winampShareUrl');
+      const count = Number(dialog.dataset.count || 0);
+      if (!navigator.share) {
+        input.focus();
+        input.select();
+        return;
+      }
+      try {
+        await navigator.share(shareData(input.value, count));
+        if (STATUS) STATUS.textContent = 'PLAYLIST SHARED';
+      } catch {}
+    });
+    return dialog;
+  }
+
+  async function showShareLink(url, count, fallback = false) {
+    const dialog = ensureShareDialog();
+    dialog.dataset.count = String(count);
+    dialog.querySelector('#winampShareHeading').textContent = fallback ? 'Fallback link ready' : 'Short link ready';
+    dialog.querySelector('#winampShareNote').textContent = fallback
+      ? 'The short-link service is unavailable, so this URL is longer. It still imports the playlist.'
+      : `Starts from the current track · ${count} tracks`;
+    const input = dialog.querySelector('#winampShareUrl');
+    input.value = url;
+    dialog.querySelector('#winampShareSystem').hidden = !navigator.share;
+
+    try {
+      await navigator.clipboard?.writeText(url);
+      if (STATUS) STATUS.textContent = fallback ? 'FALLBACK LINK COPIED' : 'SHORT LINK COPIED';
+    } catch {
+      if (STATUS) STATUS.textContent = fallback ? 'FALLBACK LINK READY' : 'SHORT LINK READY';
     }
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(url);
-      if (STATUS) STATUS.textContent = 'SHORT LINK COPIED';
-      return;
-    }
-    window.prompt('Copy playlist URL', url);
-    if (STATUS) STATUS.textContent = 'SHORT SHARE LINK READY';
+
+    if (!dialog.open) dialog.showModal();
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
   }
 
   async function shareCompactPlaylist() {
@@ -227,15 +294,10 @@
     if (STATUS) STATUS.textContent = 'CREATING SHORT LINK';
     try {
       const remoteUrl = await createRemoteShare(tracks);
-      await deliverShare(remoteUrl, ids.length);
+      await showShareLink(remoteUrl, ids.length, false);
     } catch (error) {
       console.warn('[Winamp Music share] remote short link failed, using URL fallback', error);
-      try {
-        await deliverShare(buildFallbackShareUrl(ids), ids.length);
-        if (STATUS) STATUS.textContent = 'SHORT SERVICE UNAVAILABLE · LINK COPIED';
-      } catch {
-        if (STATUS) STATUS.textContent = 'SHARE CANCELLED';
-      }
+      await showShareLink(buildFallbackShareUrl(ids), ids.length, true);
     }
   }
 
@@ -255,18 +317,28 @@
     localStorage.setItem(GENIUS_MAP_KEY, JSON.stringify({ ...current, ...incoming }));
   }
 
-  function setSharedStartTrack(bundle) {
+  function sharedStartTrackId(bundle) {
     const startId = String(bundle?.startTrackId || bundle?.tracks?.[0]?.id || '').trim();
-    if (!ID_PATTERN.test(startId)) return;
+    return ID_PATTERN.test(startId) ? startId : '';
+  }
+
+  function applySharedStartTrack(bundle) {
+    const startId = sharedStartTrackId(bundle);
+    if (!startId) return;
     const state = readJson(PLAYER_STATE_KEY, {});
     localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify({ ...state, currentId: startId }));
+
+    const index = readLibrary().findIndex((track) => track?.id === startId);
+    if (index >= 0 && typeof window.playIndex === 'function') {
+      setTimeout(() => window.playIndex(index), 0);
+    }
   }
 
   function applyBundle(bundle) {
     if (!bundle || !Array.isArray(bundle.tracks) || typeof window.importTracks !== 'function') return false;
     const result = window.importTracks(bundle.tracks);
     mergeSharedGeniusMap(bundle.geniusMap);
-    setSharedStartTrack(bundle);
+    applySharedStartTrack(bundle);
     if (STATUS) {
       STATUS.textContent = result.added
         ? `SHARED PLAYLIST IMPORTED (${result.total})`
@@ -285,15 +357,13 @@
 
   async function loadRemotePlaylist(slug) {
     if (!SLUG_PATTERN.test(slug || '')) throw new Error('Invalid share id');
-    const response = await fetch(`${SHARE_API}/${encodeURIComponent(slug)}`, {
-      headers: { Accept: 'application/json' },
+    const response = await fetch(`${SHARE_RAW_BASE}/${encodeURIComponent(slug)}`, {
+      headers: { Accept: 'text/plain' },
       cache: 'no-store',
     });
     if (!response.ok) throw new Error(response.status === 404 ? 'Shared playlist expired' : `Share service HTTP ${response.status}`);
-    const data = await response.json();
-    const content = data?.files?.[0]?.content;
-    if (!content) throw new Error('Shared playlist is empty');
-    const bundle = await decryptBundle(JSON.parse(content), hashKey());
+    const envelope = JSON.parse(await response.text());
+    const bundle = await decryptBundle(envelope, hashKey());
     if (!applyBundle(bundle)) throw new Error('Shared playlist is invalid');
   }
 
@@ -318,7 +388,10 @@
       return true;
     }
     const fallback = params.get(FALLBACK_PARAM);
-    if (fallback) loadFallbackPlaylist(fallback);
+    if (fallback) {
+      if (STATUS) STATUS.textContent = 'LOADING SHARED PLAYLIST';
+      loadFallbackPlaylist(fallback);
+    }
     return true;
   }
 
@@ -328,7 +401,7 @@
       await loadSharedPlaylist();
       return;
     }
-    if (attempt < 40) setTimeout(() => boot(attempt + 1), 50);
+    if (attempt < 80) setTimeout(() => boot(attempt + 1), 50);
   }
 
   window.winampMusicCompactShare = {
@@ -336,6 +409,7 @@
     createRemoteShare,
     share: shareCompactPlaylist,
     tracksFromCurrent: shareTracks,
+    load: loadSharedPlaylist,
   };
   window.sharePlaylist = shareCompactPlaylist;
 
