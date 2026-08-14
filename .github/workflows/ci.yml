@@ -33,6 +33,7 @@ jobs:
         run: |
           grep -q 'playlist-metadata.css' index.html
           grep -q 'metadata-refresh.js' index.html
+          grep -q 'compact-share.js?v=0.5' index.html
           ! grep -q 'playlist-metadata.js' index.html
           grep -q 'track-duration' app.js
           grep -q 'track-youtube-labels' app.js
