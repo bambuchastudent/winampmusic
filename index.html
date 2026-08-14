@@ -4,22 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#17191f" />
-  <title>Winamp Music v0.3.1</title>
+  <title>Winamp Music v0.4</title>
   <meta name="description" content="A mobile and desktop Winamp-style player for your YouTube music library." />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./styles.css?v=0.3.1" />
-  <link rel="stylesheet" href="./youtube-player.css?v=0.3.1" />
-  <link rel="stylesheet" href="./winamp-features.css?v=0.3.1" />
-  <link rel="stylesheet" href="./captions.css?v=0.3.1" />
-  <link rel="stylesheet" href="./comments.css?v=0.3.1" />
-  <link rel="stylesheet" href="./paste-import.css?v=0.3.1" />
-  <link rel="stylesheet" href="./playlist-metadata.css?v=0.3.1" />
+  <link rel="stylesheet" href="./styles.css?v=0.4" />
+  <link rel="stylesheet" href="./youtube-player.css?v=0.4" />
+  <link rel="stylesheet" href="./winamp-features.css?v=0.4" />
+  <link rel="stylesheet" href="./captions.css?v=0.4" />
+  <link rel="stylesheet" href="./comments.css?v=0.4" />
+  <link rel="stylesheet" href="./paste-import.css?v=0.4" />
+  <link rel="stylesheet" href="./playlist-metadata.css?v=0.4" />
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER. · v0.3.1</div>
+        <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER. · v0.4</div>
         <h1>WINAMP MUSIC</h1>
       </div>
       <div class="top-actions">
@@ -90,11 +90,39 @@
       </section>
 
       <div id="youtubePlayer" class="youtube-player"></div>
-      <aside id="lyricsBar" class="lyrics-bar" aria-live="polite">
-        <div id="lyricsStatus" class="lyrics-status">ORIGINAL · LYRICS</div>
-        <div id="lyricsCurrent" class="lyrics-current">Lyrics load in background</div>
-        <div id="lyricsNext" class="lyrics-next">Play a track and Winamp will search the internet automatically.</div>
+
+      <aside id="lyricsBar" class="lyrics-bar genius-lyrics-panel" aria-live="polite">
+        <div class="lyrics-panel-header">
+          <div>
+            <div id="lyricsStatus" class="lyrics-status">GENIUS · LYRICS</div>
+            <div id="lyricsCurrent" class="lyrics-current">Lyrics load from Genius in background</div>
+            <div id="lyricsNext" class="lyrics-next">Play a track and Winamp will match the Genius song automatically.</div>
+          </div>
+          <a id="geniusOpen" class="mini-button genius-open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open on Genius</a>
+        </div>
+        <div id="geniusEmbedHost" class="genius-embed-host" aria-label="Genius lyrics"></div>
+        <div class="genius-link-row">
+          <input id="geniusUrlInput" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Wrong match? Paste exact genius.com/...-lyrics URL" />
+          <button id="geniusUrlSave" class="mini-button" type="button">Use Genius link</button>
+        </div>
       </aside>
+
+      <section id="commentsPanel" class="comments-panel" aria-live="polite">
+        <div class="comments-header">
+          <div>
+            <div class="eyebrow">YOUTUBE COMMENTS</div>
+            <strong id="commentsTitle">Current track</strong>
+          </div>
+          <div class="comments-actions">
+            <button id="commentsRefresh" class="mini-button" type="button" disabled>Refresh</button>
+            <button id="commentsConnect" class="mini-button" type="button">Connect YouTube</button>
+            <button id="commentsDisconnect" class="mini-button" type="button" hidden>Disconnect</button>
+            <button id="commentsSetup" class="mini-button" type="button">Setup</button>
+          </div>
+        </div>
+        <div id="commentsStatus" class="comments-status">Connect YouTube once, then comments load for the current track.</div>
+        <div id="commentsList" class="comments-list"></div>
+      </section>
     </section>
 
     <section class="library-panel skin-playlist-surface">
@@ -133,12 +161,13 @@
   </dialog>
 
   <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="./app.js?v=0.3.1" defer></script>
-  <script src="./paste-import.js?v=0.3.1" defer></script>
-  <script src="./metadata-refresh.js?v=0.3.1" defer></script>
-  <script src="./winamp-features.js?v=0.3.1" defer></script>
-  <script src="./lyrics.js?v=0.3.1" defer></script>
-  <script src="./comments.js?v=0.3.1" defer></script>
+  <script src="./app.js?v=0.4" defer></script>
+  <script src="./paste-import.js?v=0.4" defer></script>
+  <script src="./metadata-refresh.js?v=0.4" defer></script>
+  <script src="./winamp-features.js?v=0.4" defer></script>
+  <script src="./lyrics.js?v=0.4" defer></script>
+  <script src="./comments.js?v=0.4" defer></script>
 </body>
 </html>
