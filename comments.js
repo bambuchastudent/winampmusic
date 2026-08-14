@@ -8,18 +8,18 @@
   const lyricsBar = document.getElementById('lyricsBar');
   const youtubePlayer = document.getElementById('youtubePlayer');
   const titleNode = document.getElementById('nowTitle');
-  if (!titleNode) return;
+  if (!titleNode || document.getElementById('commentsPanel')) return;
 
   const css = document.createElement('link');
   css.rel = 'stylesheet';
-  css.href = './comments.css';
+  css.href = './comments.css?v=0.3.1';
   document.head.appendChild(css);
 
   const eyebrow = document.querySelector('.topbar .eyebrow');
-  if (eyebrow && !/v0\.3/i.test(eyebrow.textContent || '')) {
-    eyebrow.textContent = 'YOUR YOUTUBE. YOUR PLAYER. · v0.3';
+  if (eyebrow && !/v0\.3\.1/i.test(eyebrow.textContent || '')) {
+    eyebrow.textContent = 'YOUR YOUTUBE. YOUR PLAYER. · v0.3.1';
   }
-  document.title = 'Winamp Music v0.3';
+  document.title = 'Winamp Music v0.3.1';
 
   const panel = document.createElement('section');
   panel.id = 'commentsPanel';
