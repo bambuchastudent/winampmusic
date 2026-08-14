@@ -32,7 +32,12 @@ const ui = {
   emptyImport: $('emptyImportButton'),
   script: $('importScript'),
   copyScript: $('copyScriptButton'),
+  copyBookmarklet: $('copyBookmarkletButton'),
+  bookmarklet: $('bookmarkletScript'),
   install: $('installButton'),
+  youtubeOpen: $('openYoutubeButton'),
+  youtubeOpenLibrary: $('openYoutubeButtonLibrary'),
+  share: $('sharePlaylistButton'),
 };
 
 let currentIndex = -1;
@@ -192,6 +197,59 @@ function searchText(track) {
     ...(track.badges || []),
     track.id,
   ].join(' ').toLocaleLowerCase();
+}
+
+function encodeSharePayload(payload) {
+  const json = JSON.stringify(payload);
+  return btoa(String.fromCharCode(...new TextEncoder().encode(json)));
+}
+
+function decodeSharePayload(value) {
+  if (!value) return [];
+  try {
+    const bytes = Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return [];
+  }
+}
+
+function buildShareUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.set('playlist', encodeSharePayload(library));
+  url.hash = '';
+  return url.toString();
+}
+
+async function sharePlaylist() {
+  if (!library.length) {
+    ui.status.textContent = 'NO TRACKS TO SHARE';
+    return;
+  }
+
+  const shareUrl = buildShareUrl();
+  const shareData = {
+    title: 'Winamp Music playlist',
+    text: `Listen to my ${library.length}-track Winamp Music playlist`,
+    url: shareUrl,
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      ui.status.textContent = 'PLAYLIST SHARED';
+      return;
+    }
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl);
+      ui.status.textContent = 'LINK COPIED';
+      return;
+    }
+    window.prompt('Copy playlist URL', shareUrl);
+    ui.status.textContent = 'SHARE LINK READY';
+  } catch {
+    ui.status.textContent = 'SHARE CANCELLED';
+  }
 }
 
 function renderLibrary() {
@@ -429,16 +487,24 @@ function initYouTubePlayer() {
 window.onYouTubeIframeAPIReady = initYouTubePlayer;
 if (window.YT?.Player) initYouTubePlayer();
 
+function buildBookmarklet() {
+  const appUrl = 'https://bambuchastudent.github.io/winampmusic/';
+  const scriptUrl = new URL('./youtube-import.js', appUrl).toString();
+  return `javascript:(function(){if(!/(^|\.)youtube\.com$/.test(location.hostname)&&!/(^|\.)music\.youtube\.com$/.test(location.hostname)){alert('Open this on YouTube or YouTube Music before running the importer.');return;}var s=document.createElement('script');s.src=${JSON.stringify(scriptUrl + '?t=' + Date.now())};s.onload=function(){console.log('[Winamp Music] importer loaded');};document.body.appendChild(s);})();`;
+}
+
 async function openImportDialog() {
   ui.dialog.showModal();
-  if (ui.script.value) return;
-  try {
-    const response = await fetch('./youtube-import.js', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Importer unavailable');
-    ui.script.value = await response.text();
-  } catch {
-    ui.script.value = '// Could not load importer. Reload this page and try again.';
+  if (!ui.script.value) {
+    try {
+      const response = await fetch('./youtube-import.js', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Importer unavailable');
+      ui.script.value = await response.text();
+    } catch {
+      ui.script.value = '// Could not load importer. Reload this page and try again.';
+    }
   }
+  if (!ui.bookmarklet.value) ui.bookmarklet.value = buildBookmarklet();
 }
 
 window.addEventListener('message', (event) => {
@@ -464,6 +530,24 @@ ui.copyScript.addEventListener('click', async () => {
   const original = ui.copyScript.textContent;
   ui.copyScript.textContent = 'Copied';
   setTimeout(() => { ui.copyScript.textContent = original; }, 1200);
+});
+ui.copyBookmarklet?.addEventListener('click', async () => {
+  if (!ui.bookmarklet.value) ui.bookmarklet.value = buildBookmarklet();
+  await navigator.clipboard.writeText(ui.bookmarklet.value);
+  const original = ui.copyBookmarklet.textContent;
+  ui.copyBookmarklet.textContent = 'Copied';
+  setTimeout(() => { ui.copyBookmarklet.textContent = original; }, 1200);
+});
+ui.share.addEventListener('click', sharePlaylist);
+ui.youtubeOpen?.addEventListener('click', (event) => {
+  event.preventDefault();
+  window.open('https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2Ffeed%2Flibrary', '_blank', 'noopener,noreferrer');
+  ui.status.textContent = 'YOUTUBE LOGIN';
+});
+ui.youtubeOpenLibrary?.addEventListener('click', (event) => {
+  event.preventDefault();
+  window.open('https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fmusic.youtube.com%2F', '_blank', 'noopener,noreferrer');
+  ui.status.textContent = 'YOUTUBE MUSIC LOGIN';
 });
 ui.clear.addEventListener('click', async () => {
   if (!confirm(`Reset the ${library.length}-track playlist and cached player state?`)) return;
@@ -516,9 +600,20 @@ ui.install.addEventListener('click', async () => {
   ui.install.hidden = true;
 });
 
+function loadSharedPlaylistFromUrl() {
+  const shared = new URLSearchParams(window.location.search).get('playlist');
+  if (!shared) return;
+  const payload = decodeSharePayload(shared);
+  if (!Array.isArray(payload) || !payload.length) return;
+  const result = importTracks(payload);
+  if (library.length && currentIndex < 0) setNowPlaying(library[0]);
+  ui.status.textContent = result.added ? `SHARED PLAYLIST IMPORTED (${result.total})` : 'SHARED PLAYLIST LOADED';
+}
+
 window.importTracks = importTracks;
 window.renderLibrary = renderLibrary;
 window.playIndex = playIndex;
+window.sharePlaylist = sharePlaylist;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
@@ -526,4 +621,5 @@ if ('serviceWorker' in navigator) {
 
 ui.clear.textContent = 'Reset cache';
 ui.clear.title = 'Clear playlist, player state, and app cache';
+loadSharedPlaylistFromUrl();
 renderLibrary();

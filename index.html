@@ -23,7 +23,9 @@
         <h1>WINAMP MUSIC</h1>
       </div>
       <div class="top-actions">
+        <a id="openYoutubeButton" class="youtube-button" href="https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2Ffeed%2Flibrary" target="_blank" rel="noopener noreferrer">YouTube login</a>
         <button id="desktopAppButton" class="ghost">Desktop app</button>
+        <button id="sharePlaylistButton" class="ghost" type="button">Share playlist</button>
         <button id="installButton" class="ghost" hidden>Install</button>
       </div>
     </header>
@@ -98,7 +100,7 @@
     <section class="library-panel skin-playlist-surface">
       <div class="library-header">
         <div><div class="eyebrow">PLAYLIST</div><h2>Your library <span id="trackCount">0</span></h2></div>
-        <div class="header-actions"><button id="importHelpButton" class="ghost">Import</button><button id="clearButton" class="ghost danger">Reset cache</button></div>
+        <div class="header-actions"><a id="openYoutubeButtonLibrary" class="youtube-button small" href="https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fmusic.youtube.com%2F" target="_blank" rel="noopener noreferrer">YouTube login</a><button id="importHelpButton" class="ghost">Import</button><button id="clearButton" class="ghost danger">Reset cache</button></div>
       </div>
       <input id="search" class="search" type="search" placeholder="Search title, artist, playlist, tag or paste YouTube URL…" autocomplete="off" />
       <ol id="trackList" class="track-list"></ol>
@@ -109,10 +111,15 @@
   <dialog id="importDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-heading"><div><div class="eyebrow">YOUTUBE IMPORTER</div><h2>Import playing track + playlist</h2></div><button class="icon-button" value="cancel" aria-label="Close">✕</button></div>
-      <p>Open the track you are listening to, a playlist, or Liked videos on <strong>youtube.com</strong>, open DevTools → Console, paste the script below, and press Enter. It explicitly captures the current video and then scans the visible list.</p>
+      <p>Open the track you are listening to, a playlist, or Liked videos on <strong>youtube.com</strong>. Sign in to YouTube in that browser tab, then run the bookmarklet below. This app does <strong>not</strong> request Google OAuth or account access; it only reads the current YouTube page you are viewing.</p>
       <textarea id="importScript" readonly spellcheck="false"></textarea>
-      <div class="dialog-actions"><button id="copyScriptButton" type="button">Copy script</button><button value="cancel" class="ghost">Close</button></div>
-      <p class="fine-print">The importer reads metadata already rendered in your browser. Playback uses the visible YouTube player; it does not download or re-host audio.</p>
+      <div class="dialog-actions">
+        <button id="copyScriptButton" type="button">Copy script</button>
+        <button id="copyBookmarkletButton" type="button">Copy bookmarklet</button>
+        <button value="cancel" class="ghost">Close</button>
+      </div>
+      <textarea id="bookmarkletScript" readonly spellcheck="false" class="bookmarklet-box"></textarea>
+      <p class="fine-print">Browser-only flow: sign in to YouTube, then drag the bookmarklet to your browser bar or copy it and save it as a bookmark. One click on the bookmark imports the current YouTube tab.</p>
     </form>
   </dialog>
 
