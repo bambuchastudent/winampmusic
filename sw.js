@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v12';
+const CACHE = 'winampmusic-shell-v11';
 const SHELL = [
   './',
   './index.html',
