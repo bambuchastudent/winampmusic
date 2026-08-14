@@ -4,6 +4,14 @@
   const MAX_WAIT_MS = 3500;
   const BETWEEN_TRACKS_MS = 80;
 
+  function loadCompactShare() {
+    if (document.querySelector('script[data-winamp-compact-share]')) return;
+    const script = document.createElement('script');
+    script.src = './compact-share.js';
+    script.dataset.winampCompactShare = '1';
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function clean(value) {
     return String(value || '').replace(/\s+/g, ' ').trim();
   }
@@ -106,5 +114,7 @@
     }
   }
 
-  window.addEventListener('load', () => setTimeout(() => repair().catch(() => {}), 400));
+  window.refreshWinampMetadata = () => repair().catch(() => {});
+  loadCompactShare();
+  window.addEventListener('load', () => setTimeout(() => window.refreshWinampMetadata(), 400));
 })();
