@@ -25,6 +25,7 @@ jobs:
           node --check playlist-metadata.js
           node --check winamp-features.js
           node --check lyrics.js
+          node --check lyrics-sync.js
           node --check comments.js
           node --check sw.js
       - name: Check playlist wiring
@@ -36,25 +37,26 @@ jobs:
           grep -q 'track-youtube-labels' app.js
           grep -q 'Search title, artist, playlist, tag' index.html
           grep -q "startsWith('winampmusic-shell-')" app.js
-      - name: Check visible v0.4 Genius and YouTube wiring
+      - name: Check lyrics, comments and icon wiring
         run: |
-          grep -q 'v0.4' index.html
           grep -q 'id="geniusEmbedHost"' index.html
           grep -q 'id="geniusUrlInput"' index.html
           grep -q 'id="commentsPanel"' index.html
           grep -q 'id="commentsConnect"' index.html
-          grep -q 'accounts.google.com/gsi/client' index.html
-          grep -q 'lyrics.js?v=0.4' index.html
-          grep -q 'comments.js?v=0.4' index.html
           grep -q 'genius.com/api/search/multi' lyrics.js
           grep -q 'genius.com/songs/' lyrics.js
-          grep -q 'winampmusic.geniusMap.v1' lyrics.js
-          grep -q 'google.accounts.oauth2.initTokenClient' comments.js
-          grep -q 'youtube.readonly' comments.js
-          grep -q 'Authorization: `Bearer' comments.js
+          grep -q 'lyrics-sync.js?v=0.5' comments.js
+          grep -q 'lrclib.net/api/search' lyrics-sync.js
+          grep -q 'syncedLyrics' lyrics-sync.js
+          grep -q 'lyrics-line.active' captions.css
+          grep -q 'Login with YouTube' comments.js
+          grep -q '/api/v1/comments/' comments.js
+          grep -q '/comments/' comments.js
           ! grep -q 'youtubeApiKey' comments.js
-          grep -q 'winampmusic-shell-v10' sw.js
+          ! grep -q 'initTokenClient' comments.js
+          grep -q 'winampmusic-shell-v11' sw.js
           grep -q 'comments.js' sw.js
           grep -q 'lyrics.js' sw.js
+          grep -q 'fca600' icon.svg
       - name: Check web manifest JSON
         run: python -m json.tool manifest.webmanifest >/dev/null
