@@ -143,6 +143,14 @@ h2 { margin-bottom: 0; font-size: 18px; }
 .empty-state { display: grid; gap: 8px; padding: 32px 18px; color: var(--muted); text-align: center; }
 .empty-state strong { color: #fff; }
 .empty-state button { margin: 10px auto 0; padding: 0 16px; }
+.app-version {
+  margin-top: 14px;
+  text-align: center;
+  color: var(--muted);
+  font: 10px "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .14em;
+  opacity: .55;
+}
 
 input[type="range"] { accent-color: var(--accent); }
 
