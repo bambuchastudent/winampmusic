@@ -4,6 +4,36 @@
   const MAX_WAIT_MS = 3500;
   const BETWEEN_TRACKS_MS = 80;
 
+  function installWinampBranding() {
+    if (!document.querySelector('link[data-winamp-icon]')) {
+      const icon = document.createElement('link');
+      icon.rel = 'icon';
+      icon.type = 'image/svg+xml';
+      icon.href = './icon.svg';
+      icon.dataset.winampIcon = '1';
+      document.head.appendChild(icon);
+    }
+
+    const topbar = document.querySelector('.topbar');
+    const titleBlock = topbar?.firstElementChild;
+    if (!topbar || !titleBlock || topbar.querySelector('.winamp-logo')) return;
+
+    const brand = document.createElement('div');
+    brand.className = 'winamp-brand';
+    brand.style.cssText = 'display:flex;align-items:center;gap:10px;min-width:0;';
+
+    const logo = document.createElement('img');
+    logo.className = 'winamp-logo';
+    logo.src = './icon.svg';
+    logo.alt = 'Winamp';
+    logo.width = 52;
+    logo.height = 52;
+    logo.style.cssText = 'display:block;width:clamp(42px,10vw,52px);height:clamp(42px,10vw,52px);object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 3px 8px rgba(252,166,0,.25));';
+
+    topbar.insertBefore(brand, titleBlock);
+    brand.append(logo, titleBlock);
+  }
+
   function loadCompactShare() {
     if (document.querySelector('script[data-winamp-compact-share]')) return;
     const script = document.createElement('script');
@@ -115,6 +145,7 @@
   }
 
   window.refreshWinampMetadata = () => repair().catch(() => {});
+  installWinampBranding();
   loadCompactShare();
   window.addEventListener('load', () => setTimeout(() => window.refreshWinampMetadata(), 400));
 })();
