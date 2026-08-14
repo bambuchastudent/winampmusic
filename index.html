@@ -4,8 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#17191f" />
-  <title>Winamp Music v0.4</title>
+  <meta name="apple-mobile-web-app-title" content="Winamp Music" />
+  <title>Winamp Music</title>
   <meta name="description" content="A mobile and desktop Winamp-style player for your YouTube music library." />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=0.4" />
+  <link rel="mask-icon" href="./icon.svg?v=0.4" color="#fca600" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="./styles.css?v=0.4" />
   <link rel="stylesheet" href="./youtube-player.css?v=0.4" />
@@ -19,7 +22,7 @@
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER. · v0.4</div>
+        <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER.</div>
         <h1>WINAMP MUSIC</h1>
       </div>
       <div class="top-actions">
@@ -131,6 +134,8 @@
       <ol id="trackList" class="track-list"></ol>
       <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Paste a YouTube song or playlist link above. For a page that already has a visible queue, the importer script can still capture that rendered list.</span><button id="emptyImportButton">Show import script</button></div>
     </section>
+
+    <footer class="app-version" aria-label="App version">v0.4</footer>
   </main>
 
   <dialog id="importDialog">
