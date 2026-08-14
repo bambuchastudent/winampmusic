@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v5';
+const CACHE = 'winampmusic-shell-v6';
 const SHELL = [
   './',
   './index.html',
@@ -10,7 +10,19 @@ const SHELL = [
   './manifest.webmanifest',
   './icon.svg',
 ];
-const NETWORK_FIRST = new Set(['app.js', 'youtube-import.js', 'paste-import.js', 'playlist-metadata.js', 'winamp-features.js', 'sw.js']);
+const NETWORK_FIRST = new Set([
+  'index.html',
+  'styles.css',
+  'youtube-player.css',
+  'winamp-features.css',
+  'paste-import.css',
+  'playlist-metadata.css',
+  'app.js',
+  'youtube-import.js',
+  'paste-import.js',
+  'winamp-features.js',
+  'sw.js',
+]);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
@@ -42,7 +54,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || event.request.method !== 'GET') return;
 
-  const fileName = url.pathname.split('/').pop();
+  const fileName = url.pathname.split('/').pop() || 'index.html';
   if (NETWORK_FIRST.has(fileName)) {
     event.respondWith(networkFirst(event.request));
     return;
