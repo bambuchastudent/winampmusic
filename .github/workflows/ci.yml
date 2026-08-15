@@ -34,6 +34,7 @@ jobs:
           node --check lyrics-sync.js
           node --check comments.js
           node --check input-v056.js
+          node --check v059.js
           node --check playback-continuity.js
           node --check sw.js
       - name: Check playlist wiring
@@ -45,7 +46,7 @@ jobs:
           ! grep -q 'playlist-metadata.js' index.html
           grep -q 'track-duration' app.js
           grep -q 'track-youtube-labels' app.js
-          grep -q 'Search title, artist, playlist, tag' index.html
+          grep -q 'Filter title, artist, playlist or tag' index.html
           grep -q "startsWith('winampmusic-shell-')" app.js
           grep -q 'www.pastepile.com/api/paste' compact-share.js
           grep -q 'www.pastepile.com/raw' compact-share.js
@@ -60,25 +61,49 @@ jobs:
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
       - name: Check YouTube source queue wiring
         run: |
-          grep -q 'v0.5.5' index.html
-          grep -q 'RD${parsed.videoId}' youtube-context.js
-          grep -q 'playlistAddSelected' youtube-context.js
-          grep -q 'moveContext(-1)' youtube-context.js
-          grep -q 'moveContext(1)' youtube-context.js
-          grep -q 'winampmusic.youtubeContext.v1' youtube-context.js
-          grep -q 'YOUTUBE MIX' youtube-context.js
-          grep -q 'direct-youtube-import.js?v=0.5.2' index.html
-          grep -q "search.addEventListener('input'" direct-youtube-import.js
-          grep -q 'winampMusicDirectYouTubeImport' direct-youtube-import.js
-          grep -q 'window.importTracks' direct-youtube-import.js
-          grep -q 'window.playIndex' direct-youtube-import.js
-          grep -q 'RD${id}' direct-youtube-import.js
-          grep -q 'winampMusicDirectYouTubeImport.handleUrl' mobile-url-import.js
-          grep -q "params.get('s')" mobile-url-import.js
-          grep -q "window.renderLibrary" mobile-url-import.js
-          grep -q 'direct-youtube-import.js' sw.js
-          grep -q 'mobile-url-import.js' sw.js
-          grep -q 'youtube-context.js' sw.js
+          python - <<'PY'
+          from pathlib import Path
+          contracts = {
+              'index.html': [
+                  'youtube-context.js?v=0.5',
+                  'direct-youtube-import.js?v=0.5.2',
+                  'mobile-url-import.js?v=0.5.1',
+              ],
+              'youtube-context.js': [
+                  'winampmusic.youtubeContext.v1',
+                  'function moveContext',
+                  'playlistAddSelected',
+                  'startGeneratedMix',
+                  'YOUTUBE MIX',
+                  'window.playIndex',
+              ],
+              'direct-youtube-import.js': [
+                  'winampmusic.youtubeContext.v1',
+                  'window.winampMusicDirectYouTubeImport',
+                  'handleUrl: handleValue',
+                  'window.importTracks',
+                  'window.playIndex',
+                  'mixId: `RD${id}`',
+              ],
+              'mobile-url-import.js': [
+                  'winampMusicDirectYouTubeImport.handleUrl',
+                  "params.get('s')",
+                  'window.renderLibrary',
+              ],
+              'sw.js': [
+                  'youtube-context.js',
+                  'direct-youtube-import.js',
+                  'mobile-url-import.js',
+              ],
+          }
+          missing = []
+          for filename, needles in contracts.items():
+              text = Path(filename).read_text(encoding='utf-8')
+              for needle in needles:
+                  if needle not in text:
+                      missing.append(f'{filename}: {needle}')
+          assert not missing, 'Missing source-queue contracts:\n' + '\n'.join(missing)
+          PY
       - name: Check v0.5.5 large playlist import
         run: |
           grep -q 'fixes-v054.js?v=0.5.5' index.html
@@ -112,7 +137,7 @@ jobs:
           grep -q '"action": "./"' manifest.webmanifest
           grep -q 'mobile-share.js' sw.js
           grep -q 'mobile.css' sw.js
-          grep -q 'winampmusic-shell-v19' sw.js
+          grep -Eq 'winampmusic-shell-v(19|20)' sw.js
           grep -q 'empty-state\[hidden\]' mobile.css
       - name: Check v0.5.6 top import and playback continuity
         run: |

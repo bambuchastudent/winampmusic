@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v19';
+const CACHE = 'winampmusic-shell-v20';
 const SHELL = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const SHELL = [
   './metadata-refresh.js',
   './fixes-v054.js',
   './input-v056.js',
+  './v059.js',
   './playback-continuity.js',
   './lyrics-v057.js',
   './compact-share.js',
@@ -25,6 +26,7 @@ const SHELL = [
   './comments.js',
   './manifest.webmanifest',
   './icon.svg',
+  './safari-pinned-tab.svg',
 ];
 const NETWORK_FIRST = new Set([
   'index.html',
@@ -42,6 +44,7 @@ const NETWORK_FIRST = new Set([
   'metadata-refresh.js',
   'fixes-v054.js',
   'input-v056.js',
+  'v059.js',
   'playback-continuity.js',
   'lyrics-v057.js',
   'compact-share.js',
@@ -53,6 +56,8 @@ const NETWORK_FIRST = new Set([
   'lyrics-sync.js',
   'comments.js',
   'winamp-features.js',
+  'icon.svg',
+  'safari-pinned-tab.svg',
   'sw.js',
 ]);
 
