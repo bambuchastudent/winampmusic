@@ -20,21 +20,26 @@
       const videoId = shortId || url.searchParams.get('v') || '';
       const playlistId = url.searchParams.get('list') || '';
       if (!/^[\w-]{6,20}$/.test(videoId) && !/^[\w-]{6,160}$/.test(playlistId)) return null;
-      return url.href;
+      return { href: url.href, videoId, playlistId };
     } catch {
       return null;
     }
   }
 
   function dispatchImport() {
-    const value = search.value.trim();
-    const url = parseYouTubeUrl(value);
-    if (!url || url === lastHandled) return;
-    lastHandled = url;
+    const parsed = parseYouTubeUrl(search.value);
+    if (!parsed || parsed.href === lastHandled) return;
 
-    // Android Chrome / keyboards can insert clipboard text without exposing
-    // clipboardData to a paste listener. The existing Enter handlers already
-    // own all import behavior, so route the inserted URL through them.
+    if (parsed.videoId && !parsed.playlistId && window.winampMusicDirectYouTubeImport?.handleUrl) {
+      lastHandled = parsed.href;
+      window.winampMusicDirectYouTubeImport.handleUrl(parsed.href);
+      if (status) status.textContent = 'READING YOUTUBE LINK';
+      return;
+    }
+
+    // Playlist links still use the existing playlist picker. Trigger a real
+    // buttonless Enter path only as a fallback after direct URL handlers had
+    // a chance to claim the input.
     const event = new KeyboardEvent('keydown', {
       key: 'Enter',
       code: 'Enter',
@@ -42,12 +47,11 @@
       cancelable: true,
     });
     search.dispatchEvent(event);
-    if (status && search.value.trim()) status.textContent = 'READING YOUTUBE LINK';
   }
 
   function scheduleImport() {
     clearTimeout(timer);
-    timer = setTimeout(dispatchImport, 60);
+    timer = setTimeout(dispatchImport, 80);
   }
 
   search.addEventListener('input', scheduleImport, true);
@@ -65,8 +69,6 @@
     const libraryLoaded = /\d+/.test(countText) && !/^0(?:\/0)?$/.test(countText);
     if (!libraryLoaded) return;
 
-    // A mobile browser may restore the long #k share secret into the search
-    // field. A shared playlist should always open unfiltered.
     if (value || countText.includes('/')) {
       search.value = '';
       lastHandled = '';
