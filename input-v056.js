@@ -135,14 +135,24 @@
   function loadV060Favicon() {
     if (window.__WINAMP_MUSIC_V060_FAVICON__ || document.querySelector('script[data-winamp-v060-favicon]')) return;
     const script = document.createElement('script');
-    script.src = './favicon-v060.js?v=0.5.10';
+    script.src = './favicon-v060.js?v=0.6.2';
     script.defer = true;
     script.dataset.winampV060Favicon = '1';
     document.head.appendChild(script);
   }
 
+  function loadV062CurrentShare() {
+    if (window.__WINAMP_MUSIC_SHARE_CURRENT_V062__ || document.querySelector('script[data-winamp-v062-current-share]')) return;
+    const script = document.createElement('script');
+    script.src = './share-current-v062.js?v=0.6.2';
+    script.defer = true;
+    script.dataset.winampV062CurrentShare = '1';
+    document.head.appendChild(script);
+  }
+
   function mountTopImportBar() {
     loadV060Favicon();
+    loadV062CurrentShare();
     if (document.getElementById('youtubeImportBar')) {
       loadV059();
       return;
