@@ -47,11 +47,15 @@
     loadScript('./compact-share.js?v=0.5', 'data-winamp-compact-share');
   }
 
-  function loadV056Fixes() {
+  function loadCurrentFixes() {
     loadScript('./input-v056.js?v=0.5.6', 'data-winamp-v056-input');
     loadScript('./playback-continuity.js?v=0.5.6', 'data-winamp-playback-continuity');
+    // Set this synchronously so comments.js cannot start the older lyrics-sync
+    // module while the v0.5.7 replacement is still downloading.
+    window.__WINAMP_SYNCED_LYRICS_V2__ = true;
+    loadScript('./lyrics-v057.js?v=0.5.7', 'data-winamp-lyrics-v057');
     const footer = document.querySelector('.app-version');
-    if (footer) footer.textContent = 'v0.5.6';
+    if (footer) footer.textContent = 'v0.5.7';
   }
 
   function clean(value) {
@@ -159,6 +163,6 @@
   window.refreshWinampMetadata = () => repair().catch(() => {});
   installWinampBranding();
   loadCompactShare();
-  loadV056Fixes();
+  loadCurrentFixes();
   window.addEventListener('load', () => setTimeout(() => window.refreshWinampMetadata(), 400));
 })();

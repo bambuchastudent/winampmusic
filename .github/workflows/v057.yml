@@ -1,0 +1,49 @@
+name: Validate v0.5.7 lyrics
+
+on:
+  pull_request:
+    paths:
+      - 'lyrics-v057.js'
+      - 'metadata-refresh.js'
+      - 'sw.js'
+      - '.github/workflows/v057.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-v057:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check lyrics-v057.js
+          node --check metadata-refresh.js
+          node --check sw.js
+      - name: Check synced lyrics matching
+        run: |
+          grep -q 'lrclib.net/api/search' lyrics-v057.js
+          grep -q 'track_name' lyrics-v057.js
+          grep -q 'artist_name' lyrics-v057.js
+          grep -q 'diff <= 2' lyrics-v057.js
+          grep -q 'syncedLyrics' lyrics-v057.js
+          grep -q 'setInterval(updateActiveLine, 100)' lyrics-v057.js
+          grep -q 'SYNCED LYRICS · LRCLIB' lyrics-v057.js
+      - name: Check focus isolation
+        run: |
+          grep -q "frame.tabIndex = -1" lyrics-v057.js
+          grep -q "focus({ preventScroll: true })" lyrics-v057.js
+          grep -q 'embedHost.replaceChildren' lyrics-v057.js
+          grep -q 'lastOutsideFocus' lyrics-v057.js
+          grep -q 'window.scrollTo' lyrics-v057.js
+          ! grep -q 'scrollIntoView' lyrics-v057.js
+      - name: Check production wiring
+        run: |
+          grep -q '__WINAMP_SYNCED_LYRICS_V2__ = true' metadata-refresh.js
+          grep -q 'lyrics-v057.js?v=0.5.7' metadata-refresh.js
+          grep -q "footer.textContent = 'v0.5.7'" metadata-refresh.js
+          grep -q "'./lyrics-v057.js'" sw.js
