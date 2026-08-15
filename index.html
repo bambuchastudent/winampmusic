@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="./comments.css?v=0.4" />
   <link rel="stylesheet" href="./paste-import.css?v=0.4" />
   <link rel="stylesheet" href="./playlist-metadata.css?v=0.4" />
-  <link rel="stylesheet" href="./mobile.css?v=0.5.3" />
+  <link rel="stylesheet" href="./mobile.css?v=0.5.4" />
 </head>
 <body>
   <main class="app-shell">
@@ -96,7 +96,7 @@
         <a id="mobileOpenYoutube" class="mobile-open-youtube" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">Open current in YouTube</a>
       </div>
 
-      <aside id="lyricsBar" class="lyrics-bar genius-lyrics-panel" aria-live="polite">
+      <aside id="lyricsBar" class="lyrics-bar genius-lyrics-panel" aria-live="polite" hidden>
         <div class="lyrics-panel-header">
           <div>
             <div id="lyricsStatus" class="lyrics-status">GENIUS · LYRICS</div>
@@ -106,10 +106,6 @@
           <a id="geniusOpen" class="mini-button genius-open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open on Genius</a>
         </div>
         <div id="geniusEmbedHost" class="genius-embed-host" aria-label="Genius lyrics"></div>
-        <div class="genius-link-row">
-          <input id="geniusUrlInput" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Wrong match? Paste exact genius.com/...-lyrics URL" />
-          <button id="geniusUrlSave" class="mini-button" type="button">Use Genius link</button>
-        </div>
       </aside>
 
       <section id="commentsPanel" class="comments-panel" aria-live="polite">
@@ -140,7 +136,7 @@
       <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Paste a YouTube song or playlist link above. On Android you can also install Winamp Music and use YouTube → Share → Winamp Music.</span><button id="emptyImportButton">Import options</button></div>
     </section>
 
-    <footer class="app-version" aria-label="App version">v0.5.3</footer>
+    <footer class="app-version" aria-label="App version">v0.5.4</footer>
   </main>
 
   <dialog id="importDialog">
@@ -171,6 +167,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="./app.js?v=0.4" defer></script>
+  <script src="./fixes-v054.js?v=0.5.4" defer></script>
   <script src="./compact-share.js?v=0.5" data-winamp-compact-share="1" defer></script>
   <script src="./paste-import.js?v=0.4" defer></script>
   <script src="./youtube-context.js?v=0.5" defer></script>
