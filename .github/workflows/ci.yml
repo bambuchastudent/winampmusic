@@ -22,6 +22,7 @@ jobs:
           node --check youtube-import.js
           node --check paste-import.js
           node --check youtube-context.js
+          node --check direct-youtube-import.js
           node --check mobile-url-import.js
           node --check metadata-refresh.js
           node --check compact-share.js
@@ -55,21 +56,26 @@ jobs:
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
       - name: Check YouTube source queue wiring
         run: |
-          grep -q 'v0.5.1' index.html
+          grep -q 'v0.5.2' index.html
           grep -q 'RD${parsed.videoId}' youtube-context.js
           grep -q 'playlistAddSelected' youtube-context.js
           grep -q 'moveContext(-1)' youtube-context.js
           grep -q 'moveContext(1)' youtube-context.js
           grep -q 'winampmusic.youtubeContext.v1' youtube-context.js
           grep -q 'YOUTUBE MIX' youtube-context.js
-          grep -q 'mobile-url-import.js?v=0.5.1' index.html
-          grep -q "search.addEventListener('input'" mobile-url-import.js
-          grep -q "new KeyboardEvent('keydown'" mobile-url-import.js
+          grep -q 'direct-youtube-import.js?v=0.5.2' index.html
+          grep -q "search.addEventListener('input'" direct-youtube-import.js
+          grep -q 'winampMusicDirectYouTubeImport' direct-youtube-import.js
+          grep -q 'window.importTracks' direct-youtube-import.js
+          grep -q 'window.playIndex' direct-youtube-import.js
+          grep -q 'RD${id}' direct-youtube-import.js
+          grep -q 'winampMusicDirectYouTubeImport.handleUrl' mobile-url-import.js
           grep -q "params.get('s')" mobile-url-import.js
           grep -q "window.renderLibrary" mobile-url-import.js
+          grep -q 'direct-youtube-import.js' sw.js
           grep -q 'mobile-url-import.js' sw.js
           grep -q 'youtube-context.js' sw.js
-          grep -q 'winampmusic-shell-v14' sw.js
+          grep -q 'winampmusic-shell-v15' sw.js
       - name: Check lyrics, comments and icon wiring
         run: |
           grep -q 'id="geniusEmbedHost"' index.html
