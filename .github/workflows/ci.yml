@@ -33,6 +33,8 @@ jobs:
           node --check lyrics.js
           node --check lyrics-sync.js
           node --check comments.js
+          node --check input-v056.js
+          node --check playback-continuity.js
           node --check sw.js
       - name: Check playlist wiring
         run: |
@@ -51,8 +53,8 @@ jobs:
           grep -q 'AES-GCM' compact-share.js
           grep -q 'winampmusic.geniusMap.v1' compact-share.js
           grep -q 'winampmusic.player.v1' compact-share.js
-          grep -q 'tracks.slice(currentIndex)' compact-share.js
-          grep -q 'startTrackId' compact-share.js
+          ! grep -q 'tracks.slice(currentIndex)' compact-share.js
+          grep -q 'startTrackId: ids.includes(currentId)' compact-share.js
           grep -q 'window.playIndex' compact-share.js
           grep -q 'Short link ready' compact-share.js
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
@@ -110,8 +112,18 @@ jobs:
           grep -q '"action": "./"' manifest.webmanifest
           grep -q 'mobile-share.js' sw.js
           grep -q 'mobile.css' sw.js
-          grep -q 'winampmusic-shell-v18' sw.js
+          grep -q 'winampmusic-shell-v19' sw.js
           grep -q 'empty-state\[hidden\]' mobile.css
+      - name: Check v0.5.6 top import and playback continuity
+        run: |
+          grep -q 'input-v056.js?v=0.5.6' metadata-refresh.js
+          grep -q 'playback-continuity.js?v=0.5.6' metadata-refresh.js
+          grep -q 'youtube.com/feed/playlists' input-v056.js
+          grep -q "insertFromPaste" input-v056.js
+          grep -q 'winampmusic.playbackContinuity.v1' playback-continuity.js
+          grep -q 'Resume from' playback-continuity.js
+          grep -q 'input-v056.js' sw.js
+          grep -q 'playback-continuity.js' sw.js
       - name: Check lyrics, mobile EQ and comments wiring
         run: |
           grep -q 'id="geniusEmbedHost"' index.html
