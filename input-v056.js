@@ -5,6 +5,11 @@
 
   let routedValue = '';
   let routedAt = 0;
+  let filterRevision = 0;
+
+  search.addEventListener('input', () => {
+    filterRevision += 1;
+  }, true);
 
   function parseYouTubeUrl(value) {
     const text = String(value || '').trim();
@@ -36,7 +41,27 @@
     }));
   }
 
-  function route(value) {
+  function restoreFilter(value, revision, importUrl) {
+    if (filterRevision !== revision) return false;
+    if (search.value !== '' && search.value !== importUrl) return true;
+    search.value = value;
+    window.renderLibrary?.();
+    return true;
+  }
+
+  function guardFilter(value, revision, importUrl) {
+    restoreFilter(value, revision, importUrl);
+    const timer = setInterval(() => {
+      if (filterRevision !== revision) {
+        clearInterval(timer);
+        return;
+      }
+      restoreFilter(value, revision, importUrl);
+    }, 500);
+    setTimeout(() => clearInterval(timer), 12000);
+  }
+
+  function route(value, input) {
     const parsed = parseYouTubeUrl(value);
     if (!parsed) return false;
 
@@ -44,42 +69,59 @@
     if (parsed.href === routedValue && now - routedAt < 700) return true;
     routedValue = parsed.href;
     routedAt = now;
-    search.value = parsed.href;
+
+    const filterValue = search.value;
+    const revision = filterRevision;
     if (status) status.textContent = parsed.playlistId ? 'READING YOUTUBE PLAYLIST' : 'READING YOUTUBE LINK';
 
     if (!parsed.playlistId && window.winampMusicDirectYouTubeImport?.handleUrl) {
-      if (window.winampMusicDirectYouTubeImport.handleUrl(parsed.href)) return true;
+      const handled = window.winampMusicDirectYouTubeImport.handleUrl(parsed.href);
+      if (handled) {
+        if (input) input.value = '';
+        guardFilter(filterValue, revision, parsed.href);
+        return true;
+      }
     }
 
-    // Playlist URLs are claimed by the full-playlist importer loaded earlier.
-    // Dispatching Enter gives us a deterministic fallback even when Android
-    // long-press paste did not expose clipboardData on the original event.
+    // Full-playlist import is still owned by the existing playlist handler.
+    // Feed it through the legacy search event without sacrificing the actual
+    // library filter: the filter is restored immediately and kept guarded
+    // while async playlist/fallback code finishes.
+    search.value = parsed.href;
     dispatchEnter();
+    if (input) input.value = '';
+    guardFilter(filterValue, revision, parsed.href);
     return true;
   }
 
-  function routeCurrentSoon() {
-    setTimeout(() => route(search.value), 0);
-    setTimeout(() => route(search.value), 80);
+  function routeCurrentSoon(input) {
+    setTimeout(() => route(input.value, input), 0);
+    setTimeout(() => route(input.value, input), 80);
   }
 
-  search.addEventListener('paste', (event) => {
-    const pasted = event.clipboardData?.getData('text')?.trim() || '';
-    if (!parseYouTubeUrl(pasted)) {
-      routeCurrentSoon();
-      return;
-    }
-    event.preventDefault();
-    search.value = pasted;
-    route(pasted);
-  }, false);
+  function bindImportInput(input) {
+    input.addEventListener('paste', (event) => {
+      const pasted = event.clipboardData?.getData('text')?.trim() || '';
+      if (!parseYouTubeUrl(pasted)) {
+        routeCurrentSoon(input);
+        return;
+      }
+      event.preventDefault();
+      input.value = pasted;
+      route(pasted, input);
+    }, false);
 
-  search.addEventListener('beforeinput', (event) => {
-    if (event.inputType === 'insertFromPaste' || event.inputType === 'insertText') routeCurrentSoon();
-  }, false);
+    input.addEventListener('beforeinput', (event) => {
+      if (event.inputType === 'insertFromPaste' || event.inputType === 'insertText') routeCurrentSoon(input);
+    }, false);
 
-  search.addEventListener('input', routeCurrentSoon, false);
-  search.addEventListener('change', routeCurrentSoon, false);
+    input.addEventListener('input', () => routeCurrentSoon(input), false);
+    input.addEventListener('change', () => routeCurrentSoon(input), false);
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      if (route(input.value, input)) event.preventDefault();
+    }, false);
+  }
 
   function mountTopImportBar() {
     if (document.getElementById('youtubeImportBar')) return;
@@ -101,18 +143,30 @@
 
     topbar.insertAdjacentElement('afterend', bar);
     const row = bar.querySelector('.youtube-import-row');
-    search.placeholder = 'Paste YouTube track or playlist URL…';
-    search.setAttribute('aria-label', 'Paste YouTube track or playlist URL');
-    row.appendChild(search);
+    const importInput = document.createElement('input');
+    importInput.id = 'youtubeImportInput';
+    importInput.className = 'search youtube-import-input';
+    importInput.type = 'url';
+    importInput.inputMode = 'url';
+    importInput.autocomplete = 'off';
+    importInput.placeholder = 'Paste YouTube track or playlist URL…';
+    importInput.setAttribute('aria-label', 'Paste YouTube track or playlist URL');
+    row.appendChild(importInput);
+    bindImportInput(importInput);
+
+    // Keep the original field in the playlist where it belongs: it is the
+    // library filter, not the YouTube import box.
+    search.placeholder = 'Filter title, artist, playlist or tag…';
+    search.setAttribute('aria-label', 'Filter library');
 
     const style = document.createElement('style');
     style.id = 'youtubeImportBarStyles';
     style.textContent = `
       .youtube-import-bar{margin:0 0 10px;padding:12px;border:1px solid #343a46;border-radius:12px;background:linear-gradient(180deg,#22262d,#15181e);box-shadow:0 12px 30px rgba(0,0,0,.25)}
       .youtube-import-copy{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}.youtube-import-copy strong{font-size:13px}
-      .youtube-import-row .search{width:100%;margin:0;min-height:48px;font-size:15px}
+      .youtube-import-row .youtube-import-input{width:100%;margin:0;min-height:48px;font-size:15px}
       .youtube-import-actions{display:flex;justify-content:flex-end;margin-top:8px}.youtube-playlists-link{display:inline-flex;align-items:center;min-height:34px;padding:0 11px;border:1px solid #c53030;border-radius:999px;background:#b91c1c;color:#fff;text-decoration:none;font-size:12px;font-weight:800}
-      @media(max-width:520px){.youtube-import-bar{position:relative;margin-left:0;margin-right:0}.youtube-import-copy{display:grid;gap:2px}.youtube-import-row .search{font-size:16px}}
+      @media(max-width:520px){.youtube-import-bar{position:relative;margin-left:0;margin-right:0}.youtube-import-copy{display:grid;gap:2px}.youtube-import-row .youtube-import-input{font-size:16px}}
     `;
     document.head.appendChild(style);
   }
