@@ -5,8 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#17191f" />
   <meta name="apple-mobile-web-app-title" content="Winamp Music" />
-  <title>Winamp Music</title>
-  <meta name="description" content="A mobile and desktop Winamp-style player for your YouTube music library." />
+  <title>Winamp Music — YouTube music player with playlists, lyrics and Winamp skins</title>
+  <meta name="description" content="Play YouTube music in a Winamp-style web player. Paste tracks or playlists, search your library, use classic Winamp skins, lyrics, comments and shareable playlists." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="https://bambuchastudent.github.io/winampmusic/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Winamp Music — YouTube music in a Winamp-style player" />
+  <meta property="og:description" content="Paste YouTube tracks and playlists, search your library, play music with Winamp skins, lyrics and comments." />
+  <meta property="og:url" content="https://bambuchastudent.github.io/winampmusic/" />
+  <meta property="og:image" content="https://bambuchastudent.github.io/winampmusic/icon.svg" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Winamp Music" />
+  <meta name="twitter:description" content="A Winamp-style YouTube music player with playlist import, search, lyrics and skins." />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Winamp Music","url":"https://bambuchastudent.github.io/winampmusic/","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"A Winamp-style YouTube music player with track and playlist import, library search, lyrics, comments and skins."}</script>
   <link rel="icon" type="image/svg+xml" href="./icon.svg?v=0.4" />
   <link rel="mask-icon" href="./icon.svg?v=0.4" color="#fca600" />
   <link rel="manifest" href="./manifest.webmanifest" />
@@ -131,18 +142,26 @@
         <div><div class="eyebrow">PLAYLIST</div><h2>Your library <span id="trackCount">0</span></h2></div>
         <div class="header-actions"><button id="importHelpButton" class="ghost">Import</button><button id="sharePlaylistButton" class="ghost" type="button">Share playlist</button><button id="desktopAppButton" class="ghost">Desktop app</button><button id="clearButton" class="ghost danger">Reset cache</button></div>
       </div>
-      <input id="search" class="search" type="search" placeholder="Search title, artist, playlist, tag or paste YouTube URL…" autocomplete="off" />
+      <input id="search" class="search" type="search" placeholder="Filter title, artist, playlist or tag…" autocomplete="off" aria-label="Filter library" />
       <ol id="trackList" class="track-list"></ol>
-      <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Paste a YouTube song or playlist link above. On Android you can also install Winamp Music and use YouTube → Share → Winamp Music.</span><button id="emptyImportButton">Import options</button></div>
+      <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Paste a YouTube song or playlist link in the YouTube Import box above. On Android you can also install Winamp Music and use YouTube → Share → Winamp Music.</span><button id="emptyImportButton">Import options</button></div>
     </section>
 
-    <footer class="app-version" aria-label="App version">v0.5.5</footer>
+    <section class="library-panel" aria-labelledby="howToTitle">
+      <div class="eyebrow">HOW TO USE</div>
+      <h2 id="howToTitle">Play YouTube music like a Winamp playlist</h2>
+      <p>Paste a YouTube track or playlist URL into the YouTube Import field. Winamp Music adds the track or reads the playlist, then keeps your library locally in the browser.</p>
+      <p>Use the library search only to filter saved tracks by title, artist, playlist, tag or YouTube ID. Playback, shuffle, share links, Genius lyrics, YouTube comments and Winamp skins continue to work from the same library.</p>
+      <p>On Android, install the web app and use YouTube → Share → Winamp Music. On macOS, Safari can install it with File → Add to Dock; Chrome and Edge can install it from the address bar.</p>
+    </section>
+
+    <footer class="app-version" aria-label="App version">v0.5.8</footer>
   </main>
 
   <dialog id="importDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-heading"><div><div class="eyebrow">YOUTUBE IMPORTER</div><h2>Import playing track + playlist</h2></div><button class="icon-button" value="cancel" aria-label="Close">✕</button></div>
-      <p><strong>Android:</strong> install Winamp Music, then in YouTube use Share → Winamp Music. You can also paste a YouTube link directly into the library search. <span class="desktop-import-only"><strong>Desktop:</strong> the script/bookmarklet below can capture a rendered YouTube queue.</span></p>
+      <p><strong>Android:</strong> install Winamp Music, then in YouTube use Share → Winamp Music. You can also paste a YouTube link into the dedicated YouTube Import field above the player. <span class="desktop-import-only"><strong>Desktop:</strong> the script/bookmarklet below can capture a rendered YouTube queue.</span></p>
       <textarea id="importScript" class="desktop-import-only" readonly spellcheck="false"></textarea>
       <div class="dialog-actions">
         <button id="copyScriptButton" class="desktop-import-only" type="button">Copy script</button>
@@ -172,6 +191,7 @@
   <script src="./paste-import.js?v=0.4" defer></script>
   <script src="./youtube-context.js?v=0.5" defer></script>
   <script src="./direct-youtube-import.js?v=0.5.2" defer></script>
+  <script src="./input-v056.js?v=0.5.8" defer></script>
   <script src="./mobile-url-import.js?v=0.5.1" defer></script>
   <script src="./mobile-share.js?v=0.5.3" defer></script>
   <script src="./metadata-refresh.js?v=0.4" defer></script>
