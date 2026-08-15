@@ -101,10 +101,17 @@ jobs:
           grep -q 'id="commentsConnect"' index.html
           grep -q 'genius.com/api/search/multi' lyrics.js
           grep -q 'genius.com/songs/' lyrics.js
-          grep -q 'lyrics-sync.js?v=0.5' comments.js
+          grep -q 'winampmusic.geniusResults.v2' lyrics.js
+          grep -q 'songMatchesTrack' lyrics.js
+          grep -q 'lyrics-sync.js?v=0.6' comments.js
           grep -q 'lrclib.net/api/search' lyrics-sync.js
-          grep -q 'syncedLyrics' lyrics-sync.js
+          grep -q 'winampmusic.syncedLyrics.v2' lyrics-sync.js
+          grep -q 'payloadMatchesTrack' lyrics-sync.js
+          grep -q 'SYNCED LYRICS · LRCLIB' lyrics-sync.js
+          ! grep -q 'scrollIntoView' lyrics-sync.js
+          grep -q 'centerLineInsideLyrics' lyrics-sync.js
           grep -q 'lyrics-line.active' captions.css
+          grep -q 'lyrics-sync-label' captions.css
           grep -q 'Login with YouTube' comments.js
           grep -q '/api/v1/comments/' comments.js
           grep -q '/comments/' comments.js
