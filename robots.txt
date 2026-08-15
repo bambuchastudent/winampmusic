@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bambuchastudent.github.io/winampmusic/sitemap.xml
