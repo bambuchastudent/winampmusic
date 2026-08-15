@@ -2,16 +2,16 @@
   if (window.__WINAMP_MUSIC_V060_FAVICON__) return;
   window.__WINAMP_MUSIC_V060_FAVICON__ = true;
 
-  const VERSION = '0.5.10';
+  const VERSION = '0.6.2';
   const MARK = 'data-winamp-favicon';
 
   const specs = [
     {
-      key: 'ico',
+      key: 'png16',
       rel: 'icon',
-      href: `./favicon.ico?v=${VERSION}`,
-      type: 'image/x-icon',
-      sizes: 'any',
+      href: `./favicon-16.png?v=${VERSION}`,
+      type: 'image/png',
+      sizes: '16x16',
     },
     {
       key: 'png32',
@@ -25,6 +25,7 @@
       rel: 'shortcut icon',
       href: `./favicon.ico?v=${VERSION}`,
       type: 'image/x-icon',
+      sizes: '16x16 32x32 48x48 64x64',
     },
     {
       key: 'touch',
@@ -68,18 +69,17 @@
         setIfDifferent(node, 'color', spec.color || null);
       }
 
-      // v0.5.9 dynamically rewrites the first icon back to SVG. Keep that
-      // legacy node from winning Safari's favicon selection while old tabs
-      // are still running cached JS.
+      // Safari was falling back to the generated github.io monogram. Keep a
+      // single raster favicon set and remove stale static/runtime SVG/ICO
+      // candidates that can win selection from older cached releases.
       for (const node of document.head.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]')) {
         if (node.hasAttribute(MARK)) continue;
-        const href = node.getAttribute('href') || '';
-        if (/icon\.svg(?:\?|$)/.test(href)) node.remove();
+        node.remove();
       }
 
-      const oldMask = [...document.head.querySelectorAll('link[rel="mask-icon"]')]
-        .filter((node) => !node.hasAttribute(MARK));
-      for (const node of oldMask) node.remove();
+      for (const node of document.head.querySelectorAll('link[rel="mask-icon"]')) {
+        if (!node.hasAttribute(MARK)) node.remove();
+      }
     } finally {
       applying = false;
     }
@@ -95,9 +95,5 @@
     attributeFilter: ['rel', 'href', 'type', 'sizes', 'color'],
   });
 
-  window.addEventListener('load', () => {
-    ensureFavicons();
-    const version = document.querySelector('.app-version');
-    if (version) version.textContent = `v${VERSION}`;
-  }, { once: true });
+  window.addEventListener('load', () => ensureFavicons(), { once: true });
 })();
