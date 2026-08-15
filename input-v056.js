@@ -123,8 +123,20 @@
     }, false);
   }
 
+  function loadV059() {
+    if (window.__WINAMP_MUSIC_V059__ || document.querySelector('script[data-winamp-v059]')) return;
+    const script = document.createElement('script');
+    script.src = './v059.js?v=0.5.9';
+    script.defer = true;
+    script.dataset.winampV059 = '1';
+    document.head.appendChild(script);
+  }
+
   function mountTopImportBar() {
-    if (document.getElementById('youtubeImportBar')) return;
+    if (document.getElementById('youtubeImportBar')) {
+      loadV059();
+      return;
+    }
     const topbar = document.querySelector('.topbar');
     if (!topbar?.parentNode) return;
 
@@ -169,6 +181,7 @@
       @media(max-width:520px){.youtube-import-bar{position:relative;margin-left:0;margin-right:0}.youtube-import-copy{display:grid;gap:2px}.youtube-import-row .youtube-import-input{font-size:16px}}
     `;
     document.head.appendChild(style);
+    loadV059();
   }
 
   if (document.readyState === 'loading') {
