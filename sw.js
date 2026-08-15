@@ -14,6 +14,7 @@ const SHELL = [
   './fixes-v054.js',
   './input-v056.js',
   './v059.js',
+  './favicon-v060.js',
   './playback-continuity.js',
   './lyrics-v057.js',
   './compact-share.js',
@@ -26,6 +27,9 @@ const SHELL = [
   './comments.js',
   './manifest.webmanifest',
   './icon.svg',
+  './favicon.ico',
+  './favicon-32.png',
+  './apple-touch-icon.png',
   './safari-pinned-tab.svg',
 ];
 const NETWORK_FIRST = new Set([
@@ -45,6 +49,7 @@ const NETWORK_FIRST = new Set([
   'fixes-v054.js',
   'input-v056.js',
   'v059.js',
+  'favicon-v060.js',
   'playback-continuity.js',
   'lyrics-v057.js',
   'compact-share.js',
@@ -57,6 +62,9 @@ const NETWORK_FIRST = new Set([
   'comments.js',
   'winamp-features.js',
   'icon.svg',
+  'favicon.ico',
+  'favicon-32.png',
+  'apple-touch-icon.png',
   'safari-pinned-tab.svg',
   'sw.js',
 ]);
