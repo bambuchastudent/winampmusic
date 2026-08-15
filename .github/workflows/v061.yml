@@ -1,0 +1,38 @@
+name: v0.6.1 Apple PWA support
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+jobs:
+  verify-v061-apple:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check apple-v061.js
+          node --check app.js
+          node --check input-v056.js
+          node --check sw.js
+          node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
+      - name: Verify Apple install and import wiring
+        run: |
+          grep -F 'id="installButton"' index.html
+          grep -F 'apple-mobile-web-app-capable' index.html
+          grep -F 'apple-mobile-web-app-status-bar-style' index.html
+          grep -F 'rel="apple-touch-icon"' index.html
+          grep -F './apple-v061.js?v=0.6.1' index.html
+          grep -F 'Install on iPhone' apple-v061.js
+          grep -F 'Add to Home Screen' apple-v061.js
+          grep -F 'navigator.clipboard.readText()' apple-v061.js
+          grep -F 'applePasteYoutube' apple-v061.js
+          grep -F "winampmusic-shell-v21" sw.js
+          grep -F "'./apple-v061.js'" sw.js
+          grep -F '"src": "./apple-touch-icon.png"' manifest.webmanifest
+          grep -F '"sizes": "180x180"' manifest.webmanifest

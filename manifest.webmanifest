@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Winamp Music",
   "short_name": "Winamp Music",
   "description": "Winamp-style desktop and mobile player for your imported YouTube music library.",
@@ -24,6 +25,12 @@
       "src": "./icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
       "purpose": "any"
     }
   ]
