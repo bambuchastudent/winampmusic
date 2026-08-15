@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v15';
+const CACHE = 'winampmusic-shell-v16';
 const SHELL = [
   './',
   './index.html',
@@ -9,11 +9,13 @@ const SHELL = [
   './playlist-metadata.css',
   './captions.css',
   './comments.css',
+  './mobile.css',
   './metadata-refresh.js',
   './compact-share.js',
   './youtube-context.js',
   './direct-youtube-import.js',
   './mobile-url-import.js',
+  './mobile-share.js',
   './lyrics.js',
   './lyrics-sync.js',
   './comments.js',
@@ -29,6 +31,7 @@ const NETWORK_FIRST = new Set([
   'playlist-metadata.css',
   'captions.css',
   'comments.css',
+  'mobile.css',
   'app.js',
   'youtube-import.js',
   'paste-import.js',
@@ -37,6 +40,7 @@ const NETWORK_FIRST = new Set([
   'youtube-context.js',
   'direct-youtube-import.js',
   'mobile-url-import.js',
+  'mobile-share.js',
   'lyrics.js',
   'lyrics-sync.js',
   'comments.js',
