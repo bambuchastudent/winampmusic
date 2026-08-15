@@ -58,7 +58,7 @@ jobs:
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
       - name: Check YouTube source queue wiring
         run: |
-          grep -q 'v0.5.4' index.html
+          grep -q 'v0.5.5' index.html
           grep -q 'RD${parsed.videoId}' youtube-context.js
           grep -q 'playlistAddSelected' youtube-context.js
           grep -q 'moveContext(-1)' youtube-context.js
@@ -77,14 +77,18 @@ jobs:
           grep -q 'direct-youtube-import.js' sw.js
           grep -q 'mobile-url-import.js' sw.js
           grep -q 'youtube-context.js' sw.js
-      - name: Check v0.5.4 large playlist import
+      - name: Check v0.5.5 large playlist import
         run: |
-          grep -q 'fixes-v054.js?v=0.5.4' index.html
+          grep -q 'fixes-v054.js?v=0.5.5' index.html
           grep -q 'MAX_PLAYLIST_SCAN_INDEX = 5000' fixes-v054.js
           grep -q 'PLAYLIST_SCAN_STEP = 100' fixes-v054.js
           grep -q 'player.cuePlaylist' fixes-v054.js
           grep -q 'PLAYLIST IMPORTED' fixes-v054.js
           grep -q 'refreshWinampMetadata' fixes-v054.js
+          grep -q "let importingUrl = ''" fixes-v054.js
+          ! grep -q 'lastHandledUrl' fixes-v054.js
+          grep -q "search.value = ''" fixes-v054.js
+          grep -q 'window.renderLibrary' fixes-v054.js
           grep -q 'fixes-v054.js' sw.js
           python - <<'PY'
           html = open('index.html', encoding='utf-8').read()
@@ -92,7 +96,7 @@ jobs:
           PY
       - name: Check Android share and fallback wiring
         run: |
-          grep -q 'mobile.css?v=0.5.4' index.html
+          grep -q 'mobile.css?v=0.5.5' index.html
           grep -q 'mobile-share.js?v=0.5.3' index.html
           grep -q 'id="mobilePlaybackActions"' index.html
           grep -q 'id="mobileOpenYoutube"' index.html
@@ -106,7 +110,8 @@ jobs:
           grep -q '"action": "./"' manifest.webmanifest
           grep -q 'mobile-share.js' sw.js
           grep -q 'mobile.css' sw.js
-          grep -q 'winampmusic-shell-v17' sw.js
+          grep -q 'winampmusic-shell-v18' sw.js
+          grep -q 'empty-state\[hidden\]' mobile.css
       - name: Check lyrics, mobile EQ and comments wiring
         run: |
           grep -q 'id="geniusEmbedHost"' index.html

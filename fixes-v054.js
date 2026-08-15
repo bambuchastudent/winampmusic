@@ -7,7 +7,7 @@
   const PLAYLIST_POLL_MS = 500;
 
   let activeImport = 0;
-  let lastHandledUrl = '';
+  let importingUrl = '';
   let legacyBypass = false;
 
   function clean(value) {
@@ -187,11 +187,16 @@
 
   async function importPlaylist(parsed) {
     if (!search || typeof window.importTracks !== 'function') return false;
-    if (parsed.url === lastHandledUrl) return true;
+
+    // Android browsers can emit both paste and input/change for one paste.
+    // Clear the URL before deduping so the second event can never leave the
+    // playlist URL active as a search filter (which produced the 0/277 UI).
+    search.value = '';
+    window.renderLibrary?.();
+    if (parsed.url === importingUrl) return true;
 
     const token = ++activeImport;
-    lastHandledUrl = parsed.url;
-    search.value = '';
+    importingUrl = parsed.url;
     if (status) status.textContent = 'READING FULL YOUTUBE PLAYLIST';
 
     let probe = null;
@@ -216,11 +221,11 @@
       return true;
     } catch (error) {
       console.warn('[Winamp Music full playlist import]', error);
-      lastHandledUrl = '';
       if (status) status.textContent = 'FULL PLAYLIST READER FAILED · OPENING FALLBACK';
       setTimeout(() => releaseToLegacy(parsed.url), 0);
       return false;
     } finally {
+      if (token === activeImport && importingUrl === parsed.url) importingUrl = '';
       try { probe?.player?.destroy?.(); } catch {}
       try { probe?.node?.remove?.(); } catch {}
     }
@@ -232,7 +237,6 @@
     if (!parsed) return false;
     event?.preventDefault?.();
     event?.stopImmediatePropagation?.();
-    if (search) search.value = parsed.url;
     importPlaylist(parsed).catch(() => {});
     return true;
   }
