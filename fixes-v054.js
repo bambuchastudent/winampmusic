@@ -148,9 +148,6 @@
       } catch {}
       await pollPlaylist(player, ids);
       staleWindows = ids.size === before ? staleWindows + 1 : 0;
-
-      // Once we have moved comfortably beyond the discovered tail and several
-      // windows added nothing, the embedded playlist is exhausted.
       if (index > ids.size + 500 && staleWindows >= 6) break;
     }
 
@@ -211,6 +208,7 @@
       const preferred = parsed.videoId || currentVideoId() || ids[0];
       await enrichCurrent(probe.player, preferred, parsed.playlistId);
       window.renderLibrary?.();
+      setTimeout(() => window.refreshWinampMetadata?.(), 200);
 
       if (status) {
         status.textContent = `PLAYLIST IMPORTED · ${ids.length} TRACKS${result.added ? ` · ${result.added} NEW` : ''}`;
@@ -255,8 +253,6 @@
     claimValue(search.value, event);
   }, true);
 
-  // Lyrics should occupy space only when actual lyrics exist. Search errors,
-  // placeholders and manual Genius-link controls must never create a panel.
   function initLyricsVisibility() {
     const panel = document.getElementById('lyricsBar');
     const header = panel?.querySelector('.lyrics-panel-header');
