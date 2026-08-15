@@ -30,11 +30,7 @@
   }
 
   function shareTracks() {
-    const tracks = readLibrary();
-    const currentId = currentTrackId();
-    if (!currentId) return tracks;
-    const currentIndex = tracks.findIndex((track) => track?.id === currentId);
-    return currentIndex >= 0 ? tracks.slice(currentIndex) : tracks;
+    return readLibrary();
   }
 
   function compactIds(tracks = shareTracks()) {
@@ -109,10 +105,11 @@
 
   function shareBundle(tracks = shareTracks()) {
     const ids = compactIds(tracks);
+    const currentId = currentTrackId();
     return {
-      v: 4,
+      v: 5,
       createdAt: new Date().toISOString(),
-      startTrackId: ids[0] || '',
+      startTrackId: ids.includes(currentId) ? currentId : (ids[0] || ''),
       tracks,
       geniusMap: sanitizeGeniusMap(readJson(GENIUS_MAP_KEY, {}), ids),
     };
@@ -202,7 +199,7 @@
   function shareData(url, count) {
     return {
       title: 'Winamp Music playlist',
-      text: `Listen from the current track · ${count} tracks`,
+      text: `Listen to my ${count}-track Winamp Music playlist`,
       url,
     };
   }
@@ -220,7 +217,7 @@
           <div><div style="font-size:10px;letter-spacing:.16em;color:#8f98a8;font-weight:800">SHARE PLAYLIST</div><strong id="winampShareHeading">Short link ready</strong></div>
           <button id="winampShareClose" type="button" aria-label="Close" style="border:0;background:transparent;color:#8f98a8;font-size:18px">✕</button>
         </div>
-        <p id="winampShareNote" style="margin:0;color:#b4bbc7;font-size:12px;line-height:1.4">Starts from the current track.</p>
+        <p id="winampShareNote" style="margin:0;color:#b4bbc7;font-size:12px;line-height:1.4">Shares the whole playlist and opens on the current track.</p>
         <input id="winampShareUrl" readonly style="width:100%;min-height:42px;border:1px solid #343a46;border-radius:8px;background:#0c0e12;color:#b7f29e;padding:0 10px;font:11px SFMono-Regular,Consolas,monospace" />
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="winampShareCopy" type="button" style="min-height:40px;padding:0 14px;border:1px solid #4a515e;border-radius:8px;background:#2a3039;color:#fff;font-weight:800">Copy link</button>
@@ -263,8 +260,8 @@
     dialog.dataset.count = String(count);
     dialog.querySelector('#winampShareHeading').textContent = fallback ? 'Fallback link ready' : 'Short link ready';
     dialog.querySelector('#winampShareNote').textContent = fallback
-      ? 'The short-link service is unavailable, so this URL is longer. It still imports the playlist.'
-      : `Starts from the current track · ${count} tracks`;
+      ? 'The short-link service is unavailable, so this URL is longer. It still imports the full playlist.'
+      : `Whole playlist · ${count} tracks · opens on current track`;
     const input = dialog.querySelector('#winampShareUrl');
     input.value = url;
     dialog.querySelector('#winampShareSystem').hidden = !navigator.share;

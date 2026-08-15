@@ -34,13 +34,24 @@
     brand.append(logo, titleBlock);
   }
 
-  function loadCompactShare() {
-    if (document.querySelector('script[data-winamp-compact-share]')) return;
+  function loadScript(src, marker) {
+    if (document.querySelector(`script[${marker}]`)) return;
     const script = document.createElement('script');
-    script.src = './compact-share.js?v=0.5';
+    script.src = src;
     script.async = false;
-    script.dataset.winampCompactShare = '1';
+    script.setAttribute(marker, '1');
     (document.head || document.documentElement).appendChild(script);
+  }
+
+  function loadCompactShare() {
+    loadScript('./compact-share.js?v=0.5', 'data-winamp-compact-share');
+  }
+
+  function loadV056Fixes() {
+    loadScript('./input-v056.js?v=0.5.6', 'data-winamp-v056-input');
+    loadScript('./playback-continuity.js?v=0.5.6', 'data-winamp-playback-continuity');
+    const footer = document.querySelector('.app-version');
+    if (footer) footer.textContent = 'v0.5.6';
   }
 
   function clean(value) {
@@ -148,5 +159,6 @@
   window.refreshWinampMetadata = () => repair().catch(() => {});
   installWinampBranding();
   loadCompactShare();
+  loadV056Fixes();
   window.addEventListener('load', () => setTimeout(() => window.refreshWinampMetadata(), 400));
 })();
