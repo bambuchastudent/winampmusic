@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="./comments.css?v=0.4" />
   <link rel="stylesheet" href="./paste-import.css?v=0.4" />
   <link rel="stylesheet" href="./playlist-metadata.css?v=0.4" />
+  <link rel="stylesheet" href="./mobile.css?v=0.5.3" />
 </head>
 <body>
   <main class="app-shell">
@@ -90,6 +91,10 @@
       </section>
 
       <div id="youtubePlayer" class="youtube-player"></div>
+      <div id="mobilePlaybackActions" class="mobile-playback-actions" hidden>
+        <span id="mobilePlaybackHint" class="mobile-playback-hint">If YouTube blocks embedded playback, open the current track in the YouTube app.</span>
+        <a id="mobileOpenYoutube" class="mobile-open-youtube" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">Open current in YouTube</a>
+      </div>
 
       <aside id="lyricsBar" class="lyrics-bar genius-lyrics-panel" aria-live="polite">
         <div class="lyrics-panel-header">
@@ -132,24 +137,24 @@
       </div>
       <input id="search" class="search" type="search" placeholder="Search title, artist, playlist, tag or paste YouTube URL…" autocomplete="off" />
       <ol id="trackList" class="track-list"></ol>
-      <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Paste a YouTube song or playlist link above. For a page that already has a visible queue, the importer script can still capture that rendered list.</span><button id="emptyImportButton">Show import script</button></div>
+      <div id="emptyState" class="empty-state"><strong>No music yet.</strong><span>Paste a YouTube song or playlist link above. On Android you can also install Winamp Music and use YouTube → Share → Winamp Music.</span><button id="emptyImportButton">Import options</button></div>
     </section>
 
-    <footer class="app-version" aria-label="App version">v0.5.2</footer>
+    <footer class="app-version" aria-label="App version">v0.5.3</footer>
   </main>
 
   <dialog id="importDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-heading"><div><div class="eyebrow">YOUTUBE IMPORTER</div><h2>Import playing track + playlist</h2></div><button class="icon-button" value="cancel" aria-label="Close">✕</button></div>
-      <p>Open the track you are listening to, a playlist, or Liked videos on <strong>youtube.com</strong>. Sign in to YouTube in that browser tab, then run the bookmarklet below. This app does <strong>not</strong> request Google OAuth or account access; it only reads the current YouTube page you are viewing.</p>
-      <textarea id="importScript" readonly spellcheck="false"></textarea>
+      <p><strong>Android:</strong> install Winamp Music, then in YouTube use Share → Winamp Music. You can also paste a YouTube link directly into the library search. <span class="desktop-import-only"><strong>Desktop:</strong> the script/bookmarklet below can capture a rendered YouTube queue.</span></p>
+      <textarea id="importScript" class="desktop-import-only" readonly spellcheck="false"></textarea>
       <div class="dialog-actions">
-        <button id="copyScriptButton" type="button">Copy script</button>
-        <button id="copyBookmarkletButton" type="button">Copy bookmarklet</button>
+        <button id="copyScriptButton" class="desktop-import-only" type="button">Copy script</button>
+        <button id="copyBookmarkletButton" class="desktop-import-only" type="button">Copy bookmarklet</button>
         <button value="cancel" class="ghost">Close</button>
       </div>
-      <textarea id="bookmarkletScript" readonly spellcheck="false" class="bookmarklet-box"></textarea>
-      <p class="fine-print">Browser-only flow: sign in to YouTube, then drag the bookmarklet to your browser bar or copy it and save it as a bookmark. One click on the bookmark imports the current YouTube tab.</p>
+      <textarea id="bookmarkletScript" readonly spellcheck="false" class="bookmarklet-box desktop-import-only"></textarea>
+      <p class="fine-print desktop-import-only">Desktop browser flow: sign in to YouTube, then run the importer on the current YouTube tab to capture the visible queue.</p>
     </form>
   </dialog>
 
@@ -171,6 +176,7 @@
   <script src="./youtube-context.js?v=0.5" defer></script>
   <script src="./direct-youtube-import.js?v=0.5.2" defer></script>
   <script src="./mobile-url-import.js?v=0.5.1" defer></script>
+  <script src="./mobile-share.js?v=0.5.3" defer></script>
   <script src="./metadata-refresh.js?v=0.4" defer></script>
   <script src="./winamp-features.js?v=0.4" defer></script>
   <script src="./lyrics.js?v=0.4" defer></script>
