@@ -24,6 +24,7 @@ jobs:
           node --check youtube-context.js
           node --check direct-youtube-import.js
           node --check mobile-url-import.js
+          node --check mobile-share.js
           node --check metadata-refresh.js
           node --check compact-share.js
           node --check playlist-metadata.js
@@ -56,7 +57,7 @@ jobs:
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
       - name: Check YouTube source queue wiring
         run: |
-          grep -q 'v0.5.2' index.html
+          grep -q 'v0.5.3' index.html
           grep -q 'RD${parsed.videoId}' youtube-context.js
           grep -q 'playlistAddSelected' youtube-context.js
           grep -q 'moveContext(-1)' youtube-context.js
@@ -75,7 +76,23 @@ jobs:
           grep -q 'direct-youtube-import.js' sw.js
           grep -q 'mobile-url-import.js' sw.js
           grep -q 'youtube-context.js' sw.js
-          grep -q 'winampmusic-shell-v15' sw.js
+      - name: Check Android share and fallback wiring
+        run: |
+          grep -q 'mobile.css?v=0.5.3' index.html
+          grep -q 'mobile-share.js?v=0.5.3' index.html
+          grep -q 'id="mobilePlaybackActions"' index.html
+          grep -q 'id="mobileOpenYoutube"' index.html
+          grep -q 'Share → Winamp Music' index.html
+          grep -q 'winampMusicDirectYouTubeImport' mobile-share.js
+          grep -q "params.get('url')" mobile-share.js
+          grep -q "params.get('text')" mobile-share.js
+          grep -q "\[101, 150\]" mobile-share.js
+          grep -q 'YOUTUBE APP REQUIRED' mobile-share.js
+          grep -q '"share_target"' manifest.webmanifest
+          grep -q '"action": "./"' manifest.webmanifest
+          grep -q 'mobile-share.js' sw.js
+          grep -q 'mobile.css' sw.js
+          grep -q 'winampmusic-shell-v16' sw.js
       - name: Check lyrics, comments and icon wiring
         run: |
           grep -q 'id="geniusEmbedHost"' index.html
