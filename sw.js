@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v18';
+const CACHE = 'winampmusic-shell-v19';
 const SHELL = [
   './',
   './index.html',
@@ -12,6 +12,8 @@ const SHELL = [
   './mobile.css',
   './metadata-refresh.js',
   './fixes-v054.js',
+  './input-v056.js',
+  './playback-continuity.js',
   './compact-share.js',
   './youtube-context.js',
   './direct-youtube-import.js',
@@ -38,6 +40,8 @@ const NETWORK_FIRST = new Set([
   'paste-import.js',
   'metadata-refresh.js',
   'fixes-v054.js',
+  'input-v056.js',
+  'playback-continuity.js',
   'compact-share.js',
   'youtube-context.js',
   'direct-youtube-import.js',
