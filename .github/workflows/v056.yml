@@ -35,6 +35,13 @@ jobs:
           grep -q 'youtube.com/feed/playlists' input-v056.js
           grep -q 'winampMusicDirectYouTubeImport' input-v056.js
           grep -q "key: 'Enter'" input-v056.js
+      - name: Check library filter stays separate
+        run: |
+          grep -q "importInput.id = 'youtubeImportInput'" input-v056.js
+          grep -q 'Filter title, artist, playlist or tag' input-v056.js
+          grep -q "search.setAttribute('aria-label', 'Filter library')" input-v056.js
+          grep -q 'guardFilter' input-v056.js
+          ! grep -q 'row.appendChild(search)' input-v056.js
       - name: Check playback continuity
         run: |
           grep -q 'winampmusic.playbackContinuity.v1' playback-continuity.js
