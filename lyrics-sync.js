@@ -1,11 +1,11 @@
 (() => {
   const PLAYER_STATE_KEY = 'winampmusic.player.v1';
-  const CACHE_KEY = 'winampmusic.syncedLyrics.v1';
+  const CACHE_KEY = 'winampmusic.syncedLyrics.v2';
   const LRCLIB_SEARCH = 'https://lrclib.net/api/search';
   const CACHE_LIMIT = 100;
 
-  if (window.__WINAMP_SYNCED_LYRICS_V1__) return;
-  window.__WINAMP_SYNCED_LYRICS_V1__ = true;
+  if (window.__WINAMP_SYNCED_LYRICS_V2__) return;
+  window.__WINAMP_SYNCED_LYRICS_V2__ = true;
 
   const titleNode = document.getElementById('nowTitle');
   const artistNode = document.getElementById('nowArtist');
@@ -13,9 +13,6 @@
   const durationNode = document.getElementById('duration');
   const lyricsPanel = document.getElementById('lyricsBar');
   const embedHost = document.getElementById('geniusEmbedHost');
-  const statusNode = document.getElementById('lyricsStatus');
-  const currentNode = document.getElementById('lyricsCurrent');
-  const nextNode = document.getElementById('lyricsNext');
   if (!titleNode || !artistNode || !lyricsPanel || !embedHost) return;
 
   const syncHost = document.createElement('div');
@@ -28,6 +25,7 @@
   let activeLines = [];
   let activeLineIndex = -1;
   let syncTimer = null;
+  let manualScrollUntil = 0;
 
   function ensureWinampIcons() {
     const href = './icon.svg';
@@ -95,11 +93,29 @@
     return 0;
   }
 
+  function splitYoutubeTitle(rawTitle, rawArtist) {
+    const title = cleanTitle(rawTitle);
+    const artist = cleanArtist(rawArtist);
+    const match = title.match(/^(.{1,80}?)\s+[-–—]\s+(.{1,180})$/);
+    if (!match) return { title, artist };
+
+    const left = clean(match[1]);
+    const right = clean(match[2]);
+    const leftNorm = normalizeText(left);
+    const artistNorm = normalizeText(artist);
+    const artistMatchesPrefix = artistNorm && (artistNorm.includes(leftNorm) || leftNorm.includes(artistNorm));
+    const genericChannel = !artistNorm || /\b(records?|music|official|channel|label|vevo)\b/.test(artistNorm);
+
+    if (artistMatchesPrefix || genericChannel) return { title: right, artist: left };
+    return { title, artist };
+  }
+
   function currentTrack() {
+    const parsed = splitYoutubeTitle(titleNode.textContent, artistNode.textContent);
     return {
       id: currentVideoId(),
-      title: cleanTitle(titleNode.textContent),
-      artist: cleanArtist(artistNode.textContent),
+      title: parsed.title,
+      artist: parsed.artist,
       duration: timeToSeconds(durationNode?.textContent),
     };
   }
@@ -116,26 +132,75 @@
     localStorage.setItem(CACHE_KEY, JSON.stringify(trimmed));
   }
 
+  function tokenSet(value) {
+    return new Set(normalizeText(value).split(' ').filter((word) => word.length > 1));
+  }
+
+  function overlapRatio(a, b) {
+    const left = tokenSet(a);
+    const right = tokenSet(b);
+    if (!left.size || !right.size) return 0;
+    let common = 0;
+    for (const token of left) if (right.has(token)) common += 1;
+    return common / Math.max(left.size, right.size);
+  }
+
+  function titleMatches(candidate, wanted) {
+    const a = normalizeText(candidate);
+    const b = normalizeText(wanted);
+    if (!a || !b) return false;
+    if (a === b) return true;
+
+    const wantedWords = b.split(' ').filter(Boolean);
+    if (wantedWords.length <= 2) return false;
+    if (a.includes(b) || b.includes(a)) return overlapRatio(a, b) >= 0.8;
+    return overlapRatio(a, b) >= 0.75;
+  }
+
+  function artistMatches(candidate, wanted) {
+    const a = normalizeText(candidate);
+    const b = normalizeText(wanted);
+    if (!b) return true;
+    if (!a) return false;
+    if (a === b || a.includes(b) || b.includes(a)) return true;
+    return overlapRatio(a, b) >= 0.6;
+  }
+
+  function payloadMatchesTrack(item, track) {
+    if (!titleMatches(item?.trackName, track.title)) return false;
+    if (!artistMatches(item?.artistName, track.artist)) return false;
+
+    const candidateDuration = Number(item?.duration || 0);
+    if (track.duration && candidateDuration) {
+      const diff = Math.abs(candidateDuration - track.duration);
+      const allowed = Math.max(12, track.duration * 0.08);
+      if (diff > allowed) return false;
+    }
+    return true;
+  }
+
   function score(item, track) {
+    if (!payloadMatchesTrack(item, track)) return -1000;
+
     const wantedTitle = normalizeText(track.title);
     const wantedArtist = normalizeText(track.artist);
     const title = normalizeText(item?.trackName || '');
     const artist = normalizeText(item?.artistName || '');
     let value = 0;
 
-    if (title === wantedTitle) value += 20;
-    else if (title.includes(wantedTitle) || wantedTitle.includes(title)) value += 8;
+    if (title === wantedTitle) value += 30;
+    else value += Math.round(overlapRatio(title, wantedTitle) * 14);
 
     if (wantedArtist) {
-      if (artist === wantedArtist) value += 14;
-      else if (artist.includes(wantedArtist) || wantedArtist.includes(artist)) value += 6;
+      if (artist === wantedArtist) value += 24;
+      else if (artist.includes(wantedArtist) || wantedArtist.includes(artist)) value += 16;
+      else value += Math.round(overlapRatio(artist, wantedArtist) * 8);
     }
 
     if (track.duration && Number(item?.duration)) {
       const diff = Math.abs(Number(item.duration) - track.duration);
-      if (diff <= 2) value += 10;
-      else if (diff <= 6) value += 4;
-      else if (diff > 20) value -= 5;
+      if (diff <= 2) value += 12;
+      else if (diff <= 6) value += 6;
     }
 
     if (item?.syncedLyrics) value += 4;
@@ -143,8 +208,13 @@
   }
 
   async function findLyrics(track, signal) {
-    const cached = readJson(CACHE_KEY, {})[track.id];
-    if (cached?.syncedLyrics || cached?.plainLyrics) return cached;
+    const cache = readJson(CACHE_KEY, {});
+    const cached = cache[track.id];
+    if ((cached?.syncedLyrics || cached?.plainLyrics) && payloadMatchesTrack(cached, track)) return cached;
+    if (cached) {
+      delete cache[track.id];
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    }
 
     const url = new URL(LRCLIB_SEARCH);
     url.searchParams.set('q', clean(`${track.artist} ${track.title}`) || track.title);
@@ -153,7 +223,7 @@
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
-        'Lrclib-Client': 'WinampMusic v0.5 (https://bambuchastudent.github.io/winampmusic/)',
+        'Lrclib-Client': 'WinampMusic v0.6 (https://bambuchastudent.github.io/winampmusic/)',
       },
     });
     if (!response.ok) throw new Error(`Lyrics HTTP ${response.status}`);
@@ -161,12 +231,14 @@
     const results = await response.json();
     const best = (Array.isArray(results) ? results : [])
       .map((item) => ({ item, score: score(item, track) }))
+      .filter((entry) => entry.score > 0)
       .sort((a, b) => b.score - a.score)[0];
 
-    if (!best || best.score < 5) return null;
+    if (!best || best.score < 28) return null;
     const payload = {
       trackName: clean(best.item.trackName),
       artistName: clean(best.item.artistName),
+      duration: Number(best.item.duration || 0),
       syncedLyrics: String(best.item.syncedLyrics || ''),
       plainLyrics: String(best.item.plainLyrics || ''),
     };
@@ -193,6 +265,14 @@
     activeLineIndex = -1;
   }
 
+  function centerLineInsideLyrics(node) {
+    if (!node || Date.now() < manualScrollUntil) return;
+    const viewport = node.closest('.lyrics-karaoke');
+    if (!viewport) return;
+    const target = node.offsetTop - (viewport.clientHeight / 2) + (node.offsetHeight / 2);
+    viewport.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  }
+
   function updateActiveLine() {
     if (!activeLines.length) return;
     const seconds = timeToSeconds(elapsedNode?.textContent);
@@ -209,7 +289,14 @@
       node.classList.toggle('active', nodeIndex === index);
       node.classList.toggle('past', nodeIndex < index);
     });
-    nodes[index]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    centerLineInsideLyrics(nodes[index]);
+  }
+
+  function syncLabel(text) {
+    const label = document.createElement('div');
+    label.className = 'lyrics-sync-label';
+    label.textContent = text;
+    return label;
   }
 
   function render(payload, track) {
@@ -219,6 +306,10 @@
     const lines = parseSynced(payload?.syncedLyrics);
     const wrapper = document.createElement('div');
     wrapper.className = 'lyrics-karaoke';
+    const markManualScroll = () => { manualScrollUntil = Date.now() + 5000; };
+    wrapper.addEventListener('wheel', markManualScroll, { passive: true });
+    wrapper.addEventListener('touchstart', markManualScroll, { passive: true });
+    wrapper.addEventListener('pointerdown', markManualScroll, { passive: true });
 
     if (lines.length) {
       activeLines = lines;
@@ -228,12 +319,9 @@
         row.textContent = line.text;
         wrapper.appendChild(row);
       }
-      syncHost.appendChild(wrapper);
+      syncHost.append(syncLabel(`SYNCED LYRICS · LRCLIB · ${payload.artistName || track.artist} — ${payload.trackName || track.title}`), wrapper);
       updateActiveLine();
       syncTimer = setInterval(updateActiveLine, 300);
-      if (statusNode) statusNode.textContent = 'GENIUS MATCH · SYNCED LYRICS';
-      if (currentNode) currentNode.textContent = payload.trackName || track.title;
-      if (nextNode) nextNode.textContent = `${payload.artistName || track.artist || 'Current track'} · timed lyrics follow playback`;
       return;
     }
 
@@ -243,16 +331,15 @@
       text.className = 'lyrics-plain';
       text.textContent = plain;
       wrapper.appendChild(text);
-      syncHost.appendChild(wrapper);
-      if (statusNode) statusNode.textContent = 'GENIUS MATCH · LYRICS';
-      if (currentNode) currentNode.textContent = payload.trackName || track.title;
-      if (nextNode) nextNode.textContent = payload.artistName || track.artist || '';
+      syncHost.append(syncLabel(`LYRICS · LRCLIB · ${payload.artistName || track.artist} — ${payload.trackName || track.title}`), wrapper);
     }
   }
 
   async function load({ force = false } = {}) {
     const track = currentTrack();
     if (!track.id || !track.title || track.title === 'No track selected') {
+      activeSignature = '';
+      controller?.abort();
       stopSync();
       syncHost.replaceChildren();
       return;
@@ -263,6 +350,8 @@
     activeSignature = signature;
     controller?.abort();
     controller = new AbortController();
+    stopSync();
+    syncHost.replaceChildren();
 
     try {
       const payload = await findLyrics(track, controller.signal);
@@ -281,6 +370,6 @@
     .observe(titleNode, { childList: true, subtree: true, characterData: true });
   new MutationObserver(() => load().catch(() => {}))
     .observe(artistNode, { childList: true, subtree: true, characterData: true });
-  setInterval(() => load().catch(() => {}), 1800);
-  setTimeout(() => load().catch(() => {}), 500);
+  setInterval(() => load().catch(() => {}), 900);
+  setTimeout(() => load().catch(() => {}), 350);
 })();
