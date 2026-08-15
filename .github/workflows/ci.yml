@@ -61,25 +61,25 @@ jobs:
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
       - name: Check YouTube source queue wiring
         run: |
-          grep -q 'v0.5.5' index.html
-          grep -q 'RD${parsed.videoId}' youtube-context.js
-          grep -q 'playlistAddSelected' youtube-context.js
-          grep -q 'moveContext(-1)' youtube-context.js
-          grep -q 'moveContext(1)' youtube-context.js
-          grep -q 'winampmusic.youtubeContext.v1' youtube-context.js
-          grep -q 'YOUTUBE MIX' youtube-context.js
-          grep -q 'direct-youtube-import.js?v=0.5.2' index.html
-          grep -q "search.addEventListener('input'" direct-youtube-import.js
-          grep -q 'winampMusicDirectYouTubeImport' direct-youtube-import.js
-          grep -q 'window.importTracks' direct-youtube-import.js
-          grep -q 'window.playIndex' direct-youtube-import.js
-          grep -q 'RD${id}' direct-youtube-import.js
-          grep -q 'winampMusicDirectYouTubeImport.handleUrl' mobile-url-import.js
-          grep -q "params.get('s')" mobile-url-import.js
-          grep -q "window.renderLibrary" mobile-url-import.js
-          grep -q 'direct-youtube-import.js' sw.js
-          grep -q 'mobile-url-import.js' sw.js
-          grep -q 'youtube-context.js' sw.js
+          grep -Fq 'v0.5.5' index.html
+          grep -Fq 'RD${parsed.videoId}' youtube-context.js
+          grep -Fq 'playlistAddSelected' youtube-context.js
+          grep -Fq 'moveContext(-1)' youtube-context.js
+          grep -Fq 'moveContext(1)' youtube-context.js
+          grep -Fq 'winampmusic.youtubeContext.v1' youtube-context.js
+          grep -Fq 'YOUTUBE MIX' youtube-context.js
+          grep -Fq 'direct-youtube-import.js?v=0.5.2' index.html
+          grep -Fq "search.addEventListener('input'" direct-youtube-import.js
+          grep -Fq 'winampMusicDirectYouTubeImport' direct-youtube-import.js
+          grep -Fq 'window.importTracks' direct-youtube-import.js
+          grep -Fq 'window.playIndex' direct-youtube-import.js
+          grep -Fq 'RD${id}' direct-youtube-import.js
+          grep -Fq 'winampMusicDirectYouTubeImport.handleUrl' mobile-url-import.js
+          grep -Fq "params.get('s')" mobile-url-import.js
+          grep -Fq "window.renderLibrary" mobile-url-import.js
+          grep -Fq 'direct-youtube-import.js' sw.js
+          grep -Fq 'mobile-url-import.js' sw.js
+          grep -Fq 'youtube-context.js' sw.js
       - name: Check v0.5.5 large playlist import
         run: |
           grep -q 'fixes-v054.js?v=0.5.5' index.html
