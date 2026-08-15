@@ -3,7 +3,7 @@
   const GENIUS_SEARCH_FALLBACK = 'https://genius.com/api/search/song';
   const PLAYER_STATE_KEY = 'winampmusic.player.v1';
   const GENIUS_MAP_KEY = 'winampmusic.geniusMap.v1';
-  const GENIUS_CACHE_KEY = 'winampmusic.geniusResults.v1';
+  const GENIUS_CACHE_KEY = 'winampmusic.geniusResults.v2';
   const MAX_CACHE_ENTRIES = 100;
 
   const panel = document.getElementById('lyricsBar');
@@ -75,6 +75,56 @@
       .trim();
   }
 
+  function tokenSet(value) {
+    return new Set(normalizeText(value).split(' ').filter((word) => word.length > 1));
+  }
+
+  function overlapRatio(a, b) {
+    const left = tokenSet(a);
+    const right = tokenSet(b);
+    if (!left.size || !right.size) return 0;
+    let common = 0;
+    for (const token of left) if (right.has(token)) common += 1;
+    return common / Math.max(left.size, right.size);
+  }
+
+  function splitYoutubeTitle(rawTitle, rawArtist) {
+    const title = cleanTitle(rawTitle);
+    const artist = cleanArtist(rawArtist);
+    const match = title.match(/^(.{1,80}?)\s+[-–—]\s+(.{1,180})$/);
+    if (!match) return { title, artist };
+
+    const left = clean(match[1]);
+    const right = clean(match[2]);
+    const leftNorm = normalizeText(left);
+    const artistNorm = normalizeText(artist);
+    const artistMatchesPrefix = artistNorm && (artistNorm.includes(leftNorm) || leftNorm.includes(artistNorm));
+    const genericChannel = !artistNorm || /\b(records?|music|official|channel|label|vevo)\b/.test(artistNorm);
+
+    if (artistMatchesPrefix || genericChannel) return { title: right, artist: left };
+    return { title, artist };
+  }
+
+  function titleMatches(candidate, wanted) {
+    const a = normalizeText(candidate);
+    const b = normalizeText(wanted);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const wantedWords = b.split(' ').filter(Boolean);
+    if (wantedWords.length <= 2) return false;
+    if (a.includes(b) || b.includes(a)) return overlapRatio(a, b) >= 0.8;
+    return overlapRatio(a, b) >= 0.75;
+  }
+
+  function artistMatches(candidate, wanted) {
+    const a = normalizeText(candidate);
+    const b = normalizeText(wanted);
+    if (!b) return true;
+    if (!a) return false;
+    if (a === b || a.includes(b) || b.includes(a)) return true;
+    return overlapRatio(a, b) >= 0.6;
+  }
+
   function canonicalGeniusUrl(value) {
     try {
       const url = new URL(value);
@@ -121,19 +171,33 @@
     return [];
   }
 
+  function songTitle(song) {
+    return clean(song?.title_with_featured || song?.title || song?.full_title || '');
+  }
+
+  function songArtist(song) {
+    return clean(song?.primary_artist?.name || song?.artist_names || '');
+  }
+
+  function songMatchesTrack(song, title, artist) {
+    return titleMatches(songTitle(song), title) && artistMatches(songArtist(song), artist);
+  }
+
   function scoreSong(song, title, artist) {
-    const candidateTitle = normalizeText(song.title_with_featured || song.title || song.full_title || '');
-    const candidateArtist = normalizeText(song.primary_artist?.name || song.artist_names || '');
+    if (!songMatchesTrack(song, title, artist)) return -1000;
+    const candidateTitle = normalizeText(songTitle(song));
+    const candidateArtist = normalizeText(songArtist(song));
     const targetTitle = normalizeText(title);
     const targetArtist = normalizeText(artist);
     let score = 0;
-    if (candidateTitle === targetTitle) score += 24;
-    else if (candidateTitle.includes(targetTitle) || targetTitle.includes(candidateTitle)) score += 10;
-    const titleWords = new Set(targetTitle.split(' ').filter(Boolean));
-    for (const word of candidateTitle.split(' ')) if (titleWords.has(word) && word.length > 2) score += 1;
+
+    if (candidateTitle === targetTitle) score += 30;
+    else score += Math.round(overlapRatio(candidateTitle, targetTitle) * 14);
+
     if (targetArtist) {
-      if (candidateArtist === targetArtist) score += 18;
-      else if (candidateArtist.includes(targetArtist) || targetArtist.includes(candidateArtist)) score += 8;
+      if (candidateArtist === targetArtist) score += 24;
+      else if (candidateArtist.includes(targetArtist) || targetArtist.includes(candidateArtist)) score += 16;
+      else score += Math.round(overlapRatio(candidateArtist, targetArtist) * 8);
     }
     return score;
   }
@@ -145,8 +209,8 @@
     return {
       id: Number(song.id),
       url,
-      title: clean(song.title_with_featured || song.title || song.full_title || 'Lyrics'),
-      artist: clean(song.primary_artist?.name || song.artist_names || ''),
+      title: songTitle(song) || 'Lyrics',
+      artist: songArtist(song),
       fullTitle: clean(song.full_title || ''),
     };
   }
@@ -161,13 +225,15 @@
     saveJson(GENIUS_CACHE_KEY, Object.fromEntries(entries));
   }
 
-  function cachedResult(videoId) {
-    const song = readJson(GENIUS_CACHE_KEY, {})[videoId];
-    return normalizeSong(song);
-  }
-
-  function mappedUrl(videoId) {
-    return canonicalGeniusUrl(readJson(GENIUS_MAP_KEY, {})[videoId]?.url || '');
+  function cachedResult(videoId, track) {
+    const cache = readJson(GENIUS_CACHE_KEY, {});
+    const raw = cache[videoId];
+    const song = normalizeSong(raw);
+    if (!song) return null;
+    if (songMatchesTrack(song, track.title, track.artist)) return song;
+    delete cache[videoId];
+    saveJson(GENIUS_CACHE_KEY, cache);
+    return null;
   }
 
   function saveMapping(videoId, song) {
@@ -192,26 +258,24 @@
       .replace(/[-_]+/g, ' ');
     const hits = await geniusSearch(slug || `${track.artist} ${track.title}`, signal);
     const exact = hits.find((item) => canonicalGeniusUrl(item.url) === wanted);
-    if (exact) return normalizeSong(exact);
-    const ranked = hits
-      .map((item) => ({ item, score: scoreSong(item, track.title, track.artist) }))
-      .sort((a, b) => b.score - a.score);
-    return normalizeSong(ranked[0]?.item);
+    return exact ? normalizeSong(exact) : null;
   }
 
   async function resolveTrack(track, signal) {
     const mapped = mappedSong(track.id);
     if (mapped) return mapped;
-    const cached = cachedResult(track.id);
+
+    const cached = cachedResult(track.id, track);
     if (cached) return cached;
 
     const query = clean(`${track.artist} ${track.title}`) || track.title;
     const hits = await geniusSearch(query, signal);
     const ranked = hits
       .map((item) => ({ item, score: scoreSong(item, track.title, track.artist) }))
+      .filter((entry) => entry.score > 0)
       .sort((a, b) => b.score - a.score);
     const best = ranked[0];
-    if (!best || best.score < 3) return null;
+    if (!best || best.score < 28) return null;
     return normalizeSong(best.item);
   }
 
@@ -251,7 +315,7 @@
     renderEmbed(song);
   }
 
-  function renderMissing(message = 'No Genius match found automatically') {
+  function renderMissing(message = 'No safe Genius match found automatically') {
     statusNode.textContent = 'GENIUS · LYRICS NOT MATCHED';
     currentNode.textContent = message;
     nextNode.textContent = 'Paste the exact Genius lyrics URL below to link it to this YouTube video.';
@@ -261,16 +325,15 @@
 
   function currentTrack() {
     const id = currentVideoId();
-    return {
-      id,
-      title: cleanTitle(titleNode.textContent),
-      artist: cleanArtist(artistNode.textContent),
-    };
+    const parsed = splitYoutubeTitle(titleNode.textContent, artistNode.textContent);
+    return { id, title: parsed.title, artist: parsed.artist };
   }
 
   async function loadLyrics({ force = false } = {}) {
     const track = currentTrack();
     if (!track.id || weakTitle(track.title, track.id)) {
+      activeSignature = '';
+      controller?.abort();
       statusNode.textContent = 'GENIUS · WAITING';
       currentNode.textContent = 'Play a track to find its Genius lyrics';
       nextNode.textContent = 'Search happens in the background.';
@@ -292,7 +355,7 @@
 
     statusNode.textContent = 'GENIUS · SEARCHING IN BACKGROUND';
     currentNode.textContent = track.title;
-    nextNode.textContent = track.artist || 'Looking for the best Genius match…';
+    nextNode.textContent = track.artist || 'Looking for an exact Genius match…';
     embedHost.replaceChildren();
 
     try {
@@ -317,11 +380,11 @@
     controller?.abort();
     controller = new AbortController();
     statusNode.textContent = 'GENIUS · LINKING';
-    currentNode.textContent = 'Matching this Genius page…';
+    currentNode.textContent = 'Matching this exact Genius page…';
     nextNode.textContent = value;
     try {
       const song = await resolveGeniusUrl(value, track, controller.signal);
-      if (!song) return renderMissing('Could not resolve that Genius page');
+      if (!song) return renderMissing('Could not resolve that exact Genius page');
       saveMapping(track.id, song);
       renderSong(song, { manual: true });
     } catch (error) {
@@ -339,6 +402,6 @@
 
   new MutationObserver(() => loadLyrics().catch(() => {})).observe(titleNode, { childList: true, subtree: true, characterData: true });
   new MutationObserver(() => loadLyrics().catch(() => {})).observe(artistNode, { childList: true, subtree: true, characterData: true });
-  setInterval(() => loadLyrics().catch(() => {}), 1800);
-  setTimeout(() => loadLyrics().catch(() => {}), 350);
+  setInterval(() => loadLyrics().catch(() => {}), 900);
+  setTimeout(() => loadLyrics().catch(() => {}), 300);
 })();
