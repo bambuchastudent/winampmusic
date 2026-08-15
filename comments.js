@@ -13,7 +13,7 @@
 
   if (!document.querySelector('script[data-winamp-lyrics-sync]')) {
     const syncScript = document.createElement('script');
-    syncScript.src = './lyrics-sync.js?v=0.5';
+    syncScript.src = './lyrics-sync.js?v=0.6';
     syncScript.defer = true;
     syncScript.dataset.winampLyricsSync = '1';
     document.head.appendChild(syncScript);
