@@ -132,7 +132,17 @@
     document.head.appendChild(script);
   }
 
+  function loadV060Favicon() {
+    if (window.__WINAMP_MUSIC_V060_FAVICON__ || document.querySelector('script[data-winamp-v060-favicon]')) return;
+    const script = document.createElement('script');
+    script.src = './favicon-v060.js?v=0.5.10';
+    script.defer = true;
+    script.dataset.winampV060Favicon = '1';
+    document.head.appendChild(script);
+  }
+
   function mountTopImportBar() {
+    loadV060Favicon();
     if (document.getElementById('youtubeImportBar')) {
       loadV059();
       return;

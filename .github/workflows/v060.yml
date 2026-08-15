@@ -1,0 +1,35 @@
+name: v0.5.10 Safari raster favicon
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+jobs:
+  verify-v060-favicon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check input-v056.js
+          node --check favicon-v060.js
+          node --check sw.js
+      - name: Verify Safari-safe favicon assets
+        run: |
+          test -s favicon.ico
+          test -s favicon-32.png
+          test -s apple-touch-icon.png
+          grep -F "./favicon-v060.js?v=0.5.10" input-v056.js
+          grep -F "./favicon.ico?v=\${VERSION}" favicon-v060.js
+          grep -F "./favicon-32.png?v=\${VERSION}" favicon-v060.js
+          grep -F "./apple-touch-icon.png?v=\${VERSION}" favicon-v060.js
+          grep -F 'viewBox="0 0 16 16"' safari-pinned-tab.svg
+          grep -F "'favicon-v060.js'" sw.js
+          grep -F "'favicon.ico'" sw.js
+          grep -F "'favicon-32.png'" sw.js
+          grep -F "'apple-touch-icon.png'" sw.js
