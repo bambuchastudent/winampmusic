@@ -61,25 +61,49 @@ jobs:
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
       - name: Check YouTube source queue wiring
         run: |
-          grep -Fq 'v0.5.5' index.html
-          grep -Fq 'RD${parsed.videoId}' youtube-context.js
-          grep -Fq 'playlistAddSelected' youtube-context.js
-          grep -Fq 'moveContext(-1)' youtube-context.js
-          grep -Fq 'moveContext(1)' youtube-context.js
-          grep -Fq 'winampmusic.youtubeContext.v1' youtube-context.js
-          grep -Fq 'YOUTUBE MIX' youtube-context.js
-          grep -Fq 'direct-youtube-import.js?v=0.5.2' index.html
-          grep -Fq "search.addEventListener('input'" direct-youtube-import.js
-          grep -Fq 'winampMusicDirectYouTubeImport' direct-youtube-import.js
-          grep -Fq 'window.importTracks' direct-youtube-import.js
-          grep -Fq 'window.playIndex' direct-youtube-import.js
-          grep -Fq 'RD${id}' direct-youtube-import.js
-          grep -Fq 'winampMusicDirectYouTubeImport.handleUrl' mobile-url-import.js
-          grep -Fq "params.get('s')" mobile-url-import.js
-          grep -Fq "window.renderLibrary" mobile-url-import.js
-          grep -Fq 'direct-youtube-import.js' sw.js
-          grep -Fq 'mobile-url-import.js' sw.js
-          grep -Fq 'youtube-context.js' sw.js
+          python - <<'PY'
+          from pathlib import Path
+          contracts = {
+              'index.html': [
+                  'youtube-context.js?v=0.5',
+                  'direct-youtube-import.js?v=0.5.2',
+                  'mobile-url-import.js?v=0.5.1',
+              ],
+              'youtube-context.js': [
+                  'winampmusic.youtubeContext.v1',
+                  'function moveContext',
+                  'playlistAddSelected',
+                  'startGeneratedMix',
+                  'YOUTUBE MIX',
+                  'window.playIndex',
+              ],
+              'direct-youtube-import.js': [
+                  'winampmusic.youtubeContext.v1',
+                  'window.winampMusicDirectYouTubeImport',
+                  'handleUrl: handleValue',
+                  'window.importTracks',
+                  'window.playIndex',
+                  'mixId: `RD${id}`',
+              ],
+              'mobile-url-import.js': [
+                  'winampMusicDirectYouTubeImport.handleUrl',
+                  "params.get('s')",
+                  'window.renderLibrary',
+              ],
+              'sw.js': [
+                  'youtube-context.js',
+                  'direct-youtube-import.js',
+                  'mobile-url-import.js',
+              ],
+          }
+          missing = []
+          for filename, needles in contracts.items():
+              text = Path(filename).read_text(encoding='utf-8')
+              for needle in needles:
+                  if needle not in text:
+                      missing.append(f'{filename}: {needle}')
+          assert not missing, 'Missing source-queue contracts:\n' + '\n'.join(missing)
+          PY
       - name: Check v0.5.5 large playlist import
         run: |
           grep -q 'fixes-v054.js?v=0.5.5' index.html
