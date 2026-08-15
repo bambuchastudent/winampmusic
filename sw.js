@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v12';
+const CACHE = 'winampmusic-shell-v13';
 const SHELL = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const SHELL = [
   './comments.css',
   './metadata-refresh.js',
   './compact-share.js',
+  './youtube-context.js',
   './lyrics.js',
   './lyrics-sync.js',
   './comments.js',
@@ -31,6 +32,7 @@ const NETWORK_FIRST = new Set([
   'paste-import.js',
   'metadata-refresh.js',
   'compact-share.js',
+  'youtube-context.js',
   'lyrics.js',
   'lyrics-sync.js',
   'comments.js',

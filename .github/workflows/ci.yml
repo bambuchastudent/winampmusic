@@ -21,6 +21,7 @@ jobs:
           node --check app.js
           node --check youtube-import.js
           node --check paste-import.js
+          node --check youtube-context.js
           node --check metadata-refresh.js
           node --check compact-share.js
           node --check playlist-metadata.js
@@ -34,6 +35,7 @@ jobs:
           grep -q 'playlist-metadata.css' index.html
           grep -q 'metadata-refresh.js' index.html
           grep -q 'compact-share.js?v=0.5' index.html
+          grep -q 'youtube-context.js?v=0.5' index.html
           ! grep -q 'playlist-metadata.js' index.html
           grep -q 'track-duration' app.js
           grep -q 'track-youtube-labels' app.js
@@ -50,6 +52,17 @@ jobs:
           grep -q 'window.playIndex' compact-share.js
           grep -q 'Short link ready' compact-share.js
           grep -q 'compact-share.js?v=0.5' metadata-refresh.js
+      - name: Check YouTube source queue wiring
+        run: |
+          grep -q 'v0.5' index.html
+          grep -q 'RD${parsed.videoId}' youtube-context.js
+          grep -q 'playlistAddSelected' youtube-context.js
+          grep -q 'moveContext(-1)' youtube-context.js
+          grep -q 'moveContext(1)' youtube-context.js
+          grep -q 'winampmusic.youtubeContext.v1' youtube-context.js
+          grep -q 'YOUTUBE MIX' youtube-context.js
+          grep -q 'youtube-context.js' sw.js
+          grep -q 'winampmusic-shell-v13' sw.js
       - name: Check lyrics, comments and icon wiring
         run: |
           grep -q 'id="geniusEmbedHost"' index.html
@@ -67,7 +80,6 @@ jobs:
           grep -q '/comments/' comments.js
           ! grep -q 'youtubeApiKey' comments.js
           ! grep -q 'initTokenClient' comments.js
-          grep -q 'winampmusic-shell-v12' sw.js
           grep -q 'comments.js' sw.js
           grep -q 'lyrics.js' sw.js
           grep -q 'compact-share.js' sw.js
