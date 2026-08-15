@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v21';
+const CACHE = 'winampmusic-shell-v22';
 const SHELL = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ const SHELL = [
   './v059.js',
   './favicon-v060.js',
   './apple-v061.js',
+  './share-current-v062.js',
   './playback-continuity.js',
   './lyrics-v057.js',
   './compact-share.js',
@@ -29,6 +30,7 @@ const SHELL = [
   './manifest.webmanifest',
   './icon.svg',
   './favicon.ico',
+  './favicon-16.png',
   './favicon-32.png',
   './apple-touch-icon.png',
   './safari-pinned-tab.svg',
@@ -52,6 +54,7 @@ const NETWORK_FIRST = new Set([
   'v059.js',
   'favicon-v060.js',
   'apple-v061.js',
+  'share-current-v062.js',
   'playback-continuity.js',
   'lyrics-v057.js',
   'compact-share.js',
@@ -65,6 +68,7 @@ const NETWORK_FIRST = new Set([
   'winamp-features.js',
   'icon.svg',
   'favicon.ico',
+  'favicon-16.png',
   'favicon-32.png',
   'apple-touch-icon.png',
   'safari-pinned-tab.svg',
