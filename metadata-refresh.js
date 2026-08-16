@@ -57,12 +57,13 @@
     loadScript('./support-v1.js?v=1.0.1', 'data-winamp-support-v1');
     loadScript('./playback-continuity.js?v=0.5.6', 'data-winamp-playback-continuity');
     loadScript('./background-playback-v11.js?v=1.1', 'data-winamp-background-v11');
+    loadScript('./production-polish-v12.js?v=1.2', 'data-winamp-production-polish-v12');
     // Set this synchronously so comments.js cannot start the older lyrics-sync
     // module while the v0.5.7 replacement is still downloading.
     window.__WINAMP_SYNCED_LYRICS_V2__ = true;
     loadScript('./lyrics-v057.js?v=0.5.7', 'data-winamp-lyrics-v057');
     const footer = document.querySelector('.app-version');
-    if (footer) footer.textContent = 'v1.1';
+    if (footer) footer.textContent = 'v1.2';
   }
 
   function clean(value) {
