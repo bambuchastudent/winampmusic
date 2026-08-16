@@ -1,0 +1,22 @@
+name: v1.3.6 runtime cache guard
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+jobs:
+  runtime-cache-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check runtime files
+        run: |
+          node --check sw.js
+          node --check boot-v134.js
+      - name: Verify fresh-runtime invariants
+        run: node tests/runtime-cache-v136.mjs
