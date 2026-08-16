@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v23';
+const CACHE = 'winampmusic-shell-v24';
 const SHELL = [
   './',
   './index.html',
@@ -28,6 +28,7 @@ const SHELL = [
   './playback-continuity.js',
   './background-playback-v11.js',
   './production-polish-v12.js',
+  './core-interactions-v13.js',
   './lyrics-v057.js',
   './compact-share.js',
   './youtube-context.js',
@@ -76,6 +77,7 @@ const NETWORK_FIRST = new Set([
   'playback-continuity.js',
   'background-playback-v11.js',
   'production-polish-v12.js',
+  'core-interactions-v13.js',
   'lyrics-v057.js',
   'compact-share.js',
   'youtube-context.js',
@@ -97,6 +99,9 @@ const NETWORK_FIRST = new Set([
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+  // v1.3 is a recovery release: activate immediately so Safari cannot keep a
+  // mixed old/new shell alive behind the player UI.
+  self.skipWaiting();
 });
 
 self.addEventListener('message', (event) => {
@@ -114,11 +119,12 @@ self.addEventListener('activate', (event) => {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE);
   try {
-    const response = await fetch(request);
+    const freshRequest = new Request(request, { cache: 'no-store' });
+    const response = await fetch(freshRequest);
     if (response.ok) await cache.put(request, response.clone());
     return response;
   } catch (error) {
-    const cached = await cache.match(request);
+    const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;
     throw error;
   }
@@ -135,7 +141,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+    caches.match(event.request, { ignoreSearch: true }).then((cached) => cached || fetch(event.request).then((response) => {
       if (response.ok) {
         const copy = response.clone();
         caches.open(CACHE).then((cache) => cache.put(event.request, copy));
