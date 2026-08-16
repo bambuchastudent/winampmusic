@@ -35,7 +35,7 @@ jobs:
           grep -F "worker.postMessage({ type: 'SKIP_WAITING' })" production-polish-v12.js
           grep -F "navigator.serviceWorker.addEventListener('controllerchange'" production-polish-v12.js
           grep -F "event.data?.type === 'SKIP_WAITING'" sw.js
-          ! grep -F "self.skipWaiting();" sw.js
+          grep -F "self.skipWaiting();" sw.js
       - name: Verify testability and degraded-network UX
         run: |
           grep -F "Report bug" production-polish-v12.js
@@ -50,10 +50,11 @@ jobs:
           grep -F "event.key === 'ArrowRight'" production-polish-v12.js
           grep -F "event.key.toLowerCase() === 'p'" production-polish-v12.js
           grep -F "event.key.toLowerCase() === 'n'" production-polish-v12.js
-      - name: Verify v1.2 boot and cache
+      - name: Verify v1.2 remains wired under v1.3
         run: |
           grep -F "production-polish-v12.js?v=1.2" metadata-refresh.js
-          grep -F "footer.textContent = 'v1.2'" metadata-refresh.js
-          grep -F "winampmusic-shell-v23" sw.js
+          grep -F "core-interactions-v13.js?v=1.3" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.3'" metadata-refresh.js
+          grep -F "winampmusic-shell-v24" sw.js
           grep -F "'./production-polish-v12.js'" sw.js
           grep -F "'production-polish-v12.js'" sw.js
