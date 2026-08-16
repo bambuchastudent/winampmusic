@@ -41,6 +41,7 @@ jobs:
         run: |
           grep -F "background-playback-v11.js?v=1.1" metadata-refresh.js
           grep -F "footer.textContent = 'v1.1'" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.1'" background-playback-v11.js
           grep -F "'./background-playback-v11.js'" sw.js
           grep -F "'background-playback-v11.js'" sw.js
-          grep -F "winampmusic-shell-v23" sw.js
+          grep -F "winampmusic-shell-v22" sw.js
