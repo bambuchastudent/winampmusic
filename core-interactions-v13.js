@@ -46,10 +46,9 @@
     return ready;
   }
 
-  // v1.3 intercepted player clicks in capture phase and called
-  // stopImmediatePropagation(). On real Android browsers that could suppress
-  // the app's already-installed click handlers. v1.3.1 deliberately leaves
-  // native click/touch events alone and only supplies non-invasive recovery.
+  // v1.3 stole player clicks during capture and prevented the app's own
+  // handlers from running on some real Android browsers. v1.3.1 deliberately
+  // leaves native click/touch events alone and only supplies recovery styling.
   search?.addEventListener('input', filterLibraryFallback, { passive: true });
   search?.addEventListener('search', filterLibraryFallback, { passive: true });
 
