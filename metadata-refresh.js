@@ -7,8 +7,8 @@
   let repairPromise = null;
 
   // v1.1 had the last known-good interaction model: app.js owns controls.
-  // Keep the later recovery/polish layers disabled so stale cached copies
-  // cannot intercept native click handlers again.
+  // These guards MUST be set before legacy v1.2/v1.3 files are requested.
+  // Their files stay wired for compatibility/cache migration, but execute as no-ops.
   window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__ = true;
   window.__WINAMP_MUSIC_PRODUCTION_POLISH_V12__ = true;
   document.documentElement.dataset.winampFastStart = '1.3.3';
@@ -66,13 +66,13 @@
     loadScript('./support-v1.js?v=1.0.1', 'data-winamp-support-v1');
     loadScript('./playback-continuity.js?v=0.5.6', 'data-winamp-playback-continuity');
     loadScript('./background-playback-v11.js?v=1.1', 'data-winamp-background-v11');
-    // Do not load production-polish-v12.js or core-interactions-v13.js here.
-    // They were introduced after the last known-good v1.1 boot and duplicated
-    // ownership of controls. app.js remains the single interaction authority.
+    // Compatibility-only loads: both modules see their guard and return immediately.
+    loadScript('./production-polish-v12.js?v=1.2', 'data-winamp-production-polish-v12');
+    loadScript('./core-interactions-v13.js?v=1.3.1', 'data-winamp-core-v131');
     window.__WINAMP_SYNCED_LYRICS_V2__ = true;
     loadScript('./lyrics-v057.js?v=0.5.7', 'data-winamp-lyrics-v057');
     const footer = document.querySelector('.app-version');
-    if (footer) footer.textContent = 'v1.3.3';
+    if (footer) footer.textContent = 'v1.3.1';
   }
 
   function clean(value) {
@@ -191,7 +191,7 @@
     return repairPromise;
   };
 
-  // Never scan the whole library merely because the page opened.
+  // Fast-start rule: never scan the whole library merely because the page opened.
   installWinampBranding();
   loadCompactShare();
   loadCurrentFixes();
