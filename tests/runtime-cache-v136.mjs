@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const sw = fs.readFileSync('sw.js', 'utf8');
 const boot = fs.readFileSync('boot-v134.js', 'utf8');
 const recover = fs.readFileSync('recover.html', 'utf8');
+const freshRecover = fs.readFileSync('recover-fresh-137.html', 'utf8');
 
 assert.match(sw, /v1\.3\.6-runtime-self-heal/, 'service worker must expose the current runtime build');
 assert.match(sw, /cache:\s*'no-store'/, 'runtime fetches must bypass browser HTTP cache');
@@ -17,8 +18,11 @@ assert.match(boot, /winampMusicLoadYouTubeApi\s*=\s*loadYouTubeApi/, 'YouTube lo
 assert.match(boot, /register\('\.\/sw\.js',\s*\{\s*updateViaCache:\s*'none'\s*\}\)/, 'boot must register one canonical uncached worker');
 assert.doesNotMatch(boot, /register\('\.\/sw-v135\.js'/, 'legacy competing worker registration must not return');
 
-assert.match(recover, /register\('\.\/sw\.js',\s*\{\s*updateViaCache:\s*'none'\s*\}\)/, 'recovery must install the fresh canonical worker before reopening');
-assert.match(recover, /recovered=136/, 'recovery marker must identify this runtime repair');
-assert.doesNotMatch(recover, /localStorage\.(?:clear|removeItem)/, 'recovery must not delete the user music library');
+assert.match(recover, /recover-fresh-137\.html/, 'canonical recovery must route through a never-before-cached entrypoint');
+assert.match(freshRecover, /register\(`\.\/sw\.js\?fresh=/, 'fresh recovery must install a unique canonical worker URL');
+assert.match(freshRecover, /updateViaCache:\s*'none'/, 'fresh recovery worker install must bypass HTTP cache');
+assert.match(freshRecover, /fetch\(bootUrl,\s*\{\s*cache:\s*'no-store'\s*\}\)/, 'fresh recovery must verify boot from the network before reopening');
+assert.match(freshRecover, /__WINAMP_MUSIC_RUNTIME__ = '1\.3\.6'/, 'fresh recovery must verify the current runtime marker');
+assert.doesNotMatch(recover + freshRecover, /localStorage\.(?:clear|removeItem)/, 'recovery must not delete the user music library');
 
-console.log('v1.3.6 runtime cache regression guard: passed');
+console.log('v1.3.6 runtime cache regression guard: passed via fresh recovery entrypoint');

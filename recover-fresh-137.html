@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#17191f" />
+  <title>Refreshing Winamp Music…</title>
+  <style>
+    html,body{height:100%;margin:0;background:#101216;color:#f6f6f6;font:16px system-ui,-apple-system,sans-serif}
+    body{display:grid;place-items:center}.box{max-width:560px;padding:28px;text-align:center}.bolt{font-size:56px}.muted{color:#aeb4c0}code{color:#9ef78a}button{font:inherit;padding:10px 16px;border-radius:10px;border:0;font-weight:700;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="bolt">⚡</div>
+    <h1>Refreshing Winamp Music</h1>
+    <p id="state" class="muted">Replacing only stale app runtime. Your saved music library stays intact.</p>
+    <p id="detail"><code>fresh-entry 1.3.7</code></p>
+    <button id="retry" hidden>Try again</button>
+  </div>
+  <script>
+    (() => {
+      const state = document.getElementById('state');
+      const detail = document.getElementById('detail');
+      const retry = document.getElementById('retry');
+      const token = `137-${Date.now()}`;
+      const appUrl = `./?fresh=${encodeURIComponent(token)}`;
+
+      const waitForActivation = async (registration) => {
+        const worker = registration.installing || registration.waiting || registration.active;
+        if (!worker || worker.state === 'activated') return;
+        await new Promise((resolve) => {
+          const timer = setTimeout(resolve, 10000);
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'activated' || worker.state === 'redundant') {
+              clearTimeout(timer);
+              resolve();
+            }
+          });
+        });
+      };
+
+      const run = async () => {
+        retry.hidden = true;
+        try {
+          state.textContent = 'Removing old workers and app-shell cache…';
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.filter((r) => r.scope.includes('/winampmusic/')).map((r) => r.unregister()));
+          }
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter((k) => k.startsWith('winampmusic-shell-')).map((k) => caches.delete(k)));
+          }
+
+          state.textContent = 'Installing fresh network-first runtime…';
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.register(`./sw.js?fresh=${encodeURIComponent(token)}`, {
+              scope: './',
+              updateViaCache: 'none'
+            });
+            try { await reg.update(); } catch {}
+            await waitForActivation(reg);
+            try { await navigator.serviceWorker.ready; } catch {}
+          }
+
+          state.textContent = 'Verifying fresh boot code…';
+          const bootUrl = `./boot-v134.js?v=1.3.6&fresh=${encodeURIComponent(token)}`;
+          const response = await fetch(bootUrl, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`boot fetch failed: ${response.status}`);
+          const source = await response.text();
+          if (!source.includes("window.__WINAMP_MUSIC_RUNTIME__ = '1.3.6'")) {
+            throw new Error('fresh boot marker missing');
+          }
+
+          detail.innerHTML = '<code>verified runtime 1.3.6 · opening player</code>';
+          state.textContent = 'Fresh runtime verified. Opening Winamp Music…';
+          location.replace(appUrl);
+        } catch (error) {
+          console.error('[Winamp Music recovery 1.3.7]', error);
+          state.textContent = 'Fresh runtime verification failed. Nothing in your library was deleted.';
+          detail.textContent = String(error && error.message ? error.message : error);
+          retry.hidden = false;
+        }
+      };
+
+      retry.addEventListener('click', run);
+      run();
+    })();
+  </script>
+</body>
+</html>

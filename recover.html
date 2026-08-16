@@ -4,63 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#17191f" />
-  <title>Repairing Winamp Music…</title>
-  <style>
-    html,body{height:100%;margin:0;background:#101216;color:#f6f6f6;font:16px system-ui,-apple-system,sans-serif}
-    body{display:grid;place-items:center}.box{max-width:520px;padding:28px;text-align:center}.bolt{font-size:56px}.muted{color:#aeb4c0}button{font:inherit;padding:10px 16px;border-radius:10px;border:0;font-weight:700;cursor:pointer}
-  </style>
+  <title>Refreshing Winamp Music…</title>
 </head>
 <body>
-  <div class="box">
-    <div class="bolt">⚡</div>
-    <h1>Repairing Winamp Music</h1>
-    <p id="state" class="muted">Replacing stale runtime code. Your saved library stays intact.</p>
-    <button id="retry" hidden>Open player</button>
-  </div>
+  <p>Refreshing Winamp Music…</p>
   <script>
-    (async () => {
-      const state = document.getElementById('state');
-      const retry = document.getElementById('retry');
-      const openPlayer = () => location.replace('./?recovered=136&t=' + Date.now());
-
-      try {
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.filter((reg) => reg.scope.includes('/winampmusic/')).map((reg) => reg.unregister()));
-        }
-        if ('caches' in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.filter((key) => key.startsWith('winampmusic-shell-')).map((key) => caches.delete(key)));
-        }
-
-        state.textContent = 'Installing fresh runtime…';
-        if ('serviceWorker' in navigator) {
-          const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
-          try { await reg.update(); } catch {}
-
-          const worker = reg.installing || reg.waiting;
-          if (worker && worker.state !== 'activated') {
-            await new Promise((resolve) => {
-              const timeout = setTimeout(resolve, 8000);
-              worker.addEventListener('statechange', () => {
-                if (worker.state === 'activated' || worker.state === 'redundant') {
-                  clearTimeout(timeout);
-                  resolve();
-                }
-              });
-            });
-          }
-        }
-
-        state.textContent = 'Fixed. Opening runtime 1.3.6…';
-        openPlayer();
-      } catch (error) {
-        console.error(error);
-        state.textContent = 'Automatic repair was blocked. Tap once to open the fresh player.';
-        retry.hidden = false;
-        retry.onclick = openPlayer;
-      }
-    })();
+    location.replace('./recover-fresh-137.html?t=' + Date.now());
   </script>
+  <noscript><a href="./recover-fresh-137.html">Open fresh recovery</a></noscript>
 </body>
 </html>
