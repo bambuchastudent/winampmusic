@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v22';
+const CACHE = 'winampmusic-shell-v23';
 const SHELL = [
   './',
   './index.html',
@@ -27,6 +27,7 @@ const SHELL = [
   './shared-playlist-onboarding-v1.js',
   './playback-continuity.js',
   './background-playback-v11.js',
+  './production-polish-v12.js',
   './lyrics-v057.js',
   './compact-share.js',
   './youtube-context.js',
@@ -74,6 +75,7 @@ const NETWORK_FIRST = new Set([
   'shared-playlist-onboarding-v1.js',
   'playback-continuity.js',
   'background-playback-v11.js',
+  'production-polish-v12.js',
   'lyrics-v057.js',
   'compact-share.js',
   'youtube-context.js',
@@ -95,7 +97,10 @@ const NETWORK_FIRST = new Set([
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
-  self.skipWaiting();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
