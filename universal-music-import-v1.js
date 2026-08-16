@@ -142,6 +142,7 @@
       try {
         const resolved = await resolveOdesli(parsed, signal);
         metadata = resolved.metadata;
+        if (metadata?.title) window.winampMusicActivity?.importing?.(parsed.source, metadata, { holdMs: 3200 });
         const directId = videoIdFromUrl(resolved.youtubeUrl);
         if (directId && window.winampMusicDirectYouTubeImport?.handleUrl?.(resolved.youtubeUrl)) {
           setTimeout(() => {
@@ -172,6 +173,7 @@
 
       metadata = metadata?.title ? metadata : metadataFromSharedText(parsed);
       if (!metadata?.title) throw new Error(`${parsed.source} metadata unavailable`);
+      window.winampMusicActivity?.importing?.(parsed.source, metadata, { holdMs: 3200 });
       const match = await findMatch(metadata, signal);
       if (!saveAndPlay(match, metadata, parsed)) throw new Error('Could not save track');
       clearInputs(parsed, options.input);
