@@ -78,12 +78,16 @@ self.addEventListener('activate', (event) => {
 
     await self.clients.claim();
 
-    // One activation = one reload. This replaces a page that may have started
-    // with stale cached app.js/boot-v134.js. localStorage (the music library)
-    // is deliberately untouched.
+    // One activation = one reload of an already-open player. Do not reload the
+    // dedicated recovery page or it would unregister the worker we just fixed.
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     await Promise.all(clients.map(async (client) => {
-      try { await client.navigate(client.url); } catch {}
+      try {
+        const url = new URL(client.url);
+        if (url.pathname.endsWith('/recover.html')) return;
+        if (!url.pathname.endsWith('/winampmusic/') && !url.pathname.endsWith('/winampmusic/index.html')) return;
+        await client.navigate(client.url);
+      } catch {}
     }));
   })());
 });
