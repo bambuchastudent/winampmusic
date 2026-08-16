@@ -10,6 +10,37 @@ const eqPresets = {
   Vocal: [0, -2, -1, 0, 2, 4, 5, 4, 2, 0, -1],
 };
 
+let jsZipPromise = null;
+
+function ensureJsZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  if (jsZipPromise) return jsZipPromise;
+
+  jsZipPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    script.async = true;
+    script.dataset.winampJszip = '1';
+    const timer = setTimeout(() => {
+      jsZipPromise = null;
+      reject(new Error('Skin ZIP reader timed out'));
+    }, 15000);
+    script.addEventListener('load', () => {
+      clearTimeout(timer);
+      if (window.JSZip) resolve(window.JSZip);
+      else reject(new Error('Skin ZIP reader failed to initialize'));
+    }, { once: true });
+    script.addEventListener('error', () => {
+      clearTimeout(timer);
+      jsZipPromise = null;
+      reject(new Error('Skin ZIP reader failed to load'));
+    }, { once: true });
+    document.head.appendChild(script);
+  });
+
+  return jsZipPromise;
+}
+
 function readJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback;
@@ -37,7 +68,7 @@ function applySkin(skin) {
 }
 
 async function importWinampSkin(file) {
-  if (!window.JSZip) throw new Error('Skin ZIP reader is not available');
+  const JSZip = await ensureJsZip();
   if (!/\.(wsz|zip)$/i.test(file.name)) throw new Error('Choose a .wsz or .zip Winamp skin');
   if (file.size > 8 * 1024 * 1024) throw new Error('Skin archive is too large (8 MB max)');
 
