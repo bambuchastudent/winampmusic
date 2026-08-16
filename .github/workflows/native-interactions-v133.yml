@@ -1,0 +1,47 @@
+name: v1.3.3 native interaction ownership
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  native-controls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check boot files
+        run: |
+          node --check app.js
+          node --check metadata-refresh.js
+      - name: app.js owns the real controls
+        run: |
+          grep -F "ui.play.addEventListener('click', togglePlayback)" app.js
+          grep -F "ui.prev.addEventListener('click', playPrevious)" app.js
+          grep -F "ui.next.addEventListener('click', playNext)" app.js
+          grep -F "ui.shuffle.addEventListener('click', playRandom)" app.js
+          grep -F "main.addEventListener('click', () => playIndex(index))" app.js
+      - name: Legacy layers are killed before compatibility loading
+        run: |
+          core_guard=$(grep -n -m1 "window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__ = true" metadata-refresh.js | cut -d: -f1)
+          core_load=$(grep -n -m1 "loadScript('./core-interactions-v13.js" metadata-refresh.js | cut -d: -f1)
+          polish_guard=$(grep -n -m1 "window.__WINAMP_MUSIC_PRODUCTION_POLISH_V12__ = true" metadata-refresh.js | cut -d: -f1)
+          polish_load=$(grep -n -m1 "loadScript('./production-polish-v12.js" metadata-refresh.js | cut -d: -f1)
+          test "$core_guard" -lt "$core_load"
+          test "$polish_guard" -lt "$polish_load"
+      - name: Browser entry does not directly boot duplicate owners
+        run: |
+          ! grep -F "core-interactions-v13.js" index.html
+          ! grep -F "production-polish-v12.js" index.html
+      - name: Fast-start regression guard
+        run: |
+          ! grep -F "window.addEventListener('load', () => setTimeout(() => window.refreshWinampMetadata()" metadata-refresh.js
+          grep -F "DEFAULT_REPAIR_LIMIT = 8" metadata-refresh.js
+          grep -F "dataset.winampFastStart = '1.3.3'" metadata-refresh.js
