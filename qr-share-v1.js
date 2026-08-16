@@ -11,15 +11,15 @@
     const style = document.createElement('style');
     style.id = 'winampPlaylistQrStyles';
     style.textContent = `
-      .winamp-playlist-qr{display:grid;justify-items:center;gap:9px;padding:12px;border:1px solid #343a46;border-radius:10px;background:#0c0e12}
+      .winamp-playlist-qr{display:grid;justify-items:center;gap:9px;padding:12px;border:1px solid #4b535f;border-radius:10px;background:#0c0e12}
       .winamp-playlist-qr[hidden]{display:none}
       .winamp-playlist-qr-title{width:100%;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-      .winamp-playlist-qr-title strong{font-size:13px}.winamp-playlist-qr-title span{font-size:10px;color:#8f98a8;text-transform:uppercase;letter-spacing:.12em}
-      .winamp-playlist-qr-code{display:grid;place-items:center;min-width:244px;min-height:244px;padding:12px;border-radius:8px;background:#fff}
-      .winamp-playlist-qr-code canvas,.winamp-playlist-qr-code img{display:block!important;max-width:220px!important;width:220px!important;height:220px!important;image-rendering:pixelated}
-      .winamp-playlist-qr-note{margin:0;color:#8f98a8;font-size:10px;line-height:1.4;text-align:center;max-width:360px}
+      .winamp-playlist-qr-title strong{font-size:15px}.winamp-playlist-qr-title span{font-size:10px;color:#f7d95d;text-transform:uppercase;letter-spacing:.12em}
+      .winamp-playlist-qr-code{display:grid;place-items:center;min-width:268px;min-height:268px;padding:14px;border-radius:10px;background:#fff}
+      .winamp-playlist-qr-code canvas,.winamp-playlist-qr-code img{display:block!important;max-width:240px!important;width:240px!important;height:240px!important;image-rendering:pixelated}
+      .winamp-playlist-qr-note{margin:0;color:#aab2bf;font-size:11px;line-height:1.45;text-align:center;max-width:380px}
       .winamp-playlist-qr-error{color:#f1b9b9;font-size:11px;text-align:center;max-width:320px}
-      @media(max-width:420px){.winamp-playlist-qr-code{min-width:220px;min-height:220px;padding:10px}.winamp-playlist-qr-code canvas,.winamp-playlist-qr-code img{max-width:200px!important;width:200px!important;height:200px!important}}
+      @media(max-width:420px){.winamp-playlist-qr-code{min-width:238px;min-height:238px;padding:10px}.winamp-playlist-qr-code canvas,.winamp-playlist-qr-code img{max-width:218px!important;width:218px!important;height:218px!important}}
     `;
     document.head.appendChild(style);
   }
@@ -73,12 +73,14 @@
     panel.className = 'winamp-playlist-qr';
     panel.hidden = true;
     panel.innerHTML = `
-      <div class="winamp-playlist-qr-title"><strong>Scan playlist</strong><span>QR share</span></div>
+      <div class="winamp-playlist-qr-title"><strong>Point the other phone here</strong><span>SCAN PLAYLIST</span></div>
       <div id="winampPlaylistQrCode" class="winamp-playlist-qr-code" aria-label="Playlist QR code"></div>
-      <p class="winamp-playlist-qr-note">Generated on this device from the same encrypted playlist link. Scan it with another phone to open the playlist.</p>`;
+      <p class="winamp-playlist-qr-note">Scan → Winamp Music opens → playlist is received. The same link below can also be sent in chat.</p>`;
 
+    const note = dialog.querySelector('#winampShareNote');
     const input = dialog.querySelector('#winampShareUrl');
-    input?.insertAdjacentElement('afterend', panel);
+    if (note) note.insertAdjacentElement('afterend', panel);
+    else input?.insertAdjacentElement('beforebegin', panel);
     return panel;
   }
 
@@ -105,8 +107,8 @@
       host.removeAttribute('style');
       new QRCodeCtor(host, {
         text: url,
-        width: 220,
-        height: 220,
+        width: 240,
+        height: 240,
         colorDark: '#000000',
         colorLight: '#ffffff',
         correctLevel: QRCodeCtor.CorrectLevel.M,
@@ -120,7 +122,7 @@
       host.removeAttribute('style');
       const message = document.createElement('div');
       message.className = 'winamp-playlist-qr-error';
-      message.textContent = 'QR generator unavailable. The playlist link above still works.';
+      message.textContent = 'QR generator unavailable. Send the playlist link below instead.';
       host.appendChild(message);
       if (STATUS) STATUS.textContent = 'QR SHARE UNAVAILABLE';
     }
@@ -130,6 +132,9 @@
     if (!dialog || dialog.dataset.qrShareV1 === '1') return;
     dialog.dataset.qrShareV1 = '1';
     ensurePanel(dialog);
+
+    const eyebrow = dialog.querySelector('div[style*="letter-spacing"]');
+    if (eyebrow) eyebrow.textContent = 'QR / SHARE PLAYLIST';
 
     const observer = new MutationObserver(() => {
       if (dialog.open) queueMicrotask(() => render(dialog));
@@ -144,7 +149,15 @@
     if (dialog.open) render(dialog);
   }
 
+  function renameShareButton() {
+    const button = document.getElementById('sharePlaylistButton');
+    if (!button) return;
+    button.textContent = 'QR / Share';
+    button.setAttribute('aria-label', 'Show playlist QR code or share link');
+  }
+
   function scan() {
+    renameShareButton();
     const dialog = document.getElementById('winampShareDialog');
     if (dialog) bindDialog(dialog);
   }
