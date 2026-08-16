@@ -402,6 +402,5 @@
 
   new MutationObserver(() => loadLyrics().catch(() => {})).observe(titleNode, { childList: true, subtree: true, characterData: true });
   new MutationObserver(() => loadLyrics().catch(() => {})).observe(artistNode, { childList: true, subtree: true, characterData: true });
-  setInterval(() => loadLyrics().catch(() => {}), 900);
   setTimeout(() => loadLyrics().catch(() => {}), 300);
 })();
