@@ -49,6 +49,8 @@
 
   function loadCurrentFixes() {
     loadScript('./activity-ticker-v1.js?v=1.0', 'data-winamp-activity-ticker-v1');
+    loadScript('./qr-share-v1.js?v=1.0', 'data-winamp-qr-share-v1');
+    loadScript('./shared-playlist-onboarding-v1.js?v=1.0', 'data-winamp-shared-onboarding-v1');
     loadScript('./input-v056.js?v=0.5.6', 'data-winamp-v056-input');
     loadScript('./universal-music-import-v1.js?v=1.0', 'data-winamp-universal-import-v1');
     loadScript('./unified-search-v065.js?v=1.0', 'data-winamp-unified-search-v1');

@@ -1,0 +1,42 @@
+name: v1 playlist QR share
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-playlist-qr-share:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check qr-share-v1.js
+          node --check shared-playlist-onboarding-v1.js
+          node --check metadata-refresh.js
+          node --check sw.js
+      - name: Verify QR share wiring
+        run: |
+          grep -F "QR / Share" qr-share-v1.js
+          grep -F "qrcodejs@1.0.0" qr-share-v1.js
+          grep -F "winampShareUrl" qr-share-v1.js
+          grep -F "Point the other phone here" qr-share-v1.js
+          grep -F "./qr-share-v1.js?v=1.0" metadata-refresh.js
+          grep -F "'./qr-share-v1.js'" sw.js
+      - name: Verify receiver onboarding and replace flow
+        run: |
+          grep -F "Playlist received" shared-playlist-onboarding-v1.js
+          grep -F "Use only this playlist" shared-playlist-onboarding-v1.js
+          grep -F "localStorage.removeItem(STORAGE_KEY)" shared-playlist-onboarding-v1.js
+          grep -F "location.reload()" shared-playlist-onboarding-v1.js
+          grep -F "Reset playlist" shared-playlist-onboarding-v1.js
+          grep -F "./shared-playlist-onboarding-v1.js?v=1.0" metadata-refresh.js
+          grep -F "'./shared-playlist-onboarding-v1.js'" sw.js
