@@ -105,6 +105,9 @@
       controls.insertAdjacentElement('afterend', share);
     }
 
+    const footer = document.querySelector('.app-version');
+    if (footer) footer.textContent = 'v0.6.5';
+
     const style = document.createElement('style');
     style.id = 'unifiedSearchV065Styles';
     style.textContent = `
@@ -112,6 +115,7 @@
       .unified-music-search-button{min-width:92px;border:1px solid #fca600;border-radius:9px;background:#fca600;color:#111;font-weight:900;padding:0 14px}
       .youtube-import-actions{align-items:center;justify-content:space-between;gap:8px}.unified-search-status{margin-right:auto;text-align:left}
       #songSearchResults{margin-top:10px}.player-share-track{display:block;width:100%;margin:10px 0 2px;min-height:44px;border:1px solid #8f7724;border-radius:9px;background:#2a3039;color:#f7d95d;font-weight:900;font-size:13px}
+      #shareCurrentTrackButton{display:none!important}
       [dir="rtl"] .unified-search-status{margin-right:0;margin-left:auto;text-align:right}
       @media(max-width:520px){.youtube-import-row{grid-template-columns:1fr}.unified-music-search-button{min-height:46px}.youtube-import-actions{flex-wrap:wrap}.youtube-playlists-link{margin-left:auto}}
     `;
