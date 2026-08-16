@@ -20,7 +20,9 @@ const dom = new JSDOM(stripped, {
 const { window } = dom;
 window.MediaMetadata = class MediaMetadata { constructor(data) { Object.assign(this, data); } };
 window.HTMLDialogElement.prototype.showModal = function showModal() { this.open = true; };
-window.navigator.mediaSession = undefined;
+// Model a browser without Media Session support. Assigning undefined would still
+// make `'mediaSession' in navigator` true, which is not how unsupported browsers behave.
+try { delete window.navigator.mediaSession; } catch {}
 
 window.localStorage.setItem('winampmusic.library.v1', JSON.stringify([
   { id: 'abcdefghijk', title: 'Smoke Track One', artist: 'Smoke Artist' },
