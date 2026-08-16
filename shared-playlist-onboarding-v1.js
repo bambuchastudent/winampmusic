@@ -7,6 +7,14 @@
   const REPLACE_FLAG = 'winampmusic.sharedReplace.v1';
   const STATUS = document.getElementById('status');
 
+  function renameResetButton() {
+    const button = document.getElementById('clearButton');
+    if (!button) return;
+    button.textContent = 'Reset playlist';
+    button.setAttribute('aria-label', 'Reset playlist and player state');
+    button.title = 'Clear this device playlist and player state';
+  }
+
   function isSharedUrl() {
     const params = new URLSearchParams(location.search);
     return Boolean(params.get('s') || params.get('p') || params.get('playlist'));
@@ -82,6 +90,7 @@
     return /SHARED PLAYLIST (IMPORTED|LOADED)/i.test(STATUS?.textContent || '');
   }
 
+  renameResetButton();
   if (!isSharedUrl()) return;
   ensureStyles();
 
