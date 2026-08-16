@@ -1,15 +1,15 @@
 (() => {
-  if (window.__WINAMP_MUSIC_BOOT_V135__) return;
-  window.__WINAMP_MUSIC_BOOT_V135__ = true;
+  if (window.__WINAMP_MUSIC_BOOT_V136__) return;
+  window.__WINAMP_MUSIC_BOOT_V136__ = true;
+  window.__WINAMP_MUSIC_RUNTIME__ = '1.3.6';
+  console.info('[Winamp Music] runtime 1.3.6');
 
   const YOUTUBE_API = 'https://www.youtube.com/iframe_api';
   let youtubePromise = null;
 
   // Safari can expose navigator.mediaSession while MediaMetadata or parts of the
-  // Media Session implementation are missing. app.js used to throw inside a
-  // click handler in that case, making Play/Next/track clicks look completely dead.
-  // Keep the native implementation when it works, but never let optional media
-  // integration abort core playback controls.
+  // Media Session implementation are missing. Optional media integration must
+  // never abort core playback controls.
   if (typeof window.setNowPlaying === 'function' && !window.__WINAMP_SAFE_NOW_PLAYING__) {
     const nativeSetNowPlaying = window.setNowPlaying;
     window.setNowPlaying = function safeSetNowPlaying(track) {
@@ -33,8 +33,6 @@
       try {
         return nativePlayerStateChange(event);
       } catch (error) {
-        // Media Session playbackState is optional. Do not let it kill YouTube
-        // state handling after audio already started.
         const status = document.getElementById('status');
         const play = document.getElementById('playButton');
         const state = window.YT?.PlayerState;
@@ -52,8 +50,10 @@
     window.__WINAMP_SAFE_PLAYER_STATE__ = true;
   }
 
+  // One canonical worker only. updateViaCache:none prevents the worker script
+  // itself from being pinned by Safari's HTTP cache after a deployment.
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw-v135.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
   }
 
   function loadYouTubeApi() {
