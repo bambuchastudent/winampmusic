@@ -1,0 +1,44 @@
+name: v0.6.5 unified music search and share
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+jobs:
+  verify-v065-unified-search:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check unified-search-v065.js
+          node --check metadata-refresh.js
+      - name: Verify one search field UX
+        run: |
+          grep -F "./unified-search-v065.js?v=0.6.5" metadata-refresh.js
+          grep -F "songPanel.hidden = true" unified-search-v065.js
+          grep -F "importBar.appendChild(songResults)" unified-search-v065.js
+          grep -F "input.type = 'search'" unified-search-v065.js
+          grep -F "isMusicUrl(input.value)" unified-search-v065.js
+          grep -F "songForm.dispatchEvent" unified-search-v065.js
+      - name: Verify current track share is visible at player
+        run: |
+          grep -F "playerShareCurrentTrackButton" unified-search-v065.js
+          grep -F "winampMusicShareCurrentTrack" unified-search-v065.js
+          grep -F "#shareCurrentTrackButton{display:none!important}" unified-search-v065.js
+      - name: Verify localized Search music copy
+        run: |
+          grep -F "Search music" unified-search-v065.js
+          grep -F "Поиск музыки" unified-search-v065.js
+          grep -F "Buscar música" unified-search-v065.js
+          grep -F "Musik suchen" unified-search-v065.js
+          grep -F "搜索音乐" unified-search-v065.js
+          grep -F "संगीत खोजें" unified-search-v065.js
+          grep -F "موسیقی تلاش کریں" unified-search-v065.js
+          grep -F "ابحث عن الموسيقى" unified-search-v065.js
+          grep -F "lang === 'ar' || lang === 'ur'" unified-search-v065.js
