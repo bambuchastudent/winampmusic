@@ -2,7 +2,7 @@
   if (window.__WINAMP_MUSIC_CORE_INTERACTIONS_V131__) return;
   window.__WINAMP_MUSIC_CORE_INTERACTIONS_V131__ = true;
 
-  const VERSION = '1.3.1';
+  const VERSION = '1.3.2';
   const byId = (id) => document.getElementById(id);
   const search = byId('search');
   const list = byId('trackList');
@@ -47,8 +47,8 @@
   }
 
   // v1.3 stole player clicks during capture and prevented the app's own
-  // handlers from running on some real Android browsers. v1.3.1 deliberately
-  // leaves native click/touch events alone and only supplies recovery styling.
+  // handlers from running. v1.3.2 keeps native click/touch events authoritative
+  // and only hardens hit targets without intercepting the event pipeline.
   search?.addEventListener('input', filterLibraryFallback, { passive: true });
   search?.addEventListener('search', filterLibraryFallback, { passive: true });
 
@@ -60,7 +60,7 @@
   setTimeout(() => clearInterval(healthTimer), 12000);
 
   const footer = document.querySelector('.app-version');
-  if (footer) footer.textContent = `v${VERSION}`;
+  if (footer) footer.textContent = 'v1.3.1';
 
   window.winampMusicCoreV13 = {
     filterLibrary: filterLibraryFallback,
