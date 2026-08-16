@@ -6,10 +6,12 @@
   const DEFAULT_REPAIR_LIMIT = 8;
   let repairPromise = null;
 
-  // Kill the old v1.3 capture-phase recovery layer before any cached copy can run.
-  // v1.3.1+ uses a different guard and remains active.
+  // v1.1 had the last known-good interaction model: app.js owns controls.
+  // Keep the later recovery/polish layers disabled so stale cached copies
+  // cannot intercept native click handlers again.
   window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__ = true;
-  document.documentElement.dataset.winampFastStart = '1.3.2';
+  window.__WINAMP_MUSIC_PRODUCTION_POLISH_V12__ = true;
+  document.documentElement.dataset.winampFastStart = '1.3.3';
 
   function installWinampBranding() {
     if (!document.querySelector('link[data-winamp-icon]')) {
@@ -64,14 +66,13 @@
     loadScript('./support-v1.js?v=1.0.1', 'data-winamp-support-v1');
     loadScript('./playback-continuity.js?v=0.5.6', 'data-winamp-playback-continuity');
     loadScript('./background-playback-v11.js?v=1.1', 'data-winamp-background-v11');
-    loadScript('./production-polish-v12.js?v=1.2', 'data-winamp-production-polish-v12');
-    loadScript('./core-interactions-v13.js?v=1.3.1', 'data-winamp-core-v131');
-    // Set this synchronously so comments.js cannot start the older lyrics-sync
-    // module while the v0.5.7 replacement is still downloading.
+    // Do not load production-polish-v12.js or core-interactions-v13.js here.
+    // They were introduced after the last known-good v1.1 boot and duplicated
+    // ownership of controls. app.js remains the single interaction authority.
     window.__WINAMP_SYNCED_LYRICS_V2__ = true;
     loadScript('./lyrics-v057.js?v=0.5.7', 'data-winamp-lyrics-v057');
     const footer = document.querySelector('.app-version');
-    if (footer) footer.textContent = 'v1.3.1';
+    if (footer) footer.textContent = 'v1.3.3';
   }
 
   function clean(value) {
@@ -190,8 +191,7 @@
     return repairPromise;
   };
 
-  // Fast-start rule: never scan the whole library just because the page opened.
-  // Metadata refresh runs only after an explicit import/action asks for it.
+  // Never scan the whole library merely because the page opened.
   installWinampBranding();
   loadCompactShare();
   loadCurrentFixes();
