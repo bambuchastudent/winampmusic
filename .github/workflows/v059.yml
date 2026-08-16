@@ -30,7 +30,7 @@ jobs:
         run: |
           grep -F "./icon.svg?v=0.5.9" v059.js
           grep -F "./safari-pinned-tab.svg?v=0.5.9" v059.js
-          grep -Eq "winampmusic-shell-v(20|21|22|23)" sw.js
+          grep -Eq "winampmusic-shell-v(20|21|22|23|24)" sw.js
           grep -F "./v059.js" sw.js
           grep -F "./safari-pinned-tab.svg" sw.js
           grep -F "#fca600" icon.svg
