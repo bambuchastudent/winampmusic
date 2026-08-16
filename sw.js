@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v22';
+const CACHE = 'winampmusic-shell-v23';
 const SHELL = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ const SHELL = [
   './support-v1.js',
   './activity-ticker-v1.js',
   './playback-continuity.js',
+  './background-playback-v11.js',
   './lyrics-v057.js',
   './compact-share.js',
   './youtube-context.js',
@@ -68,6 +69,7 @@ const NETWORK_FIRST = new Set([
   'support-v1.js',
   'activity-ticker-v1.js',
   'playback-continuity.js',
+  'background-playback-v11.js',
   'lyrics-v057.js',
   'compact-share.js',
   'youtube-context.js',
