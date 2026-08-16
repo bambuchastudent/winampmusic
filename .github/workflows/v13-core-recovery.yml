@@ -1,4 +1,4 @@
-name: v1.3 sharing-ready core baseline
+name: v1.3.1 mobile interaction recovery
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  verify-v13-core:
+  verify-v131-core:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,26 +22,39 @@ jobs:
           node --check core-interactions-v13.js
           node --check metadata-refresh.js
           node --check sw.js
-      - name: Verify minimum core player interactions
+          node --check app.js
+      - name: Verify native player click handlers remain authoritative
         run: |
-          grep -F "togglePlayback" core-interactions-v13.js
-          grep -F "previousTrack" core-interactions-v13.js
-          grep -F "nextTrack" core-interactions-v13.js
-          grep -F "randomTrack" core-interactions-v13.js
-          grep -F "youtubeCommand('pauseVideo')" core-interactions-v13.js
-          grep -F "youtubeCommand('playVideo')" core-interactions-v13.js
-          grep -F "window.playIndex" core-interactions-v13.js
-      - name: Verify minimum library filtering and track clicks
+          grep -F "ui.play.addEventListener('click', togglePlayback)" app.js
+          grep -F "ui.prev.addEventListener('click', playPrevious)" app.js
+          grep -F "ui.next.addEventListener('click', playNext)" app.js
+          grep -F "ui.shuffle.addEventListener('click', playRandom)" app.js
+          if grep -F "stopImmediatePropagation()" core-interactions-v13.js; then
+            echo 'v1.3.1 must not steal native click events'
+            exit 1
+          fi
+          if grep -F "event.preventDefault()" core-interactions-v13.js; then
+            echo 'v1.3.1 recovery runtime must stay non-invasive'
+            exit 1
+          fi
+      - name: Verify mobile interactive surfaces stay tappable
         run: |
-          grep -F "search?.addEventListener('input', filterLibrary, true)" core-interactions-v13.js
+          grep -F "touch-action:manipulation" core-interactions-v13.js
+          grep -F "pointer-events:auto!important" core-interactions-v13.js
+          grep -F ".youtube-import-bar input" core-interactions-v13.js
+          grep -F ".controls button" core-interactions-v13.js
+          grep -F ".top-actions button" core-interactions-v13.js
+          grep -F ".skin-actions button" core-interactions-v13.js
+      - name: Verify library filter fallback stays non-invasive
+        run: |
+          grep -F "filterLibraryFallback" core-interactions-v13.js
           grep -F "window.renderLibrary" core-interactions-v13.js
-          grep -F "target.closest('.track-main')" core-interactions-v13.js
-          grep -F "event.stopImmediatePropagation()" core-interactions-v13.js
-      - name: Verify stale-shell recovery required for shared links
+          grep -F "search?.addEventListener('input', filterLibraryFallback, { passive: true })" core-interactions-v13.js
+      - name: Verify stale-shell recovery for the hotfix
         run: |
-          grep -F "core-interactions-v13.js?v=1.3" metadata-refresh.js
-          grep -F "footer.textContent = 'v1.3'" metadata-refresh.js
-          grep -F "winampmusic-shell-v24" sw.js
+          grep -F "core-interactions-v13.js?v=1.3.1" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.3.1'" metadata-refresh.js
+          grep -F "winampmusic-shell-v25" sw.js
           grep -F "'./core-interactions-v13.js'" sw.js
           grep -F "'core-interactions-v13.js'" sw.js
           grep -F "cache: 'no-store'" sw.js
@@ -51,11 +64,11 @@ jobs:
         run: |
           grep -F 'CORE v${VERSION} · READY' core-interactions-v13.js
           grep -F "window.winampMusicCoreV13" core-interactions-v13.js
-      - name: Sharing-ready release baseline
+          grep -F "const VERSION = '1.3.1'" core-interactions-v13.js
+      - name: Mobile release gate
         run: |
-          echo 'Required release baseline:'
-          echo '- Safari on macOS: core controls, library filter, track click'
-          echo '- iPhone/iPad Safari/PWA: same core path + stale-cache recovery'
-          echo '- Android Chrome/PWA: same core path + shared-link recovery'
-          echo '- Desktop Chrome/Edge: same core path'
-          echo '- Shared links must not open a mixed old/new shell'
+          echo 'Required real-device baseline:'
+          echo '- Android Chrome/Samsung Internet: buttons, links and import field receive taps'
+          echo '- iPhone/iPad Safari/PWA: same interaction path'
+          echo '- Desktop Safari/Chrome/Edge: native handlers remain unchanged'
+          echo '- Old v1.3 PWA shell is replaced by v25'
