@@ -23,7 +23,9 @@ No backend, OAuth token, YouTube password, audio download, or re-hosting is used
 - local persistent library with deduplication;
 - search, play/pause, previous, next, random track, seek, and volume;
 - YouTube IFrame playback with a visible video surface;
-- Media Session handlers where the browser supports them;
+- v1.1 background mode with Media Session metadata and system play/pause/previous/next/seek controls where supported;
+- playback snapshots before the page is hidden, frozen, or unloaded;
+- one-tap resume from the saved position when a mobile browser suspends embedded playback;
 - installable PWA shell;
 - GitHub Pages deployment workflow from `develop`.
 
@@ -42,11 +44,11 @@ postMessage({ type: WINAMP_MUSIC_IMPORT, tracks })
 Winamp Music (GitHub Pages)
   app.js
       |
-      +--> localStorage library
+      +--> localStorage library + playback snapshots
       |
       +--> YouTube IFrame Player
       |
-      +--> Media Session API
+      +--> Media Session API / system controls
 ```
 
 The player accepts imports only from explicit YouTube origins and normalizes every imported track before storing it.
@@ -59,11 +61,17 @@ In GitHub repository settings, set **Pages → Build and deployment → Source**
 
 `https://bambuchastudent.github.io/winampmusic/`
 
+## Background playback in v1.1
+
+Winamp Music does not intentionally pause playback when the page becomes hidden. On browsers and operating systems that allow the embedded YouTube player to remain active, audio can keep playing while the PWA is in the background and Media Session exposes controls in the system media UI.
+
+If the browser or OS suspends the page or pauses the YouTube iframe, v1.1 stores the current track and position and offers a one-tap resume when the app becomes active again. If the browser process or tab is fully closed, a web page cannot keep the iframe running; reopening the app restores the saved session instead of pretending playback continued.
+
 ## Current limitations
 
 - Import currently reads the playlist/list that is open in the browser; it does not query the entire account through OAuth/API.
 - YouTube can change its DOM selectors, so the importer is deliberately isolated in `youtube-import.js`.
-- Background playback depends on browser/OS/YouTube behavior. The app exposes Media Session controls where available but does not bypass platform restrictions.
+- True background playback still depends on browser/OS/YouTube behavior; v1.1 uses supported Media Session and session-resume mechanisms and does not bypass platform restrictions.
 - Tracks that cannot be embedded are skipped automatically when playback returns an error.
 
 ## Next sensible capabilities
