@@ -5,6 +5,10 @@
   const YOUTUBE_API = 'https://www.youtube.com/iframe_api';
   let youtubePromise = null;
 
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
   function loadYouTubeApi() {
     if (window.YT?.Player) {
       window.onYouTubeIframeAPIReady?.();
@@ -74,8 +78,6 @@
 
   document.addEventListener('click', requestPlayerForInteraction, false);
 
-  // Warm the player after the local UI is interactive. This request never blocks
-  // HTML parsing or DOMContentLoaded; failure leaves the library/search usable.
   const warm = () => setTimeout(() => loadYouTubeApi().catch(() => {}), 0);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', warm, { once: true });
   else warm();
