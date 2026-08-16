@@ -224,6 +224,8 @@
   syncMediaMetadata();
   syncPlaybackState();
   updateIndicator();
+  const footer = document.querySelector('.app-version');
+  if (footer) footer.textContent = 'v1.1';
   setInterval(() => {
     saveBackgroundState();
     updatePositionState();
