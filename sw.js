@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v21';
+const CACHE = 'winampmusic-shell-v22';
 const SHELL = [
   './',
   './index.html',
@@ -18,6 +18,7 @@ const SHELL = [
   './apple-v061.js',
   './share-current-v062.js',
   './apple-music-import-v063.js',
+  './apple-music-import-v064.js',
   './playback-continuity.js',
   './lyrics-v057.js',
   './compact-share.js',
@@ -57,6 +58,7 @@ const NETWORK_FIRST = new Set([
   'apple-v061.js',
   'share-current-v062.js',
   'apple-music-import-v063.js',
+  'apple-music-import-v064.js',
   'playback-continuity.js',
   'lyrics-v057.js',
   'compact-share.js',

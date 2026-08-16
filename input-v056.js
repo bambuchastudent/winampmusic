@@ -77,8 +77,8 @@
   }
 
   function routeAppleMusic(parsed, input) {
-    loadV063AppleImport();
-    if (status) status.textContent = 'MATCHING APPLE MUSIC';
+    loadV064AppleImport();
+    if (status) status.textContent = 'READING APPLE MUSIC';
     let attempts = 0;
     const tryImport = () => {
       if (window.winampMusicAppleImport?.handleUrl) {
@@ -191,19 +191,19 @@
     document.head.appendChild(script);
   }
 
-  function loadV063AppleImport() {
-    if (window.__WINAMP_MUSIC_APPLE_IMPORT_V063__ || document.querySelector('script[data-winamp-apple-import-v063]')) return;
+  function loadV064AppleImport() {
+    if (window.__WINAMP_MUSIC_APPLE_IMPORT_V064__ || document.querySelector('script[data-winamp-apple-import-v064]')) return;
     const script = document.createElement('script');
-    script.src = './apple-music-import-v063.js?v=0.6.3';
+    script.src = './apple-music-import-v064.js?v=0.6.4';
     script.defer = true;
-    script.dataset.winampAppleImportV063 = '1';
+    script.dataset.winampAppleImportV064 = '1';
     document.head.appendChild(script);
   }
 
   function mountTopImportBar() {
     loadV060Favicon();
     loadV062CurrentShare();
-    loadV063AppleImport();
+    loadV064AppleImport();
     if (document.getElementById('youtubeImportBar')) {
       loadV059();
       return;

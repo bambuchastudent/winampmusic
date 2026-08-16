@@ -32,7 +32,7 @@ jobs:
           grep -F 'Add to Home Screen' apple-v061.js
           grep -F 'navigator.clipboard.readText()' apple-v061.js
           grep -F 'applePasteYoutube' apple-v061.js
-          grep -F "winampmusic-shell-v21" sw.js
+          grep -E "winampmusic-shell-v(21|22)" sw.js
           grep -F "'./apple-v061.js'" sw.js
           grep -F '"src": "./apple-touch-icon.png"' manifest.webmanifest
           grep -F '"sizes": "180x180"' manifest.webmanifest
