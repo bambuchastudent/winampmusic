@@ -112,11 +112,15 @@
     seek.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function playerStateText() {
+    return String(status.textContent || '').trim().toUpperCase();
+  }
+
   function installMediaSessionHandlers() {
     if (!('mediaSession' in navigator)) return;
     const handlers = {
-      play: () => play.click(),
-      pause: () => play.click(),
+      play: () => { if (playerStateText() !== 'PLAYING') play.click(); },
+      pause: () => { if (playerStateText() === 'PLAYING') play.click(); },
       previoustrack: () => previous.click(),
       nexttrack: () => next.click(),
       seekbackward: (details) => seekBy(-(details.seekOffset || 10)),
@@ -164,7 +168,7 @@
 
   function maybeOfferResume() {
     if (document.visibilityState !== 'visible') return;
-    if (String(status.textContent || '').trim().toUpperCase() === 'PLAYING') {
+    if (playerStateText() === 'PLAYING') {
       removeResumeButton();
       return;
     }
@@ -182,7 +186,7 @@
     button.textContent = `Resume playback from ${formatTime(snapshot.seconds)}`;
     ensureIndicator().insertAdjacentElement('afterend', button);
     button.addEventListener('click', () => {
-      play.click();
+      if (playerStateText() !== 'PLAYING') play.click();
       setTimeout(() => seekTo(snapshot.seconds), 350);
       button.remove();
     }, { once: true });
@@ -190,7 +194,7 @@
 
   function syncPlaybackState() {
     if (!('mediaSession' in navigator)) return;
-    const stateText = String(status.textContent || '').trim().toUpperCase();
+    const stateText = playerStateText();
     try {
       if (stateText === 'PLAYING') navigator.mediaSession.playbackState = 'playing';
       else if (stateText === 'PAUSED') navigator.mediaSession.playbackState = 'paused';
@@ -201,7 +205,7 @@
   const observer = new MutationObserver(() => {
     syncMediaMetadata();
     syncPlaybackState();
-    if (String(status.textContent || '').trim().toUpperCase() === 'PLAYING') removeResumeButton();
+    if (playerStateText() === 'PLAYING') removeResumeButton();
   });
   observer.observe(status, { childList: true, characterData: true, subtree: true });
 
