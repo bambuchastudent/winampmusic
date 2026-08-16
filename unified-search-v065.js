@@ -3,14 +3,14 @@
   window.__WINAMP_MUSIC_UNIFIED_SEARCH_V065__ = true;
 
   const COPY = {
-    en: { title: 'Search music', hint: 'Artist, track, YouTube or Apple Music link…', button: 'Search', share: 'Share track', searching: 'Search YouTube or paste a music link' },
-    ru: { title: 'Поиск музыки', hint: 'Исполнитель, трек, ссылка YouTube или Apple Music…', button: 'Найти', share: 'Поделиться треком', searching: 'Ищи музыку или вставь ссылку' },
-    es: { title: 'Buscar música', hint: 'Artista, canción o enlace de YouTube/Apple Music…', button: 'Buscar', share: 'Compartir canción', searching: 'Busca música o pega un enlace' },
-    de: { title: 'Musik suchen', hint: 'Künstler, Titel oder YouTube-/Apple-Music-Link…', button: 'Suchen', share: 'Titel teilen', searching: 'Musik suchen oder Link einfügen' },
-    zh: { title: '搜索音乐', hint: '歌手、歌曲或 YouTube / Apple Music 链接…', button: '搜索', share: '分享歌曲', searching: '搜索音乐或粘贴链接' },
-    hi: { title: 'संगीत खोजें', hint: 'कलाकार, गाना या YouTube / Apple Music लिंक…', button: 'खोजें', share: 'ट्रैक साझा करें', searching: 'संगीत खोजें या लिंक पेस्ट करें' },
-    ur: { title: 'موسیقی تلاش کریں', hint: 'فنکار، گانا یا YouTube / Apple Music لنک…', button: 'تلاش', share: 'ٹریک شیئر کریں', searching: 'موسیقی تلاش کریں یا لنک پیسٹ کریں' },
-    ar: { title: 'ابحث عن الموسيقى', hint: 'الفنان أو الأغنية أو رابط YouTube / Apple Music…', button: 'بحث', share: 'مشاركة المقطع', searching: 'ابحث عن الموسيقى أو الصق رابطًا' },
+    en: { title: 'Search music', hint: 'Artist, track, or YouTube / Apple / Spotify / VK link…', button: 'Search', share: 'Share track', searching: 'Search music or paste a link' },
+    ru: { title: 'Поиск музыки', hint: 'Исполнитель, трек или ссылка YouTube / Apple / Spotify / VK…', button: 'Найти', share: 'Поделиться треком', searching: 'Ищи музыку или вставь ссылку' },
+    es: { title: 'Buscar música', hint: 'Artista, canción o enlace de YouTube / Apple / Spotify / VK…', button: 'Buscar', share: 'Compartir canción', searching: 'Busca música o pega un enlace' },
+    de: { title: 'Musik suchen', hint: 'Künstler, Titel oder YouTube / Apple / Spotify / VK-Link…', button: 'Suchen', share: 'Titel teilen', searching: 'Musik suchen oder Link einfügen' },
+    zh: { title: '搜索音乐', hint: '歌手、歌曲或 YouTube / Apple / Spotify / VK 链接…', button: '搜索', share: '分享歌曲', searching: '搜索音乐或粘贴链接' },
+    hi: { title: 'संगीत खोजें', hint: 'कलाकार, गाना या YouTube / Apple / Spotify / VK लिंक…', button: 'खोजें', share: 'ट्रैक साझा करें', searching: 'संगीत खोजें या लिंक पेस्ट करें' },
+    ur: { title: 'موسیقی تلاش کریں', hint: 'فنکار، گانا یا YouTube / Apple / Spotify / VK لنک…', button: 'تلاش', share: 'ٹریک شیئر کریں', searching: 'موسیقی تلاش کریں یا لنک پیسٹ کریں' },
+    ar: { title: 'ابحث عن الموسيقى', hint: 'الفنان أو الأغنية أو رابط YouTube / Apple / Spotify / VK…', button: 'بحث', share: 'مشاركة المقطع', searching: 'ابحث عن الموسيقى أو الصق رابطًا' },
   };
 
   function locale() {
@@ -27,7 +27,10 @@
     if (!/^https?:\/\//i.test(text)) return false;
     try {
       const host = new URL(text).hostname.toLowerCase().replace(/^www\./, '');
-      return host === 'music.apple.com' || ['youtu.be', 'youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host);
+      return host === 'music.apple.com'
+        || host === 'open.spotify.com'
+        || ['vk.com', 'm.vk.com', 'vk.ru', 'm.vk.ru'].includes(host)
+        || ['youtu.be', 'youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host);
     } catch {
       return false;
     }
@@ -55,9 +58,7 @@
     input.setAttribute('aria-label', copy.title);
 
     const copyBox = importBar.querySelector('.youtube-import-copy');
-    if (copyBox) {
-      copyBox.innerHTML = `<div><div class="eyebrow">${copy.title.toUpperCase()}</div><strong>${copy.searching}</strong></div>`;
-    }
+    if (copyBox) copyBox.innerHTML = `<div><div class="eyebrow">${copy.title.toUpperCase()}</div><strong>${copy.searching}</strong></div>`;
 
     const row = importBar.querySelector('.youtube-import-row');
     let button = document.getElementById('unifiedMusicSearchButton');
@@ -106,7 +107,7 @@
     }
 
     const footer = document.querySelector('.app-version');
-    if (footer) footer.textContent = 'v0.6.5';
+    if (footer) footer.textContent = 'v1.0';
 
     const style = document.createElement('style');
     style.id = 'unifiedSearchV065Styles';
