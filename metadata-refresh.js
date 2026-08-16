@@ -52,7 +52,7 @@
     loadScript('./input-v056.js?v=0.5.6', 'data-winamp-v056-input');
     loadScript('./universal-music-import-v1.js?v=1.0', 'data-winamp-universal-import-v1');
     loadScript('./unified-search-v065.js?v=1.0', 'data-winamp-unified-search-v1');
-    loadScript('./support-v1.js?v=1.0', 'data-winamp-support-v1');
+    loadScript('./support-v1.js?v=1.0.1', 'data-winamp-support-v1');
     loadScript('./playback-continuity.js?v=0.5.6', 'data-winamp-playback-continuity');
     // Set this synchronously so comments.js cannot start the older lyrics-sync
     // module while the v0.5.7 replacement is still downloading.
