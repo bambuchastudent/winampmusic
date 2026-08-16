@@ -1,3 +1,4 @@
+const BUILD = 'v1.3.2-fast-start';
 const CACHE = 'winampmusic-shell-v25';
 const SHELL = [
   './',
@@ -98,8 +99,9 @@ const NETWORK_FIRST = new Set([
 ]);
 
 self.addEventListener('install', (event) => {
+  // BUILD intentionally changes whenever the startup shell must be refreshed.
+  void BUILD;
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
-  // v1.3.1 must replace the v1.3 capture-phase click interception immediately.
   self.skipWaiting();
 });
 

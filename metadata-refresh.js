@@ -3,6 +3,13 @@
   const STATUS = document.getElementById('status');
   const MAX_WAIT_MS = 3500;
   const BETWEEN_TRACKS_MS = 80;
+  const DEFAULT_REPAIR_LIMIT = 8;
+  let repairPromise = null;
+
+  // Kill the old v1.3 capture-phase recovery layer before any cached copy can run.
+  // v1.3.1+ uses a different guard and remains active.
+  window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__ = true;
+  document.documentElement.dataset.winampFastStart = '1.3.2';
 
   function installWinampBranding() {
     if (!document.querySelector('link[data-winamp-icon]')) {
@@ -103,7 +110,7 @@
   async function createProbe() {
     const host = document.createElement('div');
     host.id = `metadataRepairProbe-${Date.now()}`;
-    host.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;';
+    host.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;';
     document.body.appendChild(host);
 
     return new Promise((resolve, reject) => {
@@ -138,13 +145,17 @@
     return null;
   }
 
-  async function repair() {
-    if (!(await waitForApi())) return;
-    const broken = readLibrary().filter(needsRepair);
-    if (!broken.length) return;
+  async function repair(options = {}) {
+    if (!(await waitForApi())) return { repaired: 0, checked: 0 };
+    const allBroken = readLibrary().filter(needsRepair);
+    const limit = options.all === true
+      ? allBroken.length
+      : Math.max(0, Math.min(Number(options.limit) || DEFAULT_REPAIR_LIMIT, DEFAULT_REPAIR_LIMIT));
+    const broken = allBroken.slice(0, limit);
+    if (!broken.length) return { repaired: 0, checked: 0 };
 
     let probe;
-    try { probe = await createProbe(); } catch { return; }
+    try { probe = await createProbe(); } catch { return { repaired: 0, checked: 0 }; }
     let repaired = 0;
 
     for (let index = 0; index < broken.length; index += 1) {
@@ -168,11 +179,20 @@
         if (STATUS.textContent.startsWith('NAMES FIXED')) STATUS.textContent = 'READY';
       }, 2200);
     }
+    return { repaired, checked: broken.length };
   }
 
-  window.refreshWinampMetadata = () => repair().catch(() => {});
+  window.refreshWinampMetadata = (options = {}) => {
+    if (repairPromise) return repairPromise;
+    repairPromise = repair(options).catch(() => ({ repaired: 0, checked: 0 })).finally(() => {
+      repairPromise = null;
+    });
+    return repairPromise;
+  };
+
+  // Fast-start rule: never scan the whole library just because the page opened.
+  // Metadata refresh runs only after an explicit import/action asks for it.
   installWinampBranding();
   loadCompactShare();
   loadCurrentFixes();
-  window.addEventListener('load', () => setTimeout(() => window.refreshWinampMetadata(), 400));
 })();

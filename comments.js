@@ -274,17 +274,16 @@
   disconnectButton?.addEventListener('click', disableComments);
 
   let lastSeenId = '';
-  setInterval(() => {
+  const onTrackChanged = () => {
+    commentsTitle.textContent = titleNode.textContent?.trim() || 'Current track';
     const id = currentVideoId();
     if (id === lastSeenId) return;
     lastSeenId = id;
     loadComments().catch(() => {});
-  }, 700);
+  };
 
-  new MutationObserver(() => {
-    commentsTitle.textContent = titleNode.textContent?.trim() || 'Current track';
-  }).observe(titleNode, { childList: true, subtree: true, characterData: true });
+  new MutationObserver(onTrackChanged).observe(titleNode, { childList: true, subtree: true, characterData: true });
 
   setConnectedUi(commentsEnabled());
-  setTimeout(() => loadComments().catch(() => {}), 300);
+  setTimeout(onTrackChanged, 300);
 })();

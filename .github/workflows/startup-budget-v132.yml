@@ -1,0 +1,63 @@
+name: Startup budget guard
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  startup-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check startup-sensitive scripts
+        run: |
+          node --check metadata-refresh.js
+          node --check comments.js
+          node --check lyrics.js
+          node --check core-interactions-v13.js
+          node --check sw.js
+      - name: Forbid full-library work on page load
+        run: |
+          grep -F "const DEFAULT_REPAIR_LIMIT = 8" metadata-refresh.js
+          grep -F "let repairPromise = null" metadata-refresh.js
+          grep -F "Fast-start rule: never scan the whole library" metadata-refresh.js
+          if grep -E "addEventListener\(['\"]load['\"].*refreshWinampMetadata|refreshWinampMetadata\(\).*400" metadata-refresh.js; then
+            echo 'Do not scan metadata automatically on page load'
+            exit 1
+          fi
+      - name: Forbid polling loops for optional panels
+        run: |
+          if grep -F "setInterval(" comments.js; then
+            echo 'Comments must react to track changes, not poll forever'
+            exit 1
+          fi
+          if grep -F "setInterval(" lyrics.js; then
+            echo 'Lyrics must react to track changes, not poll forever'
+            exit 1
+          fi
+          grep -F "new MutationObserver(onTrackChanged)" comments.js
+          grep -F "new MutationObserver(() => loadLyrics()" lyrics.js
+      - name: Keep embedded video out of layout by default
+        run: |
+          grep -F "left: -9999px" youtube-player.css
+          grep -F "pointer-events: none" youtube-player.css
+          grep -F ".video-large .youtube-player" youtube-player.css
+          grep -F "pointer-events: auto" youtube-player.css
+      - name: Prevent stale click-stealing runtime
+        run: |
+          grep -F "window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__ = true" metadata-refresh.js
+          if grep -F "stopImmediatePropagation()" core-interactions-v13.js; then
+            echo 'Core recovery must never intercept native clicks'
+            exit 1
+          fi
+      - name: Keep PWA refresh marker current
+        run: |
+          grep -F "const BUILD = 'v1.3.2-fast-start'" sw.js
