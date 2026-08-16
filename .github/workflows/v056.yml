@@ -26,12 +26,12 @@ jobs:
           node --check playback-continuity.js
           node --check metadata-refresh.js
           node --check sw.js
-      - name: Check top YouTube import bar
+      - name: Check top music import bar
         run: |
           grep -q "addEventListener('paste'" input-v056.js
           grep -q "insertFromPaste" input-v056.js
           grep -q "addEventListener('beforeinput'" input-v056.js
-          grep -q 'Paste YouTube track or playlist URL' input-v056.js
+          grep -Eq 'Paste (YouTube track or playlist URL|YouTube or Apple Music URL)' input-v056.js
           grep -q 'youtube.com/feed/playlists' input-v056.js
           grep -q 'winampMusicDirectYouTubeImport' input-v056.js
           grep -q "key: 'Enter'" input-v056.js
