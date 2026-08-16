@@ -1,5 +1,6 @@
 const BUILD = 'v1.3.2-fast-start';
 const CACHE = 'winampmusic-shell-v25';
+const NETWORK_TIMEOUT_MS = 3500;
 const SHELL = [
   './',
   './index.html',
@@ -11,6 +12,8 @@ const SHELL = [
   './captions.css',
   './comments.css',
   './mobile.css',
+  './app.js',
+  './boot-v134.js',
   './metadata-refresh.js',
   './fixes-v054.js',
   './input-v056.js',
@@ -58,6 +61,7 @@ const NETWORK_FIRST = new Set([
   'comments.css',
   'mobile.css',
   'app.js',
+  'boot-v134.js',
   'youtube-import.js',
   'paste-import.js',
   'metadata-refresh.js',
@@ -99,7 +103,6 @@ const NETWORK_FIRST = new Set([
 ]);
 
 self.addEventListener('install', (event) => {
-  // BUILD intentionally changes whenever the startup shell must be refreshed.
   void BUILD;
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
   self.skipWaiting();
@@ -119,8 +122,10 @@ self.addEventListener('activate', (event) => {
 
 async function networkFirst(request) {
   const cache = await caches.open(CACHE);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
   try {
-    const freshRequest = new Request(request, { cache: 'no-store' });
+    const freshRequest = new Request(request, { cache: 'no-store', signal: controller.signal });
     const response = await fetch(freshRequest);
     if (response.ok) await cache.put(request, response.clone());
     return response;
@@ -128,7 +133,18 @@ async function networkFirst(request) {
     const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+async function cachedShellFirst(request, event) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request, { ignoreSearch: true });
+  if (!cached) return networkFirst(request);
+
+  event.waitUntil(networkFirst(request).then(() => {}).catch(() => {}));
+  return cached;
 }
 
 self.addEventListener('fetch', (event) => {
@@ -137,7 +153,11 @@ self.addEventListener('fetch', (event) => {
 
   const fileName = url.pathname.split('/').pop() || 'index.html';
   if (NETWORK_FIRST.has(fileName)) {
-    event.respondWith(networkFirst(event.request));
+    if (fileName === 'index.html' || fileName === 'sw.js') {
+      event.respondWith(networkFirst(event.request));
+    } else {
+      event.respondWith(cachedShellFirst(event.request, event));
+    }
     return;
   }
 
