@@ -1,0 +1,53 @@
+name: v1.3 core interaction recovery
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-v13-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check recovery runtime
+        run: |
+          node --check core-interactions-v13.js
+          node --check metadata-refresh.js
+          node --check sw.js
+      - name: Verify core player interactions
+        run: |
+          grep -F "togglePlayback" core-interactions-v13.js
+          grep -F "previousTrack" core-interactions-v13.js
+          grep -F "nextTrack" core-interactions-v13.js
+          grep -F "randomTrack" core-interactions-v13.js
+          grep -F "youtubeCommand('pauseVideo')" core-interactions-v13.js
+          grep -F "youtubeCommand('playVideo')" core-interactions-v13.js
+          grep -F "window.playIndex" core-interactions-v13.js
+      - name: Verify library filtering and track clicks
+        run: |
+          grep -F "search?.addEventListener('input', filterLibrary, true)" core-interactions-v13.js
+          grep -F "window.renderLibrary" core-interactions-v13.js
+          grep -F "target.closest('.track-main')" core-interactions-v13.js
+          grep -F "event.stopImmediatePropagation()" core-interactions-v13.js
+      - name: Verify stale-shell recovery
+        run: |
+          grep -F "core-interactions-v13.js?v=1.3" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.3'" metadata-refresh.js
+          grep -F "winampmusic-shell-v24" sw.js
+          grep -F "'./core-interactions-v13.js'" sw.js
+          grep -F "'core-interactions-v13.js'" sw.js
+          grep -F "cache: 'no-store'" sw.js
+          grep -F "ignoreSearch: true" sw.js
+          grep -F "self.skipWaiting();" sw.js
+      - name: Verify runtime health marker
+        run: |
+          grep -F "CORE v${VERSION} · READY" core-interactions-v13.js
+          grep -F "window.winampMusicCoreV13" core-interactions-v13.js
