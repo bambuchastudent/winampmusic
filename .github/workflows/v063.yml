@@ -18,16 +18,19 @@ jobs:
         run: |
           node --check input-v056.js
           node --check apple-music-import-v063.js
+          node --check apple-music-import-v064.js
           node --check sw.js
-      - name: Verify Apple Music routing
+      - name: Verify Apple Music routing remains active
         run: |
           grep -F "host !== 'music.apple.com'" input-v056.js
-          grep -F "./apple-music-import-v063.js?v=0.6.3" input-v056.js
+          grep -F "./apple-music-import-v064.js?v=0.6.4" input-v056.js
           grep -F 'MUSIC IMPORT' input-v056.js
           grep -F 'Paste YouTube or Apple Music' input-v056.js
-          grep -F "https://api.song.link/v1-alpha.1/links" apple-music-import-v063.js
-          grep -F 'links.youtubeMusic?.url || links.youtube?.url' apple-music-import-v063.js
-          grep -F 'winampMusicDirectYouTubeImport?.handleUrl' apple-music-import-v063.js
-          grep -F "form.id !== 'songSearchForm'" apple-music-import-v063.js
-          grep -F "'./apple-music-import-v063.js'" sw.js
-          grep -F "'apple-music-import-v063.js'" sw.js
+          grep -F "https://itunes.apple.com/lookup" apple-music-import-v064.js
+          grep -F "url.searchParams.set('callback', callback)" apple-music-import-v064.js
+          grep -F 'pipedapi.kavin.rocks' apple-music-import-v064.js
+          grep -F 'persistAndPlay' apple-music-import-v064.js
+          grep -F 'window.playIndex' apple-music-import-v064.js
+          grep -F "form.id !== 'songSearchForm'" apple-music-import-v064.js
+          grep -F "'./apple-music-import-v064.js'" sw.js
+          grep -F "'apple-music-import-v064.js'" sw.js
