@@ -32,6 +32,21 @@
     }
   }
 
+  function parseAppleMusicUrl(value) {
+    const text = String(value || '').trim();
+    if (!/^https?:\/\//i.test(text)) return null;
+    try {
+      const url = new URL(text);
+      const host = url.hostname.toLowerCase().replace(/^www\./, '');
+      if (host !== 'music.apple.com') return null;
+      const parts = url.pathname.split('/').filter(Boolean);
+      if (!parts.includes('album') && !parts.includes('song')) return null;
+      return { href: url.href };
+    } catch {
+      return null;
+    }
+  }
+
   function dispatchEnter() {
     search.dispatchEvent(new KeyboardEvent('keydown', {
       key: 'Enter',
@@ -61,7 +76,33 @@
     setTimeout(() => clearInterval(timer), 12000);
   }
 
+  function routeAppleMusic(parsed, input) {
+    loadV063AppleImport();
+    if (status) status.textContent = 'MATCHING APPLE MUSIC';
+    let attempts = 0;
+    const tryImport = () => {
+      if (window.winampMusicAppleImport?.handleUrl) {
+        window.winampMusicAppleImport.handleUrl(parsed.href, { input, play: true });
+        return;
+      }
+      attempts += 1;
+      if (attempts < 80) setTimeout(tryImport, 50);
+      else if (status) status.textContent = 'APPLE MUSIC IMPORT UNAVAILABLE';
+    };
+    tryImport();
+    return true;
+  }
+
   function route(value, input) {
+    const apple = parseAppleMusicUrl(value);
+    if (apple) {
+      const now = Date.now();
+      if (apple.href === routedValue && now - routedAt < 700) return true;
+      routedValue = apple.href;
+      routedAt = now;
+      return routeAppleMusic(apple, input);
+    }
+
     const parsed = parseYouTubeUrl(value);
     if (!parsed) return false;
 
@@ -102,7 +143,7 @@
   function bindImportInput(input) {
     input.addEventListener('paste', (event) => {
       const pasted = event.clipboardData?.getData('text')?.trim() || '';
-      if (!parseYouTubeUrl(pasted)) {
+      if (!parseYouTubeUrl(pasted) && !parseAppleMusicUrl(pasted)) {
         routeCurrentSoon(input);
         return;
       }
@@ -150,9 +191,19 @@
     document.head.appendChild(script);
   }
 
+  function loadV063AppleImport() {
+    if (window.__WINAMP_MUSIC_APPLE_IMPORT_V063__ || document.querySelector('script[data-winamp-apple-import-v063]')) return;
+    const script = document.createElement('script');
+    script.src = './apple-music-import-v063.js?v=0.6.3';
+    script.defer = true;
+    script.dataset.winampAppleImportV063 = '1';
+    document.head.appendChild(script);
+  }
+
   function mountTopImportBar() {
     loadV060Favicon();
     loadV062CurrentShare();
+    loadV063AppleImport();
     if (document.getElementById('youtubeImportBar')) {
       loadV059();
       return;
@@ -165,8 +216,8 @@
     bar.className = 'youtube-import-bar';
     bar.innerHTML = `
       <div class="youtube-import-copy">
-        <div class="eyebrow">YOUTUBE IMPORT</div>
-        <strong>Paste a track or playlist</strong>
+        <div class="eyebrow">MUSIC IMPORT</div>
+        <strong>Paste YouTube or Apple Music</strong>
       </div>
       <div class="youtube-import-row"></div>
       <div class="youtube-import-actions">
@@ -181,13 +232,13 @@
     importInput.type = 'url';
     importInput.inputMode = 'url';
     importInput.autocomplete = 'off';
-    importInput.placeholder = 'Paste YouTube track or playlist URL…';
-    importInput.setAttribute('aria-label', 'Paste YouTube track or playlist URL');
+    importInput.placeholder = 'Paste YouTube or Apple Music URL…';
+    importInput.setAttribute('aria-label', 'Paste YouTube or Apple Music URL');
     row.appendChild(importInput);
     bindImportInput(importInput);
 
     // Keep the original field in the playlist where it belongs: it is the
-    // library filter, not the YouTube import box.
+    // library filter, not the music import box.
     search.placeholder = 'Filter title, artist, playlist or tag…';
     search.setAttribute('aria-label', 'Filter library');
 
