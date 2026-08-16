@@ -1,0 +1,44 @@
+name: v1.3.4 zero-blocking boot
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  zero-blocking-boot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check app.js
+          node --check boot-v134.js
+          node --check winamp-features.js
+          node --check sw.js
+      - name: Guard cold boot from third-party blockers
+        run: |
+          ! grep -E '<script[^>]+src="https?://' index.html
+          grep -F './app.js?v=0.4' index.html
+          grep -F './boot-v134.js?v=1.3.4' index.html
+          grep -F "script.async = true" boot-v134.js
+          grep -F "https://www.youtube.com/iframe_api" boot-v134.js
+          grep -F "ensureJsZip" winamp-features.js
+          grep -F "cdn.jsdelivr.net/npm/jszip" winamp-features.js
+      - name: Guard PWA startup latency
+        run: |
+          grep -F "NETWORK_TIMEOUT_MS = 3500" sw.js
+          grep -F "cachedShellFirst" sw.js
+          grep -F "'./boot-v134.js'" sw.js
+          grep -F "'boot-v134.js'" sw.js
+      - name: Real DOM interaction smoke test
+        run: |
+          npm install --no-save jsdom@26
+          node tests/boot-smoke-v134.mjs
