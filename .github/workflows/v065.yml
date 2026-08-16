@@ -54,7 +54,7 @@ jobs:
           grep -F "Direct author donation link coming soon" support-v1.js
           grep -F "https://winamp.com/" support-v1.js
           grep -F "https://www.rarlab.com/shop.htm" support-v1.js
-          grep -F "footer.textContent = 'v1.3'" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.3.1'" metadata-refresh.js
           grep -F "footer.textContent = 'v1.0'" unified-search-v065.js
           grep -F "'./universal-music-import-v1.js'" sw.js
           grep -F "'./support-v1.js'" sw.js

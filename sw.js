@@ -1,4 +1,4 @@
-const CACHE = 'winampmusic-shell-v24';
+const CACHE = 'winampmusic-shell-v25';
 const SHELL = [
   './',
   './index.html',
@@ -99,8 +99,7 @@ const NETWORK_FIRST = new Set([
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
-  // v1.3 is a recovery release: activate immediately so Safari cannot keep a
-  // mixed old/new shell alive behind the player UI.
+  // v1.3.1 must replace the v1.3 capture-phase click interception immediately.
   self.skipWaiting();
 });
 

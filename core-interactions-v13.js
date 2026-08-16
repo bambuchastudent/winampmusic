@@ -1,112 +1,13 @@
 (() => {
-  if (window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__) return;
-  window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__ = true;
+  if (window.__WINAMP_MUSIC_CORE_INTERACTIONS_V131__) return;
+  window.__WINAMP_MUSIC_CORE_INTERACTIONS_V131__ = true;
 
-  const LIBRARY_KEY = 'winampmusic.library.v1';
-  const PLAYER_STATE_KEY = 'winampmusic.player.v1';
-  const VERSION = '1.3';
-
+  const VERSION = '1.3.1';
   const byId = (id) => document.getElementById(id);
-  const status = byId('status');
-  const playButton = byId('playButton');
-  const prevButton = byId('prevButton');
-  const nextButton = byId('nextButton');
-  const shuffleButton = byId('shuffleButton');
   const search = byId('search');
   const list = byId('trackList');
 
-  function readJson(key, fallback) {
-    try {
-      const value = JSON.parse(localStorage.getItem(key) || 'null');
-      return value ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  function library() {
-    const value = readJson(LIBRARY_KEY, []);
-    return Array.isArray(value) ? value : [];
-  }
-
-  function currentIndex() {
-    const tracks = library();
-    if (!tracks.length) return -1;
-    const saved = readJson(PLAYER_STATE_KEY, {});
-    const index = tracks.findIndex((track) => track?.id === saved.currentId);
-    return index >= 0 ? index : 0;
-  }
-
-  function callPlayIndex(index) {
-    if (typeof window.playIndex !== 'function') return false;
-    window.playIndex(index);
-    return true;
-  }
-
-  function youtubeCommand(func, args = []) {
-    const iframe = document.querySelector('#youtubePlayer iframe, iframe#youtubePlayer');
-    if (!iframe?.contentWindow) return false;
-    try {
-      iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function togglePlayback() {
-    const tracks = library();
-    if (!tracks.length) {
-      byId('importHelpButton')?.click();
-      return;
-    }
-
-    const state = String(status?.textContent || '').trim().toUpperCase();
-    if (state === 'PLAYING') {
-      if (youtubeCommand('pauseVideo')) {
-        if (status) status.textContent = 'PAUSED';
-        if (playButton) playButton.textContent = '▶';
-      }
-      return;
-    }
-
-    const index = currentIndex();
-    if (state === 'PAUSED' && youtubeCommand('playVideo')) {
-      if (status) status.textContent = 'PLAYING';
-      if (playButton) playButton.textContent = '⏸';
-      return;
-    }
-    callPlayIndex(index >= 0 ? index : 0);
-  }
-
-  function previousTrack() {
-    const tracks = library();
-    if (!tracks.length) return;
-    const index = currentIndex();
-    callPlayIndex(index <= 0 ? tracks.length - 1 : index - 1);
-  }
-
-  function nextTrack() {
-    const tracks = library();
-    if (!tracks.length) return;
-    const index = currentIndex();
-    callPlayIndex(index < 0 ? 0 : (index + 1) % tracks.length);
-  }
-
-  function randomTrack() {
-    const tracks = library();
-    if (!tracks.length) return;
-    if (tracks.length === 1) {
-      callPlayIndex(0);
-      return;
-    }
-    const index = currentIndex();
-    let next = index;
-    while (next === index) next = Math.floor(Math.random() * tracks.length);
-    callPlayIndex(next);
-  }
-
-  function filterLibrary() {
+  function filterLibraryFallback() {
     if (typeof window.renderLibrary === 'function') {
       window.renderLibrary();
       return;
@@ -118,12 +19,13 @@
   }
 
   function protectInteractiveSurface() {
-    if (byId('coreInteractionV13Styles')) return;
+    if (byId('coreInteractionV131Styles')) return;
     const style = document.createElement('style');
-    style.id = 'coreInteractionV13Styles';
+    style.id = 'coreInteractionV131Styles';
     style.textContent = `
-      #search,.controls,.track-list,.header-actions,.skin-actions,.top-actions,.volume-row{position:relative;z-index:20}
-      #search,.controls button,.track-main,.header-actions button,.skin-actions button,.top-actions button,.top-actions a{pointer-events:auto!important}
+      .top-actions,.youtube-import-bar,.skin-actions,.controls,.volume-row,.header-actions,.comments-actions,.dialog-actions,.empty-state,#search,.track-list{position:relative;z-index:20}
+      .top-actions button,.top-actions a,.youtube-import-bar input,.youtube-import-bar a,.skin-actions button,.controls button,.volume-row input,.header-actions button,.comments-actions button,.dialog-actions button,.empty-state button,#search,.track-main{pointer-events:auto!important;touch-action:manipulation}
+      .controls button,.skin-actions button,.header-actions button,.top-actions button,.top-actions a,.youtube-import-bar a,.empty-state button{-webkit-tap-highlight-color:rgba(255,255,255,.08)}
       .track-main{cursor:pointer}
       .wm-core-health{position:fixed;right:10px;bottom:max(10px,env(safe-area-inset-bottom));z-index:9998;padding:5px 8px;border:1px solid #35533c;border-radius:999px;background:#101711;color:#9df582;font:700 9px SFMono-Regular,Consolas,monospace;letter-spacing:.08em;pointer-events:none;opacity:.72}
     `;
@@ -144,43 +46,11 @@
     return ready;
   }
 
-  function intercept(button, action) {
-    button?.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      action();
-    }, true);
-  }
-
-  intercept(playButton, togglePlayback);
-  intercept(prevButton, previousTrack);
-  intercept(nextButton, nextTrack);
-  intercept(shuffleButton, randomTrack);
-
-  search?.addEventListener('input', filterLibrary, true);
-  search?.addEventListener('search', filterLibrary, true);
-  search?.addEventListener('keyup', filterLibrary, true);
-
-  list?.addEventListener('click', (event) => {
-    const target = event.target instanceof Element ? event.target.closest('.track-main') : null;
-    if (!target) return;
-    const row = target.closest('.track');
-    const index = Number(row?.dataset.index);
-    if (!Number.isInteger(index)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    callPlayIndex(index);
-  }, true);
-
-  document.addEventListener('keydown', (event) => {
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
-    const target = event.target;
-    if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
-    if (event.code === 'Space') {
-      event.preventDefault();
-      togglePlayback();
-    }
-  }, true);
+  // v1.3 stole player clicks during capture and prevented the app's own
+  // handlers from running on some real Android browsers. v1.3.1 deliberately
+  // leaves native click/touch events alone and only supplies recovery styling.
+  search?.addEventListener('input', filterLibraryFallback, { passive: true });
+  search?.addEventListener('search', filterLibraryFallback, { passive: true });
 
   protectInteractiveSurface();
   healthBadge();
@@ -193,11 +63,7 @@
   if (footer) footer.textContent = `v${VERSION}`;
 
   window.winampMusicCoreV13 = {
-    togglePlayback,
-    previousTrack,
-    nextTrack,
-    randomTrack,
-    filterLibrary,
+    filterLibrary: filterLibraryFallback,
     health: () => healthBadge(),
   };
 })();
