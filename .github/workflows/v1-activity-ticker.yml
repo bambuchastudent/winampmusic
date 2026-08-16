@@ -1,0 +1,42 @@
+name: v1 activity ticker
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-activity-ticker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check activity-ticker-v1.js
+          node --check metadata-refresh.js
+          node --check universal-music-import-v1.js
+          node --check sw.js
+      - name: Verify ticker replaces fixing names UI
+        run: |
+          grep -F "status.hidden = true" activity-ticker-v1.js
+          grep -F "LIBRARY SCAN" activity-ticker-v1.js
+          grep -F "winampActivityTicker" activity-ticker-v1.js
+          grep -F "@keyframes winampTicker" activity-ticker-v1.js
+          grep -F "winampMusicActivity?.progress" metadata-refresh.js
+      - name: Verify import preview shows source and track
+        run: |
+          grep -F "window.importTracks = function wrappedImportTracks" activity-ticker-v1.js
+          grep -F "IMPORT NEXT" activity-ticker-v1.js
+          grep -F "winampMusicActivity?.importing" universal-music-import-v1.js
+          grep -F "activity-ticker-v1.js?v=1.0" metadata-refresh.js
+      - name: Verify service worker wiring
+        run: |
+          grep -F "'./activity-ticker-v1.js'" sw.js
+          grep -F "'activity-ticker-v1.js'" sw.js
