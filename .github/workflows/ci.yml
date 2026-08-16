@@ -37,6 +37,9 @@ jobs:
           node --check v059.js
           node --check apple-v061.js
           node --check playback-continuity.js
+          node --check background-playback-v11.js
+          node --check production-polish-v12.js
+          node --check core-interactions-v13.js
           node --check sw.js
       - name: Check playlist wiring
         run: |
@@ -138,7 +141,7 @@ jobs:
           grep -q '"action": "./"' manifest.webmanifest
           grep -q 'mobile-share.js' sw.js
           grep -q 'mobile.css' sw.js
-          grep -Eq 'winampmusic-shell-v(19|20|21|22)' sw.js
+          grep -Eq 'winampmusic-shell-v(19|20|21|22|23|24)' sw.js
           grep -q 'empty-state\[hidden\]' mobile.css
       - name: Check v0.5.6 top import and playback continuity
         run: |
@@ -186,5 +189,24 @@ jobs:
           grep -q 'fca600' icon.svg
           grep -q 'winamp-logo' metadata-refresh.js
           grep -q "icon.href = './icon.svg'" metadata-refresh.js
+      - name: Check v1.2 production polish wiring
+        run: |
+          grep -q 'production-polish-v12.js?v=1.2' metadata-refresh.js
+          grep -q 'BroadcastChannel' production-polish-v12.js
+          grep -q 'winampmusic.playbackOwner.v1' production-polish-v12.js
+          grep -q 'Report bug' production-polish-v12.js
+          grep -q 'SKIP_WAITING' production-polish-v12.js
+          grep -q "event.data?.type === 'SKIP_WAITING'" sw.js
+          grep -q "'./production-polish-v12.js'" sw.js
+          grep -q "'production-polish-v12.js'" sw.js
+      - name: Check v1.3 sharing-ready core wiring
+        run: |
+          grep -q 'core-interactions-v13.js?v=1.3' metadata-refresh.js
+          grep -q 'window.winampMusicCoreV13' core-interactions-v13.js
+          grep -q 'togglePlayback' core-interactions-v13.js
+          grep -q 'filterLibrary' core-interactions-v13.js
+          grep -q "footer.textContent = 'v1.3'" metadata-refresh.js
+          grep -q "winampmusic-shell-v24" sw.js
+          grep -q "'./core-interactions-v13.js'" sw.js
       - name: Check web manifest JSON
         run: python -m json.tool manifest.webmanifest >/dev/null

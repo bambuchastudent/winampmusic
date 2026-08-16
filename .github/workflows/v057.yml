@@ -45,5 +45,5 @@ jobs:
         run: |
           grep -q '__WINAMP_SYNCED_LYRICS_V2__ = true' metadata-refresh.js
           grep -q 'lyrics-v057.js?v=0.5.7' metadata-refresh.js
-          grep -Eq "footer.textContent = 'v(0\.5\.7|0\.6\.5|1\.0|1\.1)'" metadata-refresh.js
+          grep -Eq "footer.textContent = 'v(0\.5\.7|0\.6\.5|1\.0|1\.1|1\.2|1\.3)'" metadata-refresh.js
           grep -q "'./lyrics-v057.js'" sw.js

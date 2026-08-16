@@ -1,0 +1,60 @@
+name: v1.2 production polish
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-v12:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check production-polish-v12.js
+          node --check metadata-refresh.js
+          node --check sw.js
+      - name: Verify single-tab playback ownership
+        run: |
+          grep -F "BroadcastChannel(CHANNEL_NAME)" production-polish-v12.js
+          grep -F "winampmusic.playbackOwner.v1" production-polish-v12.js
+          grep -F "pauseForForeignOwner" production-polish-v12.js
+          grep -F "publishClaim('heartbeat')" production-polish-v12.js
+      - name: Verify resilient PWA update flow
+        run: |
+          grep -F "registration.waiting" production-polish-v12.js
+          grep -F "registration.addEventListener('updatefound'" production-polish-v12.js
+          grep -F "worker.postMessage({ type: 'SKIP_WAITING' })" production-polish-v12.js
+          grep -F "navigator.serviceWorker.addEventListener('controllerchange'" production-polish-v12.js
+          grep -F "event.data?.type === 'SKIP_WAITING'" sw.js
+          grep -F "self.skipWaiting();" sw.js
+      - name: Verify testability and degraded-network UX
+        run: |
+          grep -F "Report bug" production-polish-v12.js
+          grep -F "github.com/bambuchastudent/winampmusic/issues/new" production-polish-v12.js
+          grep -F "window.addEventListener('online'" production-polish-v12.js
+          grep -F "window.addEventListener('offline'" production-polish-v12.js
+          grep -F "navigator.onLine" production-polish-v12.js
+      - name: Verify keyboard player controls
+        run: |
+          grep -F "event.code === 'Space'" production-polish-v12.js
+          grep -F "event.key === 'ArrowLeft'" production-polish-v12.js
+          grep -F "event.key === 'ArrowRight'" production-polish-v12.js
+          grep -F "event.key.toLowerCase() === 'p'" production-polish-v12.js
+          grep -F "event.key.toLowerCase() === 'n'" production-polish-v12.js
+      - name: Verify v1.2 remains wired under v1.3
+        run: |
+          grep -F "production-polish-v12.js?v=1.2" metadata-refresh.js
+          grep -F "core-interactions-v13.js?v=1.3" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.3'" metadata-refresh.js
+          grep -F "winampmusic-shell-v24" sw.js
+          grep -F "'./production-polish-v12.js'" sw.js
+          grep -F "'production-polish-v12.js'" sw.js

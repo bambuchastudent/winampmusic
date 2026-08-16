@@ -31,5 +31,5 @@ jobs:
           grep -F "window.importTracks?.([track])" apple-music-import-v064.js
           grep -F "setTimeout(() => window.playIndex?.(finalIndex), 0)" apple-music-import-v064.js
           grep -F "input.value = ''" apple-music-import-v064.js
-          grep -F "const CACHE = 'winampmusic-shell-v22'" sw.js
+          grep -Eq "const CACHE = 'winampmusic-shell-v(22|23|24)'" sw.js
           grep -F "'./apple-music-import-v064.js'" sw.js
