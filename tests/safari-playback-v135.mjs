@@ -51,5 +51,8 @@ assert.equal(window.localStorage.getItem('winampmusic.player.v1')?.includes('lmn
 assert.ok(fs.readFileSync('sw-v135.js', 'utf8').includes('networkFirst'), 'v1.3.5 service worker must prefer fresh app code');
 assert.ok(fs.readFileSync('recover.html', 'utf8').includes('winampmusic-shell-'), 'recovery page must clear only app caches');
 
-window.close();
 console.log('v1.3.5 Safari playback recovery: passed');
+// boot-v134 intentionally leaves a YouTube-loader timer alive. Ending this
+// dedicated smoke process after all assertions avoids jsdom tearing down the
+// document while that browser-like microtask is still pending.
+process.exit(0);
