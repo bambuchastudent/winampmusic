@@ -1,0 +1,46 @@
+name: v1.1 background playback
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-background-playback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check background-playback-v11.js
+          node --check playback-continuity.js
+          node --check metadata-refresh.js
+          node --check sw.js
+      - name: Verify background state and system controls
+        run: |
+          grep -F "navigator.mediaSession.setActionHandler" background-playback-v11.js
+          grep -F "navigator.mediaSession.setPositionState" background-playback-v11.js
+          grep -F "visibilitychange" background-playback-v11.js
+          grep -F "pagehide" background-playback-v11.js
+          grep -F "freeze" background-playback-v11.js
+          grep -F "BACKGROUND MODE" background-playback-v11.js
+      - name: Verify interrupted playback can resume
+        run: |
+          grep -F "winampmusic.background.v1" background-playback-v11.js
+          grep -F "Resume playback from" background-playback-v11.js
+          grep -F "winampmusic.playbackContinuity.v1" playback-continuity.js
+          grep -F "Resume from" playback-continuity.js
+      - name: Verify v1.1 boot and cache wiring
+        run: |
+          grep -F "background-playback-v11.js?v=1.1" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.1'" metadata-refresh.js
+          grep -F "'./background-playback-v11.js'" sw.js
+          grep -F "'background-playback-v11.js'" sw.js
+          grep -F "winampmusic-shell-v23" sw.js
