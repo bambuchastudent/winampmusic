@@ -18,6 +18,8 @@
 
   if (!status || !elapsed || !duration || !seek || !play || !previous || !next || !controls) return;
 
+  let intendedPlaying = false;
+
   function readJson(key, fallback) {
     try {
       return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback;
@@ -44,6 +46,10 @@
       : `${minutes}:${String(secs).padStart(2, '0')}`;
   }
 
+  function playerStateText() {
+    return String(status.textContent || '').trim().toUpperCase();
+  }
+
   function currentTrack() {
     const playerState = readJson(PLAYER_STATE_KEY, {});
     const library = readJson(LIBRARY_KEY, []);
@@ -54,14 +60,15 @@
   function saveBackgroundState() {
     const track = currentTrack();
     if (!track?.id) return;
-    const stateText = String(status.textContent || '').trim().toUpperCase();
+    const stateText = playerStateText();
+    const hidden = document.visibilityState === 'hidden';
     const snapshot = {
       v: 1,
       id: track.id,
       seconds: parseTime(elapsed.textContent),
       duration: parseTime(duration.textContent),
-      wasPlaying: stateText === 'PLAYING',
-      hidden: document.visibilityState === 'hidden',
+      wasPlaying: hidden ? intendedPlaying : stateText === 'PLAYING',
+      hidden,
       updatedAt: Date.now(),
     };
     localStorage.setItem(BACKGROUND_KEY, JSON.stringify(snapshot));
@@ -98,29 +105,42 @@
   function seekBy(seconds) {
     const total = parseTime(duration.textContent);
     const current = parseTime(elapsed.textContent);
-    if (!(total > 0)) return;
+    if (!(total > 0)) return false;
     const target = Math.max(0, Math.min(total, current + seconds));
     seek.value = String(Math.round((target / total) * 1000));
     seek.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
   }
 
   function seekTo(seconds) {
     const total = parseTime(duration.textContent);
-    if (!(total > 0) || !Number.isFinite(Number(seconds))) return;
+    if (!(total > 0) || !Number.isFinite(Number(seconds))) return false;
     const target = Math.max(0, Math.min(total, Number(seconds)));
     seek.value = String(Math.round((target / total) * 1000));
     seek.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
   }
 
-  function playerStateText() {
-    return String(status.textContent || '').trim().toUpperCase();
+  async function seekWhenReady(seconds) {
+    const started = Date.now();
+    while (Date.now() - started < 9000) {
+      if (seekTo(seconds)) return true;
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+    return false;
   }
 
   function installMediaSessionHandlers() {
     if (!('mediaSession' in navigator)) return;
     const handlers = {
-      play: () => { if (playerStateText() !== 'PLAYING') play.click(); },
-      pause: () => { if (playerStateText() === 'PLAYING') play.click(); },
+      play: () => {
+        intendedPlaying = true;
+        if (playerStateText() !== 'PLAYING') play.click();
+      },
+      pause: () => {
+        intendedPlaying = false;
+        if (playerStateText() === 'PLAYING') play.click();
+      },
       previoustrack: () => previous.click(),
       nexttrack: () => next.click(),
       seekbackward: (details) => seekBy(-(details.seekOffset || 10)),
@@ -172,6 +192,10 @@
       removeResumeButton();
       return;
     }
+    if (document.getElementById('resumePlaybackButton')) {
+      removeResumeButton();
+      return;
+    }
     const snapshot = readJson(BACKGROUND_KEY, null);
     if (!snapshot || snapshot.v !== 1 || !snapshot.wasPlaying) return;
     if (!Number.isFinite(Number(snapshot.updatedAt)) || Date.now() - Number(snapshot.updatedAt) > MAX_RESUME_AGE_MS) return;
@@ -185,10 +209,12 @@
     button.className = 'background-resume-button';
     button.textContent = `Resume playback from ${formatTime(snapshot.seconds)}`;
     ensureIndicator().insertAdjacentElement('afterend', button);
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
+      intendedPlaying = true;
       if (playerStateText() !== 'PLAYING') play.click();
-      setTimeout(() => seekTo(snapshot.seconds), 350);
+      await seekWhenReady(snapshot.seconds);
       button.remove();
+      saveBackgroundState();
     }, { once: true });
   }
 
@@ -203,23 +229,32 @@
   }
 
   const observer = new MutationObserver(() => {
+    const stateText = playerStateText();
+    if (document.visibilityState === 'visible') {
+      if (stateText === 'PLAYING') intendedPlaying = true;
+      else if (stateText === 'PAUSED') intendedPlaying = false;
+    }
     syncMediaMetadata();
     syncPlaybackState();
-    if (playerStateText() === 'PLAYING') removeResumeButton();
+    if (stateText === 'PLAYING') removeResumeButton();
   });
   observer.observe(status, { childList: true, characterData: true, subtree: true });
 
   document.addEventListener('visibilitychange', () => {
-    saveBackgroundState();
+    if (document.visibilityState === 'hidden') {
+      if (playerStateText() === 'PLAYING') intendedPlaying = true;
+      saveBackgroundState();
+    }
     syncMediaMetadata();
     syncPlaybackState();
     updateIndicator();
-    if (document.visibilityState === 'visible') setTimeout(maybeOfferResume, 250);
+    if (document.visibilityState === 'visible') setTimeout(maybeOfferResume, 350);
   });
   window.addEventListener('pagehide', saveBackgroundState);
   window.addEventListener('freeze', saveBackgroundState);
-  window.addEventListener('pageshow', () => setTimeout(maybeOfferResume, 250));
+  window.addEventListener('pageshow', () => setTimeout(maybeOfferResume, 450));
 
+  intendedPlaying = playerStateText() === 'PLAYING';
   installMediaSessionHandlers();
   syncMediaMetadata();
   syncPlaybackState();
