@@ -1,0 +1,27 @@
+name: v1.3.8 hard controls
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  hard-controls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check hard runtime
+        run: |
+          node --check controls-failsafe-v138.js
+          node --check sw.js
+      - name: Real pointer and overlay smoke test
+        run: |
+          npm install --no-save jsdom@26
+          node tests/hard-controls-v138.mjs
