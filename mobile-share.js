@@ -21,19 +21,42 @@
     }
   }
 
-  function extractYouTubeUrl(value) {
-    const text = String(value || '').trim();
-    if (!text) return '';
-    const direct = text.match(/https?:\/\/(?:www\.|m\.|music\.)?(?:youtube\.com|youtu\.be)\/[^\s]+/i)?.[0] || '';
-    if (!direct) return '';
-    return direct.replace(/[),.;!?]+$/g, '');
+  function serviceForUrl(value) {
+    try {
+      const host = new URL(value).hostname.toLowerCase().replace(/^www\./, '');
+      if (['youtu.be', 'youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) return 'YOUTUBE';
+      if (host === 'music.apple.com') return 'APPLE MUSIC';
+      if (host === 'open.spotify.com') return 'SPOTIFY';
+      if (['vk.com', 'm.vk.com', 'vk.ru', 'm.vk.ru'].includes(host)) return 'VK';
+      return '';
+    } catch { return ''; }
   }
 
-  function sharedYouTubeUrl() {
+  function extractMusicUrl(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    const urls = text.match(/https?:\/\/[^\s]+/gi) || [];
+    for (const item of urls) {
+      const direct = item.replace(/[),.;!?]+$/g, '');
+      if (serviceForUrl(direct)) return direct;
+    }
+    return '';
+  }
+
+  // Keep the original helper name for older regression checks and callers.
+  function extractYouTubeUrl(value) {
+    const url = extractMusicUrl(value);
+    return serviceForUrl(url) === 'YOUTUBE' ? url : '';
+  }
+
+  function sharedMusic() {
     const params = new URLSearchParams(location.search);
-    return extractYouTubeUrl(params.get('url'))
-      || extractYouTubeUrl(params.get('text'))
-      || extractYouTubeUrl(params.get('title'));
+    const candidates = [params.get('url'), params.get('text'), params.get('title')].filter(Boolean);
+    for (const candidate of candidates) {
+      const url = extractMusicUrl(candidate);
+      if (url) return { url, raw: candidates.join(' ') };
+    }
+    return { url: '', raw: '' };
   }
 
   function clearShareTargetParams() {
@@ -48,17 +71,37 @@
     if (changed) history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
   }
 
-  async function importSharedUrl(url) {
+  async function importSharedUrl(url, raw = url) {
     if (!url) return false;
+    const service = serviceForUrl(url);
     const started = Date.now();
-    while (Date.now() - started < 10000) {
-      const handler = window.winampMusicDirectYouTubeImport?.handleUrl;
-      if (typeof handler === 'function' && handler(url)) {
-        if (status) status.textContent = 'SHARED FROM YOUTUBE';
-        clearShareTargetParams();
-        return true;
+    while (Date.now() - started < 12000) {
+      if (service === 'YOUTUBE') {
+        const handler = window.winampMusicDirectYouTubeImport?.handleUrl;
+        if (typeof handler === 'function' && handler(url)) {
+          if (status) status.textContent = 'SHARED FROM YOUTUBE';
+          clearShareTargetParams();
+          return true;
+        }
+      } else if (service === 'APPLE MUSIC') {
+        const handler = window.winampMusicAppleImport?.handleUrl;
+        if (typeof handler === 'function') {
+          await handler(url, { play: true });
+          if (status) status.textContent = 'SHARED FROM APPLE MUSIC';
+          clearShareTargetParams();
+          return true;
+        }
+      } else if (service === 'SPOTIFY' || service === 'VK') {
+        const handler = window.winampMusicUniversalImport?.handleUrl;
+        if (typeof handler === 'function') {
+          await handler(`${raw} ${url}`, { play: true });
+          if (status) status.textContent = `SHARED FROM ${service}`;
+          clearShareTargetParams();
+          return true;
+        }
       }
-      if (search) {
+
+      if (search && service === 'YOUTUBE') {
         search.value = url;
         search.dispatchEvent(new Event('input', { bubbles: true }));
         if (!search.value) {
@@ -88,11 +131,7 @@
   }
 
   function parseYouTubeMessage(data) {
-    try {
-      return typeof data === 'string' ? JSON.parse(data) : data;
-    } catch {
-      return null;
-    }
+    try { return typeof data === 'string' ? JSON.parse(data) : data; } catch { return null; }
   }
 
   window.addEventListener('message', (event) => {
@@ -117,6 +156,6 @@
     setOpenLink(currentVideoId());
   }, 500);
 
-  const shared = sharedYouTubeUrl();
-  if (shared) setTimeout(() => importSharedUrl(shared).catch(() => {}), 50);
+  const shared = sharedMusic();
+  if (shared.url) setTimeout(() => importSharedUrl(shared.url, shared.raw).catch(() => {}), 50);
 })();

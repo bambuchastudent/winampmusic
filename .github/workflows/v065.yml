@@ -1,0 +1,70 @@
+name: v1 unified music search share and support
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+jobs:
+  verify-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check unified-search-v065.js
+          node --check universal-music-import-v1.js
+          node --check support-v1.js
+          node --check mobile-share.js
+          node --check metadata-refresh.js
+          node --check sw.js
+      - name: Verify one search field UX
+        run: |
+          grep -F "./unified-search-v065.js?v=1.0" metadata-refresh.js
+          grep -F "songPanel.hidden = true" unified-search-v065.js
+          grep -F "importBar.appendChild(songResults)" unified-search-v065.js
+          grep -F "input.type = 'search'" unified-search-v065.js
+          grep -F "isMusicUrl(input.value)" unified-search-v065.js
+          grep -F "songForm.dispatchEvent" unified-search-v065.js
+          grep -F "open.spotify.com" unified-search-v065.js
+          grep -F "vk.com" unified-search-v065.js
+      - name: Verify universal share import
+        run: |
+          grep -F "window.winampMusicUniversalImport" universal-music-import-v1.js
+          grep -F "api.song.link/v1-alpha.1/links" universal-music-import-v1.js
+          grep -F "open.spotify.com" universal-music-import-v1.js
+          grep -F "source: 'VK'" universal-music-import-v1.js
+          grep -F "winampMusicAppleImport?.findYouTubeMatch" universal-music-import-v1.js
+          grep -F "SHARED FROM APPLE MUSIC" mobile-share.js
+          grep -F "SHARED FROM SPOTIFY" mobile-share.js || grep -F 'SHARED FROM ${service}' mobile-share.js
+          grep -F "winampMusicUniversalImport?.handleUrl" mobile-share.js
+      - name: Verify current track share is visible at player
+        run: |
+          grep -F "playerShareCurrentTrackButton" unified-search-v065.js
+          grep -F "winampMusicShareCurrentTrack" unified-search-v065.js
+          grep -F "#shareCurrentTrackButton{display:none!important}" unified-search-v065.js
+      - name: Verify support and v1
+        run: |
+          grep -F "support-v1.js?v=1.0" metadata-refresh.js
+          grep -F "github.com/sponsors/bambuchastudent" support-v1.js
+          grep -F "https://winamp.com/" support-v1.js
+          grep -F "https://www.rarlab.com/shop.htm" support-v1.js
+          grep -F "footer.textContent = 'v1.0'" metadata-refresh.js
+          grep -F "footer.textContent = 'v1.0'" unified-search-v065.js
+          grep -F "'./universal-music-import-v1.js'" sw.js
+          grep -F "'./support-v1.js'" sw.js
+      - name: Verify localized Search music copy
+        run: |
+          grep -F "Search music" unified-search-v065.js
+          grep -F "Поиск музыки" unified-search-v065.js
+          grep -F "Buscar música" unified-search-v065.js
+          grep -F "Musik suchen" unified-search-v065.js
+          grep -F "搜索音乐" unified-search-v065.js
+          grep -F "संगीत खोजें" unified-search-v065.js
+          grep -F "موسیقی تلاش کریں" unified-search-v065.js
+          grep -F "ابحث عن الموسيقى" unified-search-v065.js
+          grep -F "lang === 'ar' || lang === 'ur'" unified-search-v065.js
