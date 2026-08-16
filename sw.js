@@ -1,7 +1,7 @@
-const BUILD = 'v1.3.8-hard-controls';
-const CACHE = 'winampmusic-shell-v29';
+const BUILD = 'v1.3.9-native-controls';
+const CACHE = 'winampmusic-shell-v30';
 const NETWORK_TIMEOUT_MS = 6000;
-const HARD_CONTROLS = './controls-failsafe-v138.js';
+const HARD_CONTROLS = './controls-failsafe-v139.js';
 
 const CORE = [
   './',
@@ -30,7 +30,7 @@ const CORE = [
   './lyrics.js',
   './comments.js',
   HARD_CONTROLS,
-  './recover-fresh-138.html',
+  './recover-fresh-139.html',
 ];
 
 async function fetchFresh(request) {
@@ -73,11 +73,11 @@ async function playerNavigation(request) {
   if (!type.includes('text/html')) return response;
 
   let html = await response.text();
-  const marker = "window.__WINAMP_HTML_RUNTIME__='1.3.8'";
+  const marker = "window.__WINAMP_HTML_RUNTIME__='1.3.9'";
   if (!html.includes(marker)) {
     const injection = [
       `<script>${marker};</script>`,
-      '<script src="./controls-failsafe-v138.js?v=1.3.8" defer></script>',
+      '<script src="./controls-failsafe-v139.js?v=1.3.9" defer></script>',
     ].join('');
     html = html.includes('</body>') ? html.replace('</body>', `${injection}</body>`) : `${html}${injection}`;
   }
