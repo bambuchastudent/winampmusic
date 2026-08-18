@@ -37,7 +37,10 @@ const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.
 const { window } = dom;
 window.confirm = () => false;
 window.prompt = () => null;
-window.navigator.serviceWorker = undefined;
+Object.defineProperty(window.navigator, 'serviceWorker', {
+  configurable: true,
+  value: { register: async () => ({}) },
+});
 window.navigator.share = undefined;
 window.navigator.clipboard = { writeText: async () => {} };
 window.localStorage.setItem('winampmusic.library.v1', JSON.stringify([
@@ -101,4 +104,4 @@ window.document.getElementById('songSearchButton').click();
 assert.equal(window.document.getElementById('songSearchStatus').textContent, 'Enter at least 2 characters', 'Search button must receive native click/submit');
 
 console.log('v1.4.0 core interaction test: passed');
-dom.window.close();
+process.exit(0);
