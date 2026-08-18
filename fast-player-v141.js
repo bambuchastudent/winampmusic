@@ -222,7 +222,6 @@
   }
 
   function ensurePlayer() {
-    if (player && playerReadyPromise) return playerReadyPromise;
     if (playerReadyPromise) return playerReadyPromise;
 
     playerReadyPromise = loadYouTubeApi().then(() => new Promise((resolve, reject) => {
@@ -395,27 +394,27 @@
     } catch {}
   });
 
-  // Make controls interactive before doing any network work or rendering the full library.
+  // Controls are live before any network request or full-library render.
   updateNowPlaying();
   renderLibrary();
   setStatus('READY · FAST');
 
-  // Warm YouTube after first paint without blocking input or library rendering.
+  // Warm the hidden YouTube iframe after first paint. It never blocks UI startup.
   const warm = () => ensurePlayer().catch(() => {});
   if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 1500 });
   else setTimeout(warm, 700);
 
-  // Old workers are unnecessary in fast mode. Remove them in the background only.
+  // Old workers/caches are unnecessary in fast mode. Remove them later, in background.
   setTimeout(() => {
     navigator.serviceWorker?.getRegistrations?.()
       .then((registrations) => Promise.all(registrations
         .filter((registration) => registration.scope.includes('/winampmusic/'))
         .map((registration) => registration.unregister())))
       .catch(() => {});
-    caches?.keys?.()
+    window.caches?.keys?.()
       .then((keys) => Promise.all(keys
         .filter((key) => key.startsWith('winampmusic-shell-'))
-        .map((key) => caches.delete(key))))
+        .map((key) => window.caches.delete(key))))
       .catch(() => {});
   }, 2500);
 
