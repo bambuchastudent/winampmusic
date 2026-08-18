@@ -1,0 +1,25 @@
+name: v1.4.1 fast player
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'fast-141.html'
+      - 'fast-player-v141.js'
+      - 'tests/fast-player-v141.mjs'
+      - '.github/workflows/v141-fast-player.yml'
+
+jobs:
+  fast-player:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: node --check fast-player-v141.js
+      - name: Install jsdom
+        run: npm install --no-save jsdom@26
+      - name: 183-track startup and controls test
+        run: node tests/fast-player-v141.mjs
