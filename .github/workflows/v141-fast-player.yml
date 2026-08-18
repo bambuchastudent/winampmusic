@@ -3,6 +3,7 @@ name: v1.4.1 fast player
 on:
   pull_request:
     paths:
+      - 'index.html'
       - 'fast-141.html'
       - 'fast-player-v141.js'
       - 'tests/fast-player-v141.mjs'
