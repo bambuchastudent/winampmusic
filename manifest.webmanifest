@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Winamp Music",
-  "short_name": "Winamp Music",
-  "description": "Winamp-style desktop and mobile player for your imported YouTube music library.",
+  "name": "AmpDrop Music",
+  "short_name": "AmpDrop",
+  "description": "AmpDrop Music — a fast desktop and mobile player for your imported music links and playlists.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
