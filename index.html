@@ -6,23 +6,23 @@
   <meta name="theme-color" content="#17191f" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Winamp Music</title>
-  <link rel="icon" href="./favicon.ico?v=140" sizes="any" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=140" />
-  <link rel="manifest" href="./manifest.webmanifest?v=140" />
-  <link rel="stylesheet" href="./styles.css?v=140" />
-  <link rel="stylesheet" href="./playlist-metadata.css?v=140" />
-  <link rel="stylesheet" href="./youtube-player.css?v=140" />
+  <meta name="description" content="Fast Winamp-style YouTube music player with a local saved library and instant controls." />
+  <link rel="canonical" href="https://bambuchastudent.github.io/winampmusic/" />
+  <link rel="icon" href="./favicon.ico?v=141" sizes="any" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=141" />
+  <link rel="manifest" href="./manifest.webmanifest?v=141" />
+  <link rel="stylesheet" href="./styles.css?v=141" />
   <style>
     html,body{touch-action:manipulation}
     body{overflow-x:hidden}
     .app-shell{position:relative;isolation:isolate}
-    .topbar,.player,.library-panel,.controls,.controls button,.track-list,.track,.track-main,.search,.header-actions,.header-actions button{position:relative;pointer-events:auto!important}
-    .controls,.controls button,.track-main,.search,.header-actions{z-index:2}
-    .controls button,.track-main,.header-actions button,#songSearchButton{touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.16)}
-    .core-runtime{display:inline-flex;align-items:center;min-height:28px;padding:0 9px;border:1px solid #35533c;border-radius:999px;color:#9df582;background:#101711;font:700 10px SFMono-Regular,Consolas,monospace}
-    .core-note{margin:10px 0 0;color:#8f98a8;font-size:11px;text-align:center}
-    .youtube-player{position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;pointer-events:none!important}
-    @media(max-width:620px){.topbar{align-items:flex-start}.top-actions{display:grid;justify-items:end}.app-shell{padding-top:max(12px,env(safe-area-inset-top))}.player,.library-panel{border-radius:14px}.header-actions{flex-wrap:wrap}.header-actions .ghost{min-height:38px}}
+    .topbar,.player,.library-panel,.controls,.controls button,.track-list,.track,.track-main,.search{position:relative;pointer-events:auto!important}
+    .controls button,.track-main,.search{z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.16)}
+    .fast-badge{display:inline-flex;align-items:center;min-height:30px;padding:0 10px;border:1px solid #35533c;border-radius:999px;background:#101711;color:#9df582;font:700 10px SFMono-Regular,Consolas,monospace;white-space:nowrap}
+    #youtubePlayer{position:fixed!important;left:-10000px!important;top:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important;pointer-events:none!important;opacity:.001!important}
+    .track-main{appearance:none;-webkit-appearance:none}
+    .fast-note{margin:8px 0 0;text-align:center;color:#8f98a8;font-size:11px}
+    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}}
   </style>
 </head>
 <body>
@@ -32,18 +32,14 @@
         <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER.</div>
         <h1>WINAMP MUSIC</h1>
       </div>
-      <div class="top-actions">
-        <span class="core-runtime">CORE 1.4.0</span>
-        <button id="installButton" class="youtube-button" type="button" hidden>Install app</button>
-        <a id="openYoutubeButton" class="youtube-button" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube</a>
-      </div>
+      <div><span class="fast-badge">FAST 1.4.1</span></div>
     </header>
 
     <section class="player" aria-label="Player">
       <div class="screen">
-        <div id="status" class="status">READY</div>
+        <div id="status" class="status">STARTING…</div>
         <div id="nowTitle" class="now-title">No track selected</div>
-        <div id="nowArtist" class="now-artist">Choose a track from your library</div>
+        <div id="nowArtist" class="now-artist">Loading saved library…</div>
         <div class="time-row">
           <span id="elapsed">00:00</span>
           <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" />
@@ -62,50 +58,25 @@
         <span>VOL</span>
         <input id="volume" type="range" min="0" max="100" value="75" aria-label="Volume" />
       </div>
-      <div id="youtubePlayer" class="youtube-player" aria-hidden="true"></div>
-      <p class="core-note">Stable core mode: player + library + song search. Extra modules are temporarily disabled.</p>
+      <div id="youtubePlayer" aria-hidden="true"></div>
+      <p class="fast-note">Controls are local and instant. YouTube loads separately.</p>
     </section>
 
     <section class="library-panel">
       <div class="library-header">
         <div><div class="eyebrow">PLAYLIST</div><h2>Your library <span id="trackCount">0</span></h2></div>
-        <div class="header-actions">
-          <button id="importHelpButton" class="ghost" type="button">Import</button>
-          <button id="sharePlaylistButton" class="ghost" type="button">Share</button>
-          <button id="clearButton" class="ghost danger" type="button">Reset cache</button>
-        </div>
       </div>
       <input id="search" class="search" type="search" placeholder="Filter title or artist…" autocomplete="off" aria-label="Filter library" />
       <ol id="trackList" class="track-list"></ol>
-      <div id="emptyState" class="empty-state">
-        <strong>No music yet.</strong>
-        <span>Use Search YouTube above to add a song.</span>
-        <button id="emptyImportButton" type="button">Import options</button>
+      <div id="emptyState" class="empty-state" hidden>
+        <strong>No saved music.</strong>
+        <span>Search YouTube will appear after the player starts.</span>
       </div>
     </section>
 
-    <footer class="app-version" aria-label="App version">v1.4.0 core</footer>
+    <footer class="app-version">v1.4.1 fast</footer>
   </main>
 
-  <dialog id="importDialog">
-    <form method="dialog" class="dialog-card">
-      <div class="dialog-heading"><div><div class="eyebrow">IMPORT</div><h2>YouTube importer</h2></div><button class="icon-button" value="cancel" aria-label="Close">✕</button></div>
-      <p>Song search is available on the main page. The legacy playlist importer is kept here for compatibility.</p>
-      <textarea id="importScript" readonly spellcheck="false"></textarea>
-      <div class="dialog-actions">
-        <button id="copyScriptButton" type="button">Copy script</button>
-        <button id="copyBookmarkletButton" type="button">Copy bookmarklet</button>
-        <button value="cancel" class="ghost">Close</button>
-      </div>
-      <textarea id="bookmarkletScript" readonly spellcheck="false" class="bookmarklet-box"></textarea>
-    </form>
-  </dialog>
-
-  <a id="openYoutubeButtonLibrary" href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Open YouTube Music</a>
-
-  <script>window.__WINAMP_HTML_RUNTIME__='1.4.0-core';</script>
-  <script src="./app.js?v=1.4.0"></script>
-  <script src="./boot-v140.js?v=1.4.0"></script>
-  <script src="./v059.js?v=1.4.0"></script>
+  <script src="./fast-player-v141.js?v=141"></script>
 </body>
 </html>
