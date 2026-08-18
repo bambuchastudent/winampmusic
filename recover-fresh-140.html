@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#17191f" />
+  <title>Starting Winamp Music core…</title>
+  <style>
+    html,body{height:100%;margin:0;background:#101216;color:#f6f6f6;font:16px system-ui,-apple-system,sans-serif}
+    body{display:grid;place-items:center}.box{max-width:520px;padding:28px;text-align:center}.bolt{font-size:52px}.muted{color:#aeb4c0;line-height:1.5}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="bolt">⚡</div>
+    <h1>Starting stable player</h1>
+    <p id="state" class="muted">Removing old interaction layers. Your saved library stays intact.</p>
+  </div>
+  <script>
+    (async () => {
+      const state = document.getElementById('state');
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations
+            .filter((registration) => registration.scope.includes('/winampmusic/'))
+            .map((registration) => registration.unregister()));
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys
+            .filter((key) => key.startsWith('winampmusic-shell-'))
+            .map((key) => caches.delete(key)));
+        }
+        const check = await fetch('./index.html?verify=140&t=' + Date.now(), { cache: 'no-store' });
+        const html = await check.text();
+        if (!check.ok || !html.includes("__WINAMP_HTML_RUNTIME__='1.4.0-core'")) {
+          throw new Error('Fresh core HTML is not available yet');
+        }
+        state.textContent = 'Stable core 1.4.0 ready. Opening player…';
+        location.replace('./?core=140&t=' + Date.now());
+      } catch (error) {
+        console.error(error);
+        state.textContent = 'Retrying with a fresh page…';
+        setTimeout(() => location.replace('./?core=140&t=' + Date.now()), 1000);
+      }
+    })();
+  </script>
+</body>
+</html>
