@@ -14,8 +14,11 @@ for (const page of [canonical, fallback]) {
 }
 assert.match(canonical, /fast-player-v141\.js\?v=150/);
 assert.match(fallback, /fast-player-v141\.js\?v=141/);
-assert.match(canonical, /AMP MUSIC/);
+assert.match(canonical, /AMPDROP MUSIC/);
+assert.match(canonical, /aria-label="AmpDrop Music 1\.5"/);
 assert.match(canonical, /class="bottle15-version">1\.5</);
+assert.match(canonical, /Version 2\.0 · Import all your playlists/);
+assert.ok(!canonical.includes('by bambuchastudent'));
 assert.ok(!canonical.includes('FAST 1.4.3'));
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
@@ -102,5 +105,5 @@ search.dispatchEvent(new window.Event('input', { bubbles: true }));
 assert.equal(window.document.querySelectorAll('.track').length, 1, 'filter must be interactive');
 assert.equal(window.document.querySelector('.track-title')?.textContent, 'Song 150');
 
-console.log(`AmpMusic 1.5 core test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
+console.log(`AmpDrop Music 1.5 core test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
 process.exit(0);
