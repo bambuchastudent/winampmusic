@@ -7,8 +7,11 @@ on:
       - 'fast-141.html'
       - 'fast-player-v141.js'
       - 'fast-import-v142.js'
+      - 'fast-actions-v143.js'
       - 'tests/fast-player-v141.mjs'
       - 'tests/fast-import-v142.mjs'
+      - 'tests/fast-actions-v143.mjs'
+      - 'openspec/changes/fast-player-v1.4.3/**'
       - '.github/workflows/v141-fast-player.yml'
 
 jobs:
@@ -19,13 +22,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: OpenSpec change contract
+        run: |
+          test -s openspec/changes/fast-player-v1.4.3/proposal.md
+          test -s openspec/changes/fast-player-v1.4.3/design.md
+          test -s openspec/changes/fast-player-v1.4.3/tasks.md
+          test -s openspec/changes/fast-player-v1.4.3/specs/fast-runtime/spec.md
       - name: Syntax check
         run: |
           node --check fast-player-v141.js
           node --check fast-import-v142.js
+          node --check fast-actions-v143.js
       - name: Install jsdom
         run: npm install --no-save jsdom@26
       - name: 183-track startup and controls test
         run: node tests/fast-player-v141.mjs
       - name: Fast YouTube paste import test
         run: node tests/fast-import-v142.mjs
+      - name: Fast playlist actions test
+        run: node tests/fast-actions-v143.mjs
