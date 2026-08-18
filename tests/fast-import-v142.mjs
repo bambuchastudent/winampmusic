@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 const code = fs.readFileSync('fast-import-v142.js', 'utf8');
 const index = fs.readFileSync('index.html', 'utf8');
 assert.match(index, /id="fastImportForm"/);
-assert.match(index, /fast-import-v142\.js\?v=142/);
+assert.match(index, /fast-import-v142\.js\?v=143/);
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes('preventDefault();\n    event.stop'));
 
@@ -57,5 +57,5 @@ await submit('not a youtube link');
 assert.equal(saved.length, 4);
 assert.match(window.document.getElementById('fastImportHint').textContent, /Paste a YouTube video link/);
 
-console.log('v1.4.2 fast import test passed');
+console.log('v1.4.3 fast import test passed');
 process.exit(0);
