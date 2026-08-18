@@ -1,43 +1,68 @@
-name: v1.4 fast player
+name: AmpMusic 1.5 release gate
 
 on:
   pull_request:
+    branches: [develop]
     paths:
       - 'index.html'
-      - 'fast-141.html'
       - 'fast-player-v141.js'
-      - 'fast-import-v142.js'
+      - 'fast-release-v150.js'
+      - 'fast-import-v150.js'
+      - 'fast-background-v150.js'
       - 'fast-actions-v143.js'
       - 'tests/fast-player-v141.mjs'
       - 'tests/fast-import-v142.mjs'
       - 'tests/fast-actions-v143.mjs'
-      - 'openspec/changes/fast-player-v1.4.3/**'
+      - 'tests/background-v150.mjs'
+      - 'tests/mutation-v150.mjs'
+      - 'tests/performance-v150.mjs'
+      - 'openspec/changes/release-v1.5.0/**'
+      - 'docs/OPTIMIZATION.md'
       - '.github/workflows/v141-fast-player.yml'
 
 jobs:
-  fast-player:
+  release-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: OpenSpec change contract
+
+      - name: OpenSpec release contract
         run: |
-          test -s openspec/changes/fast-player-v1.4.3/proposal.md
-          test -s openspec/changes/fast-player-v1.4.3/design.md
-          test -s openspec/changes/fast-player-v1.4.3/tasks.md
-          test -s openspec/changes/fast-player-v1.4.3/specs/fast-runtime/spec.md
+          test -s openspec/changes/release-v1.5.0/proposal.md
+          test -s openspec/changes/release-v1.5.0/design.md
+          test -s openspec/changes/release-v1.5.0/tasks.md
+          test -s openspec/changes/release-v1.5.0/specs/background-playback/spec.md
+          test -s openspec/changes/release-v1.5.0/specs/share-routing/spec.md
+          test -s openspec/changes/release-v1.5.0/specs/release-branding/spec.md
+          test -s docs/OPTIMIZATION.md
+
       - name: Syntax check
         run: |
           node --check fast-player-v141.js
-          node --check fast-import-v142.js
+          node --check fast-release-v150.js
+          node --check fast-import-v150.js
+          node --check fast-background-v150.js
           node --check fast-actions-v143.js
-      - name: Install jsdom
+
+      - name: Install test runtime
         run: npm install --no-save jsdom@26
-      - name: 183-track startup and controls test
+
+      # Correctness always wins. Do not move performance before these steps.
+      - name: Functional — 183-track core controls
         run: node tests/fast-player-v141.mjs
-      - name: Fast YouTube paste import test
+      - name: Functional — YouTube and Apple Music routing
         run: node tests/fast-import-v142.mjs
-      - name: Fast playlist actions test
+      - name: Functional — Gift QR and safe Clear
         run: node tests/fast-actions-v143.mjs
+      - name: Functional — background and Media Session
+        run: node tests/background-v150.mjs
+
+      - name: Mutation — critical regressions must be killed
+        run: node tests/mutation-v150.mjs
+
+      # Only optimize after behavior and mutation gates are green.
+      - name: Performance — startup budget
+        run: node tests/performance-v150.mjs
