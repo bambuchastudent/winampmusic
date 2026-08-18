@@ -34,6 +34,8 @@
     return 0;
   };
 
+  const stateText = () => String(status.textContent || '').trim().toUpperCase();
+
   function currentTrack() {
     const library = readJson(LIBRARY_KEY, []);
     if (!Array.isArray(library) || !library.length) return null;
@@ -52,13 +54,13 @@
   function saveSnapshot() {
     const track = currentTrack();
     if (!track?.id) return;
-    const stateText = String(status.textContent || '').trim().toUpperCase();
+    const text = stateText();
     const snapshot = {
       v: 2,
       id: String(track.id),
       seconds: parseTime(elapsed.textContent),
       duration: parseTime(duration.textContent),
-      wasPlaying: intendedPlaying || stateText === 'PLAYING',
+      wasPlaying: intendedPlaying || text === 'PLAYING',
       updatedAt: Date.now(),
     };
     try { localStorage.setItem(BACKGROUND_KEY, JSON.stringify(snapshot)); } catch {}
@@ -76,7 +78,7 @@
       session.metadata = new MediaMetadata({
         title: track.title || `YouTube ${track.id}`,
         artist: track.artist || 'YouTube',
-        album: track.playlist || 'Winamp Music',
+        album: track.playlist || 'AmpMusic',
         artwork: track.thumbnail ? [{ src: track.thumbnail }] : [],
       });
     } catch {}
@@ -85,7 +87,7 @@
   function syncPlaybackState() {
     const session = mediaSession();
     if (!session) return;
-    const text = String(status.textContent || '').trim().toUpperCase();
+    const text = stateText();
     try {
       session.playbackState = text === 'PLAYING' ? 'playing' : text === 'PAUSED' ? 'paused' : 'none';
     } catch {}
@@ -113,12 +115,22 @@
     return seekTo(parseTime(elapsed.textContent) + Number(delta || 0));
   }
 
+  function requestPlay() {
+    intendedPlaying = true;
+    if (stateText() !== 'PLAYING') play.click();
+  }
+
+  function requestPause() {
+    intendedPlaying = false;
+    if (stateText() === 'PLAYING') play.click();
+  }
+
   function installMediaSessionHandlers() {
     const session = mediaSession();
     if (!session || typeof session.setActionHandler !== 'function') return;
     const handlers = {
-      play: () => { intendedPlaying = true; play.click(); },
-      pause: () => { intendedPlaying = false; play.click(); },
+      play: requestPlay,
+      pause: requestPause,
       previoustrack: () => previous.click(),
       nexttrack: () => next.click(),
       seekbackward: (details) => seekBy(-(details?.seekOffset || 10)),
@@ -138,13 +150,12 @@
 
     const track = currentTrack();
     if (!track || String(track.id) !== String(snapshot.id)) return;
-    const stateText = String(status.textContent || '').trim().toUpperCase();
-    if (stateText === 'PLAYING') return;
+    if (stateText() === 'PLAYING') return;
 
     resumeInFlight = true;
     intendedPlaying = true;
     try {
-      play.click();
+      requestPlay();
       const started = Date.now();
       while (Date.now() - started < 5000) {
         if (seekTo(snapshot.seconds || 0)) break;
@@ -155,7 +166,7 @@
   }
 
   const observer = new MutationObserver(() => {
-    const text = String(status.textContent || '').trim().toUpperCase();
+    const text = stateText();
     if (text === 'PLAYING') intendedPlaying = true;
     if (text === 'PAUSED') intendedPlaying = false;
     syncMetadata();
@@ -177,10 +188,10 @@
   syncMetadata();
   syncPlaybackState();
   setInterval(() => {
-    if (String(status.textContent || '').trim().toUpperCase() === 'PLAYING') intendedPlaying = true;
+    if (stateText() === 'PLAYING') intendedPlaying = true;
     saveSnapshot();
     syncPosition();
   }, 1500);
 
-  console.info('[Winamp Music] background 1.5.0 ready');
+  console.info('[AmpMusic] background 1.5.0 ready');
 })();
