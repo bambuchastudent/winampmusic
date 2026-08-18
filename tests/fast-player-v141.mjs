@@ -2,20 +2,24 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 
+const canonical = fs.readFileSync('index.html', 'utf8');
 const html = fs.readFileSync('fast-141.html', 'utf8');
 const code = fs.readFileSync('fast-player-v141.js', 'utf8');
 
-assert.ok(!html.includes('app.js'), 'fast entry must not load legacy app.js');
-assert.ok(!html.includes('boot-v140.js'), 'fast entry must not load legacy boot');
-assert.ok(!html.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
-assert.ok(!html.includes('sw.js'), 'fast entry must not register a service worker');
-assert.match(html, /fast-player-v141\.js\?v=141/);
+for (const page of [canonical, html]) {
+  assert.ok(!page.includes('app.js'), 'fast entry must not load legacy app.js');
+  assert.ok(!page.includes('boot-v140.js'), 'fast entry must not load legacy boot');
+  assert.ok(!page.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
+  assert.ok(!page.includes('sw.js'), 'fast entry must not register a service worker');
+  assert.match(page, /fast-player-v141\.js\?v=141/);
+}
+assert.match(canonical, /FAST 1\.4\.1/);
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
 
-const dom = new JSDOM(html.replace('<script src="./fast-player-v141.js?v=141"></script>', ''), {
+const dom = new JSDOM(canonical.replace('<script src="./fast-player-v141.js?v=141"></script>', ''), {
   runScripts: 'outside-only',
-  url: 'https://example.test/winampmusic/fast-141.html',
+  url: 'https://example.test/winampmusic/',
   pretendToBeVisual: true,
 });
 const { window } = dom;
