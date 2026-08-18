@@ -107,3 +107,4 @@ for (const mutant of mutants) {
 const score = killed / mutants.length;
 console.log(`Mutation score: ${killed}/${mutants.length} (${Math.round(score * 100)}%)`);
 assert.equal(killed, mutants.length, 'all critical mutants must be killed before release');
+process.exit(0);
