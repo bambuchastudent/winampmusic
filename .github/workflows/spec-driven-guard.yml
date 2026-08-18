@@ -1,0 +1,43 @@
+name: Spec-driven guard
+
+on:
+  pull_request:
+
+jobs:
+  openspec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require OpenSpec for production changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          echo "$changed"
+
+          if ! echo "$changed" | grep -Eq '(^index\.html$|^[^/]+\.js$|^[^/]+\.css$|^manifest\.webmanifest$|^sw[^/]*\.js$)'; then
+            echo "No production runtime/UI changes; OpenSpec not required."
+            exit 0
+          fi
+
+          change_dir="$(echo "$changed" | sed -n 's#^\(openspec/changes/[^/]\+\)/.*#\1#p' | head -n1)"
+          if [ -z "$change_dir" ]; then
+            echo "Production code changed without an OpenSpec change." >&2
+            exit 1
+          fi
+
+          test -s "$change_dir/proposal.md"
+          test -s "$change_dir/design.md"
+          test -s "$change_dir/tasks.md"
+          find "$change_dir/specs" -type f -name 'spec.md' -size +0c -print -quit | grep -q .
+
+          if ! echo "$changed" | grep -Eq '(^tests/.*\.(mjs|js)$|^verify-.*\.mjs$)'; then
+            echo "Production code changed without a behavioral test change." >&2
+            exit 1
+          fi
+
+          echo "Spec-driven contract satisfied by $change_dir"
