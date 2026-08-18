@@ -1,10 +1,12 @@
-name: AmpMusic 1.5 release gate
+name: AmpDrop Music 1.5 release gate
 
 on:
   pull_request:
     branches: [develop]
     paths:
       - 'index.html'
+      - 'manifest.webmanifest'
+      - 'icon.svg'
       - 'fast-player-v141.js'
       - 'fast-release-v150.js'
       - 'fast-import-v150.js'
@@ -16,6 +18,7 @@ on:
       - 'tests/background-v150.mjs'
       - 'tests/mutation-v150.mjs'
       - 'tests/performance-v150.mjs'
+      - 'tests/branding-v150.mjs'
       - 'openspec/changes/release-v1.5.0/**'
       - 'docs/OPTIMIZATION.md'
       - '.github/workflows/v141-fast-player.yml'
@@ -37,6 +40,7 @@ jobs:
           test -s openspec/changes/release-v1.5.0/specs/background-playback/spec.md
           test -s openspec/changes/release-v1.5.0/specs/share-routing/spec.md
           test -s openspec/changes/release-v1.5.0/specs/release-branding/spec.md
+          test -s openspec/changes/release-v1.5.0/specs/v2-roadmap/spec.md
           test -s docs/OPTIMIZATION.md
 
       - name: Syntax check
@@ -46,11 +50,13 @@ jobs:
           node --check fast-import-v150.js
           node --check fast-background-v150.js
           node --check fast-actions-v143.js
+          node --check tests/branding-v150.mjs
 
       - name: Install test runtime
         run: npm install --no-save jsdom@26
 
-      # Correctness always wins. Do not move performance before these steps.
+      - name: Functional — branding and roadmap contract
+        run: node tests/branding-v150.mjs
       - name: Functional — 183-track core controls
         run: node tests/fast-player-v141.mjs
       - name: Functional — YouTube and Apple Music routing
@@ -63,6 +69,5 @@ jobs:
       - name: Mutation — critical regressions must be killed
         run: node tests/mutation-v150.mjs
 
-      # Only optimize after behavior and mutation gates are green.
       - name: Performance — startup budget
         run: node tests/performance-v150.mjs
