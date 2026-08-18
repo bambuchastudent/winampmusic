@@ -3,21 +3,25 @@ import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 
 const canonical = fs.readFileSync('index.html', 'utf8');
-const html = fs.readFileSync('fast-141.html', 'utf8');
+const fallback = fs.readFileSync('fast-141.html', 'utf8');
 const code = fs.readFileSync('fast-player-v141.js', 'utf8');
 
-for (const page of [canonical, html]) {
+for (const page of [canonical, fallback]) {
   assert.ok(!page.includes('app.js'), 'fast entry must not load legacy app.js');
   assert.ok(!page.includes('boot-v140.js'), 'fast entry must not load legacy boot');
   assert.ok(!page.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
   assert.ok(!page.includes('sw.js'), 'fast entry must not register a service worker');
-  assert.match(page, /fast-player-v141\.js\?v=141/);
 }
-assert.match(canonical, /FAST 1\.4\.1/);
+assert.match(canonical, /fast-player-v141\.js\?v=142/);
+assert.match(fallback, /fast-player-v141\.js\?v=141/);
+assert.match(canonical, /FAST 1\.4\.2/);
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
 
-const dom = new JSDOM(canonical.replace('<script src="./fast-player-v141.js?v=141"></script>', ''), {
+const stripped = canonical
+  .replace('<script src="./fast-player-v141.js?v=142"></script>', '')
+  .replace('<script src="./fast-import-v142.js?v=142" defer></script>', '');
+const dom = new JSDOM(stripped, {
   runScripts: 'outside-only',
   url: 'https://example.test/winampmusic/',
   pretendToBeVisual: true,
@@ -94,5 +98,5 @@ search.dispatchEvent(new window.Event('input', { bubbles: true }));
 assert.equal(window.document.querySelectorAll('.track').length, 1, 'filter must be interactive');
 assert.equal(window.document.querySelector('.track-title')?.textContent, 'Song 150');
 
-console.log(`v1.4.1 fast player test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
+console.log(`v1.4 fast player test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
 process.exit(0);

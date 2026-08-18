@@ -8,21 +8,24 @@
   <title>Winamp Music</title>
   <meta name="description" content="Fast Winamp-style YouTube music player with a local saved library and instant controls." />
   <link rel="canonical" href="https://bambuchastudent.github.io/winampmusic/" />
-  <link rel="icon" href="./favicon.ico?v=141" sizes="any" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=141" />
-  <link rel="manifest" href="./manifest.webmanifest?v=141" />
-  <link rel="stylesheet" href="./styles.css?v=141" />
+  <link rel="icon" href="./favicon.ico?v=142" sizes="any" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=142" />
+  <link rel="manifest" href="./manifest.webmanifest?v=142" />
+  <link rel="stylesheet" href="./styles.css?v=142" />
   <style>
     html,body{touch-action:manipulation}
     body{overflow-x:hidden}
     .app-shell{position:relative;isolation:isolate}
-    .topbar,.player,.library-panel,.controls,.controls button,.track-list,.track,.track-main,.search{position:relative;pointer-events:auto!important}
-    .controls button,.track-main,.search{z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.16)}
+    .topbar,.player,.library-panel,.controls,.controls button,.track-list,.track,.track-main,.search,.fast-import{position:relative;pointer-events:auto!important}
+    .controls button,.track-main,.search,.fast-import input,.fast-import button{z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.16)}
     .fast-badge{display:inline-flex;align-items:center;min-height:30px;padding:0 10px;border:1px solid #35533c;border-radius:999px;background:#101711;color:#9df582;font:700 10px SFMono-Regular,Consolas,monospace;white-space:nowrap}
     #youtubePlayer{position:fixed!important;left:-10000px!important;top:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important;pointer-events:none!important;opacity:.001!important}
     .track-main{appearance:none;-webkit-appearance:none}
     .fast-note{margin:8px 0 0;text-align:center;color:#8f98a8;font-size:11px}
-    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}}
+    .fast-import{margin:0 0 8px;padding:12px;border:1px solid #343a46;border-radius:14px;background:linear-gradient(180deg,#22262d,#15181e)}
+    .fast-import-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:8px}.fast-import-head strong{font-size:13px}.fast-import-hint{font-size:10px;color:#8f98a8;text-align:right}
+    .fast-import-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.fast-import-form input{min-width:0;min-height:46px;border:1px solid #343a46;border-radius:9px;background:#101217;color:#fff;padding:0 12px;font-size:16px;outline:none}.fast-import-form button{min-width:110px;border:1px solid #c99c22;border-radius:9px;background:linear-gradient(#ffe680,#c9a630);color:#171717;font-weight:900;padding:0 14px}
+    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}}
   </style>
 </head>
 <body>
@@ -32,8 +35,19 @@
         <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER.</div>
         <h1>WINAMP MUSIC</h1>
       </div>
-      <div><span class="fast-badge">FAST 1.4.1</span></div>
+      <div><span class="fast-badge">FAST 1.4.2</span></div>
     </header>
+
+    <section class="fast-import" aria-label="YouTube import">
+      <div class="fast-import-head">
+        <div><div class="eyebrow">MUSIC IMPORT</div><strong>Paste a YouTube video</strong></div>
+        <span id="fastImportHint" class="fast-import-hint">No login needed</span>
+      </div>
+      <form id="fastImportForm" class="fast-import-form">
+        <input id="fastImportInput" type="url" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" aria-label="YouTube video URL" />
+        <button id="fastImportButton" type="submit">Add & Play</button>
+      </form>
+    </section>
 
     <section class="player" aria-label="Player">
       <div class="screen">
@@ -70,13 +84,14 @@
       <ol id="trackList" class="track-list"></ol>
       <div id="emptyState" class="empty-state" hidden>
         <strong>No saved music.</strong>
-        <span>Search YouTube will appear after the player starts.</span>
+        <span>Paste a YouTube link above or use Search YouTube when it appears.</span>
       </div>
     </section>
 
-    <footer class="app-version">v1.4.1 fast</footer>
+    <footer class="app-version">v1.4.2 fast</footer>
   </main>
 
-  <script src="./fast-player-v141.js?v=141"></script>
+  <script src="./fast-player-v141.js?v=142"></script>
+  <script src="./fast-import-v142.js?v=142" defer></script>
 </body>
 </html>
