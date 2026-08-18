@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 
-const code = fs.readFileSync('fast-import-v142.js', 'utf8');
+const code = fs.readFileSync('fast-import-v150.js', 'utf8');
 const index = fs.readFileSync('index.html', 'utf8');
 assert.match(index, /id="fastImportForm"/);
-assert.match(index, /fast-import-v142\.js\?v=143/);
+assert.match(index, /fast-import-v150\.js\?v=150/);
 assert.ok(!code.includes('stopImmediatePropagation'));
-assert.ok(!code.includes('preventDefault();\n    event.stop'));
+assert.ok(!code.includes("addEventListener('pointer"));
 
-const dom = new JSDOM(`<!doctype html><html><body>
-  <form id="fastImportForm"><input id="fastImportInput"><button id="fastImportButton" type="submit">Add</button></form>
+const dom = new JSDOM(`<!doctype html><html><head></head><body>
+  <form id="fastImportForm"><input id="fastImportInput"><button id="fastImportButton" type="submit">Add & Play</button></form>
   <span id="fastImportHint"></span>
 </body></html>`, { runScripts: 'outside-only', url: 'https://example.test/winampmusic/' });
 const { window } = dom;
@@ -53,9 +53,17 @@ saved = JSON.parse(window.localStorage.getItem('winampmusic.library.v1'));
 assert.equal(saved.at(-1).id, 'aqz-KE-bpKQ');
 assert.equal(played.at(-1), 3);
 
-await submit('not a youtube link');
-assert.equal(saved.length, 4);
-assert.match(window.document.getElementById('fastImportHint').textContent, /Paste a YouTube video link/);
+const appleTrack = window.ampMusicImport150.parseApple('https://music.apple.com/tr/album/mantis-lords/1263341718?i=1263341726');
+assert.equal(appleTrack?.type, 'track');
+const applePlaylist = window.ampMusicImport150.parseApple('https://music.apple.com/us/playlist/todays-hits/pl.f4d106fed2bd41149aaacabb233eb5eb');
+assert.equal(applePlaylist?.type, 'playlist');
+await submit(applePlaylist.url);
+assert.match(window.document.getElementById('fastImportHint').textContent, /MusicKit connection/);
+assert.equal(window.document.querySelector('script[data-amp-module="apple-track-import"]'), null, 'playlist detection must not eagerly load track importer');
 
-console.log('v1.4.3 fast import test passed');
+await submit('not a music link');
+assert.equal(saved.length, 4);
+assert.match(window.document.getElementById('fastImportHint').textContent, /YouTube video or Apple Music track/);
+
+console.log('AmpMusic 1.5 fast import routing test passed');
 process.exit(0);
