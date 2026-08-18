@@ -101,3 +101,4 @@ window.document.getElementById('songSearchButton').click();
 assert.equal(window.document.getElementById('songSearchStatus').textContent, 'Enter at least 2 characters', 'Search button must receive native click/submit');
 
 console.log('v1.4.0 core interaction test: passed');
+dom.window.close();
