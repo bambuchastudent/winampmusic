@@ -12,16 +12,19 @@ for (const page of [canonical, fallback]) {
   assert.ok(!page.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
   assert.ok(!page.includes('sw.js'), 'fast entry must not register a service worker');
 }
-assert.match(canonical, /fast-player-v141\.js\?v=143/);
+assert.match(canonical, /fast-player-v141\.js\?v=150/);
 assert.match(fallback, /fast-player-v141\.js\?v=141/);
-assert.match(canonical, /FAST 1\.4\.3/);
+assert.match(canonical, /AMP MUSIC/);
+assert.match(canonical, /class="bottle15-version">1\.5</);
+assert.ok(!canonical.includes('FAST 1.4.3'));
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
 
 const stripped = canonical
-  .replace('<script src="./fast-player-v141.js?v=143"></script>', '')
-  .replace('<script src="./fast-import-v142.js?v=143" defer></script>', '')
-  .replace('<script src="./fast-actions-v143.js?v=143" defer></script>', '');
+  .replace('<script src="./fast-player-v141.js?v=150"></script>', '')
+  .replace('<script src="./fast-release-v150.js?v=150" defer></script>', '')
+  .replace('<script src="./fast-import-v150.js?v=150" defer></script>', '')
+  .replace('<script src="./fast-actions-v143.js?v=150" defer></script>', '');
 const dom = new JSDOM(stripped, {
   runScripts: 'outside-only',
   url: 'https://example.test/winampmusic/',
@@ -71,7 +74,7 @@ const started = performance.now();
 window.eval(code);
 const synchronousStartupMs = performance.now() - started;
 
-assert.equal(window.__WINAMP_MUSIC_RUNTIME__, '1.4.1-fast');
+assert.equal(window.__WINAMP_MUSIC_RUNTIME__, '1.4.1-fast', 'stable core stays unchanged under 1.5 release adapter');
 assert.equal(window.document.getElementById('trackCount').textContent, '183');
 assert.equal(window.document.querySelectorAll('.track').length, 30, 'only first 30 rows may render synchronously');
 assert.equal(window.document.getElementById('status').textContent, 'READY · FAST');
@@ -99,5 +102,5 @@ search.dispatchEvent(new window.Event('input', { bubbles: true }));
 assert.equal(window.document.querySelectorAll('.track').length, 1, 'filter must be interactive');
 assert.equal(window.document.querySelector('.track-title')?.textContent, 'Song 150');
 
-console.log(`v1.4 fast player test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
+console.log(`AmpMusic 1.5 core test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
 process.exit(0);
