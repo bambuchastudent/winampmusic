@@ -11,17 +11,17 @@ The primary user-visible release badge SHALL remain exactly `1.5` for the lifeti
 - THEN the prominent release badge SHALL display `1.5`
 - AND SHALL NOT display the patch component.
 
-## Requirement: Winamp Music bottle identity
+## Requirement: AmpDrop Music bottle identity
 The prominent `1.5` badge SHALL be rendered as a lightweight CSS/HTML bottle mark rather than a network image so it cannot delay startup.
 
 The mark SHALL visually include:
 - a transparent plastic soda bottle silhouette;
 - visible soda/bubbles;
-- the product name `WINAMP MUSIC` on the bottle label;
+- the product name `AMPDROP MUSIC` on the bottle label;
 - a lightning motif;
 - the large release text `1.5`.
 
-The bottle SHALL represent the Winamp Music product. It SHALL NOT label the product simply as `Winamp`.
+The product name SHALL be `AmpDrop Music`. The UI SHALL NOT present `Winamp`, `Winamp Music`, or `AmpMusic` as the product brand.
 
 ### Scenario: critical startup
 - WHEN the player starts on mobile
@@ -29,5 +29,10 @@ The bottle SHALL represent the Winamp Music product. It SHALL NOT label the prod
 - AND SHALL register no pointer/capture handlers
 - AND SHALL not participate in playback logic.
 
+## Requirement: 2.0 playlist teaser
+The 1.5 import surface SHALL include the concise roadmap message `Version 2.0 · Import all your playlists`.
+
+The teaser SHALL NOT imply that bulk import already exists in 1.5.
+
 ## Requirement: Demo consistency
-The same visible `WINAMP MUSIC` + lightning + `1.5` bottle identity SHALL be used in release screenshots/story video so patch releases remain visually recognizable as the 1.5 line.
+The same visible `AMPDROP MUSIC` + lightning + `1.5` bottle identity SHALL be used in release screenshots/story video so patch releases remain visually recognizable as the 1.5 line.
