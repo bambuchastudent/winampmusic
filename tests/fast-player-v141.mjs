@@ -12,15 +12,16 @@ for (const page of [canonical, fallback]) {
   assert.ok(!page.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
   assert.ok(!page.includes('sw.js'), 'fast entry must not register a service worker');
 }
-assert.match(canonical, /fast-player-v141\.js\?v=142/);
+assert.match(canonical, /fast-player-v141\.js\?v=143/);
 assert.match(fallback, /fast-player-v141\.js\?v=141/);
-assert.match(canonical, /FAST 1\.4\.2/);
+assert.match(canonical, /FAST 1\.4\.3/);
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
 
 const stripped = canonical
-  .replace('<script src="./fast-player-v141.js?v=142"></script>', '')
-  .replace('<script src="./fast-import-v142.js?v=142" defer></script>', '');
+  .replace('<script src="./fast-player-v141.js?v=143"></script>', '')
+  .replace('<script src="./fast-import-v142.js?v=143" defer></script>', '')
+  .replace('<script src="./fast-actions-v143.js?v=143" defer></script>', '');
 const dom = new JSDOM(stripped, {
   runScripts: 'outside-only',
   url: 'https://example.test/winampmusic/',
