@@ -5,48 +5,67 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#17191f" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>Winamp Music</title>
-  <meta name="description" content="Fast Winamp-style YouTube music player with a local saved library and instant controls." />
+  <title>AmpDrop Music 1.5</title>
+  <meta name="description" content="AmpDrop Music 1.5 — a fast browser music player for your saved music links and playlists." />
   <link rel="canonical" href="https://bambuchastudent.github.io/winampmusic/" />
-  <link rel="icon" href="./favicon.ico?v=143" sizes="any" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=143" />
-  <link rel="manifest" href="./manifest.webmanifest?v=143" />
-  <link rel="stylesheet" href="./styles.css?v=143" />
+  <link rel="icon" href="./favicon.ico?v=150" sizes="any" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=150" />
+  <link rel="manifest" href="./manifest.webmanifest?v=150" />
+  <link rel="stylesheet" href="./styles.css?v=150" />
   <style>
     html,body{touch-action:manipulation}
     body{overflow-x:hidden}
     .app-shell{position:relative;isolation:isolate}
     .topbar,.player,.library-panel,.controls,.controls button,.track-list,.track,.track-main,.search,.fast-import{position:relative;pointer-events:auto!important}
     .controls button,.track-main,.search,.fast-import input,.fast-import button{z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.16)}
-    .fast-badge{display:inline-flex;align-items:center;min-height:30px;padding:0 10px;border:1px solid #35533c;border-radius:999px;background:#101711;color:#9df582;font:700 10px SFMono-Regular,Consolas,monospace;white-space:nowrap}
-    #youtubePlayer{position:fixed!important;left:-10000px!important;top:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important;pointer-events:none!important;opacity:.001!important}
+    #youtubePlayer{position:fixed!important;left:-12000px!important;top:-12000px!important;width:200px!important;height:200px!important;overflow:hidden!important;pointer-events:none!important;opacity:.001!important}
     .track-main{appearance:none;-webkit-appearance:none}
     .fast-note{margin:8px 0 0;text-align:center;color:#8f98a8;font-size:11px}
     .fast-import{margin:0 0 8px;padding:12px;border:1px solid #343a46;border-radius:14px;background:linear-gradient(180deg,#22262d,#15181e)}
     .fast-import-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:8px}.fast-import-head strong{font-size:13px}.fast-import-hint{font-size:10px;color:#8f98a8;text-align:right}
     .fast-import-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.fast-import-form input{min-width:0;min-height:46px;border:1px solid #343a46;border-radius:9px;background:#101217;color:#fff;padding:0 12px;font-size:16px;outline:none}.fast-import-form button{min-width:110px;border:1px solid #c99c22;border-radius:9px;background:linear-gradient(#ffe680,#c9a630);color:#171717;font-weight:900;padding:0 14px}
-    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}}
+    .v2-teaser{margin:9px 0 0;text-align:center;color:#f0d26a;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+    .brand-stack{display:grid;gap:2px}
+    .bottle15{width:78px;height:118px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35));pointer-events:none;user-select:none}
+    .bottle15-cap{position:absolute;top:0;width:30px;height:12px;border-radius:6px 6px 3px 3px;background:linear-gradient(#fafafa,#9299a4);border:1px solid #dfe4e8}
+    .bottle15-neck{position:absolute;top:10px;width:34px;height:20px;border:1px solid rgba(255,255,255,.4);border-bottom:0;border-radius:8px 8px 2px 2px;background:rgba(176,219,232,.11)}
+    .bottle15-body{position:absolute;top:25px;bottom:0;width:66px;border:1px solid rgba(255,255,255,.4);border-radius:16px 16px 20px 20px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(93,185,206,.2) 35%,rgba(255,255,255,.08) 64%,rgba(0,0,0,.08));box-shadow:inset 10px 0 16px rgba(255,255,255,.06),inset -8px 0 12px rgba(0,0,0,.15);overflow:hidden}
+    .bottle15-soda{position:absolute;left:5px;right:5px;bottom:5px;height:62px;border-radius:12px 12px 16px 16px;background:linear-gradient(#f3d34d,#d5a61d);opacity:.94}
+    .bottle15-bubble{position:absolute;border:1px solid rgba(255,255,255,.8);border-radius:50%;background:rgba(255,255,255,.12)}
+    .bottle15-b1{width:7px;height:7px;left:15px;bottom:20px}.bottle15-b2{width:5px;height:5px;right:13px;bottom:34px}.bottle15-b3{width:9px;height:9px;left:31px;bottom:44px}.bottle15-b4{width:4px;height:4px;right:26px;bottom:16px}
+    .bottle15-label{position:absolute;left:3px;right:3px;top:34px;height:42px;border-radius:6px;background:linear-gradient(135deg,#e32b3e,#8b1325);display:grid;grid-template-columns:1fr auto;align-items:center;padding:0 6px;box-shadow:0 2px 5px rgba(0,0,0,.25);transform:rotate(-2deg)}
+    .bottle15-name{font:900 7px/1.05 system-ui,sans-serif;color:#fff;letter-spacing:.02em}.bottle15-version{font:1000 18px/1 system-ui,sans-serif;color:#fff}.bottle15-bolt{position:absolute;right:7px;top:7px;font-size:16px;transform:rotate(8deg);text-shadow:0 1px 2px rgba(0,0,0,.3)}
+    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}.bottle15{width:64px;height:98px}.bottle15-body{width:56px}.bottle15-label{top:30px}.bottle15-version{font-size:16px}}
   </style>
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <div>
-        <div class="eyebrow">YOUR YOUTUBE. YOUR PLAYER.</div>
-        <h1>WINAMP MUSIC</h1>
+      <div class="brand-stack">
+        <div class="eyebrow">YOUR MUSIC. YOUR PLAYER.</div>
+        <h1>AMPDROP MUSIC</h1>
       </div>
-      <div><span class="fast-badge">FAST 1.4.3</span></div>
+      <div class="bottle15" aria-label="AmpDrop Music 1.5">
+        <div class="bottle15-cap"></div>
+        <div class="bottle15-neck"></div>
+        <div class="bottle15-body">
+          <div class="bottle15-soda"></div>
+          <i class="bottle15-bubble bottle15-b1"></i><i class="bottle15-bubble bottle15-b2"></i><i class="bottle15-bubble bottle15-b3"></i><i class="bottle15-bubble bottle15-b4"></i>
+          <div class="bottle15-label"><span class="bottle15-name">AMPDROP<br>MUSIC</span><span class="bottle15-version">1.5</span><span class="bottle15-bolt">⚡</span></div>
+        </div>
+      </div>
     </header>
 
-    <section class="fast-import" aria-label="YouTube import">
+    <section class="fast-import" aria-label="Music import">
       <div class="fast-import-head">
-        <div><div class="eyebrow">MUSIC IMPORT</div><strong>Paste a YouTube video</strong></div>
-        <span id="fastImportHint" class="fast-import-hint">No login needed</span>
+        <div><div class="eyebrow">MUSIC IMPORT</div><strong>Paste YouTube or Apple Music track</strong></div>
+        <span id="fastImportHint" class="fast-import-hint">Fast core first · providers load on demand</span>
       </div>
       <form id="fastImportForm" class="fast-import-form">
-        <input id="fastImportInput" type="url" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" aria-label="YouTube video URL" />
+        <input id="fastImportInput" type="url" inputmode="url" autocomplete="off" placeholder="YouTube or music.apple.com/…" aria-label="Music URL" />
         <button id="fastImportButton" type="submit">Add & Play</button>
       </form>
+      <p class="v2-teaser">Version 2.0 · Import all your playlists</p>
     </section>
 
     <section class="player" aria-label="Player">
@@ -73,7 +92,7 @@
         <input id="volume" type="range" min="0" max="100" value="75" aria-label="Volume" />
       </div>
       <div id="youtubePlayer" aria-hidden="true"></div>
-      <p class="fast-note">Controls are local and instant. YouTube loads separately.</p>
+      <p class="fast-note">Controls are local and instant. Provider code loads separately.</p>
     </section>
 
     <section class="library-panel">
@@ -84,15 +103,16 @@
       <ol id="trackList" class="track-list"></ol>
       <div id="emptyState" class="empty-state" hidden>
         <strong>No saved music.</strong>
-        <span>Paste a YouTube link above or use Search YouTube when it appears.</span>
+        <span>Paste a supported music link above to begin.</span>
       </div>
     </section>
 
-    <footer class="app-version">v1.4.3 fast</footer>
+    <footer class="app-version">AmpDrop Music · 1.5</footer>
   </main>
 
-  <script src="./fast-player-v141.js?v=143"></script>
-  <script src="./fast-import-v142.js?v=143" defer></script>
-  <script src="./fast-actions-v143.js?v=143" defer></script>
+  <script src="./fast-player-v141.js?v=150"></script>
+  <script src="./fast-release-v150.js?v=150" defer></script>
+  <script src="./fast-import-v150.js?v=150" defer></script>
+  <script src="./fast-actions-v143.js?v=150" defer></script>
 </body>
 </html>

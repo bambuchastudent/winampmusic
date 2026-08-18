@@ -1,0 +1,22 @@
+# Tasks: Winamp Music v1.5.0
+
+- [x] Define release scope and FAST ownership constraints.
+- [x] Define lazy background/media-session design.
+- [x] Define site-first playlist/story sharing contract.
+- [ ] Mirror current FAST track into shared player state.
+- [ ] Add lazy `fast-background-v150.js`.
+- [ ] Use 200x200 offscreen YouTube player geometry.
+- [ ] Bump canonical shell/runtime labels and asset query versions to 1.5.0.
+- [ ] Ensure copied/system/QR playlist shares all target Winamp Music URLs.
+- [ ] Add story/demo QR + readable site URL and use the same destination in the share payload.
+- [ ] Add background/media-session behavioral tests.
+- [ ] Add share-routing behavioral tests.
+- [ ] Keep existing 183-track, import, Gift/QR and Clear tests green.
+- [ ] Pass functional gate.
+- [ ] Pass mutation gate for critical behavior.
+- [ ] Pass performance/startup budget gate only after functional/mutation gates.
+- [ ] Pass Spec-driven guard and targeted v1.5.0 suite.
+- [ ] Merge into develop.
+- [ ] Verify deployed production URL.
+- [ ] Produce the 9:16 Telegram/Instagram story demo from the deployed v1.5.0 build.
+- [ ] Create v1.5.0 tag/release after deploy and story-demo checks succeed.
