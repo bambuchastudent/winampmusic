@@ -39,7 +39,7 @@
     const script = document.createElement('script');
     script.src = './fast-background-v150.js?v=150';
     script.async = true;
-    script.dataset.ampBackground150 = '1';
+    script.setAttribute('data-amp-background-150', '1');
     document.head.appendChild(script);
   }
 
