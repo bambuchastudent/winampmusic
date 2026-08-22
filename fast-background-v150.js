@@ -78,7 +78,7 @@
       session.metadata = new MediaMetadata({
         title: track.title || `YouTube ${track.id}`,
         artist: track.artist || 'YouTube',
-        album: track.playlist || 'AmpDrop Music',
+        album: track.playlist || 'AmpMusic',
         artwork: track.thumbnail ? [{ src: track.thumbnail }] : [],
       });
     } catch {}
@@ -193,5 +193,5 @@
     syncPosition();
   }, 1500);
 
-  console.info('[AmpDrop Music] background 1.5.0 ready');
+  console.info('[AmpMusic] background 1.5.0 ready');
 })();
