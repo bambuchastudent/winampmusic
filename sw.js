@@ -1,15 +1,20 @@
-const BUILD = 'v1.4.0-core-safe';
-const CACHE = 'winampmusic-shell-v31';
+const BUILD = 'ampmusic-v1.5-stable';
+const CACHE = 'winampmusic-shell-v150-stable';
 const CORE = [
   './',
   './index.html',
   './styles.css',
-  './playlist-metadata.css',
-  './youtube-player.css',
-  './app.js',
-  './boot-v140.js',
-  './v059.js',
-  './recover-fresh-140.html',
+  './manifest.webmanifest',
+  './icon.svg',
+  './apple-touch-icon.png',
+  './fast-player-v141.js',
+  './fast-release-v150.js',
+  './fast-import-v150.js',
+  './stable-v150.js',
+  './fast-actions-v143.js',
+  './fast-background-v150.js',
+  './compact-share.js',
+  './qr-share-v1.js',
 ];
 
 async function fresh(request) {

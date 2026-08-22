@@ -46,5 +46,5 @@
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 });
   else setTimeout(loadBackground, 900);
 
-  console.info('[AmpDrop Music] release 1.5.0 adapter ready');
+  console.info('[AmpMusic] release 1.5.0 adapter ready');
 })();

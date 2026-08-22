@@ -1,4 +1,4 @@
-name: AmpDrop Music 1.5 release gate
+name: AmpMusic 1.5 release gate
 
 on:
   pull_request:
@@ -7,19 +7,23 @@ on:
       - 'index.html'
       - 'manifest.webmanifest'
       - 'icon.svg'
+      - 'sw.js'
       - 'fast-player-v141.js'
       - 'fast-release-v150.js'
       - 'fast-import-v150.js'
+      - 'stable-v150.js'
       - 'fast-background-v150.js'
       - 'fast-actions-v143.js'
       - 'tests/fast-player-v141.mjs'
       - 'tests/fast-import-v142.mjs'
       - 'tests/fast-actions-v143.mjs'
       - 'tests/background-v150.mjs'
+      - 'tests/stable-v150.mjs'
       - 'tests/mutation-v150.mjs'
       - 'tests/performance-v150.mjs'
       - 'tests/branding-v150.mjs'
       - 'openspec/changes/release-v1.5.0/**'
+      - 'openspec/changes/stabilize-v1.5/**'
       - 'docs/OPTIMIZATION.md'
       - '.github/workflows/v141-fast-player.yml'
 
@@ -41,6 +45,10 @@ jobs:
           test -s openspec/changes/release-v1.5.0/specs/share-routing/spec.md
           test -s openspec/changes/release-v1.5.0/specs/release-branding/spec.md
           test -s openspec/changes/release-v1.5.0/specs/v2-roadmap/spec.md
+          test -s openspec/changes/stabilize-v1.5/proposal.md
+          test -s openspec/changes/stabilize-v1.5/design.md
+          test -s openspec/changes/stabilize-v1.5/tasks.md
+          test -s openspec/changes/stabilize-v1.5/specs/v1.5-roadmap/spec.md
           test -s docs/OPTIMIZATION.md
 
       - name: Syntax check
@@ -48,18 +56,23 @@ jobs:
           node --check fast-player-v141.js
           node --check fast-release-v150.js
           node --check fast-import-v150.js
+          node --check stable-v150.js
           node --check fast-background-v150.js
           node --check fast-actions-v143.js
+          node --check sw.js
           node --check tests/branding-v150.mjs
+          node --check tests/stable-v150.mjs
 
       - name: Install test runtime
         run: npm install --no-save jsdom@26
 
-      - name: Functional — branding and roadmap contract
+      - name: Functional — branding, version lock and roadmap contract
         run: node tests/branding-v150.mjs
+      - name: Functional — PWA and multi-track playlist import
+        run: node tests/stable-v150.mjs
       - name: Functional — 183-track core controls
         run: node tests/fast-player-v141.mjs
-      - name: Functional — YouTube and Apple Music routing
+      - name: Functional — YouTube and Apple Music track routing
         run: node tests/fast-import-v142.mjs
       - name: Functional — Gift QR and safe Clear
         run: node tests/fast-actions-v143.mjs

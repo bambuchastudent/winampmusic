@@ -10,15 +10,16 @@ for (const page of [canonical, fallback]) {
   assert.ok(!page.includes('app.js'), 'fast entry must not load legacy app.js');
   assert.ok(!page.includes('boot-v140.js'), 'fast entry must not load legacy boot');
   assert.ok(!page.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
-  assert.ok(!page.includes('sw.js'), 'fast entry must not register a service worker');
+  assert.ok(!page.includes('sw.js'), 'service worker must not be registered synchronously from HTML');
 }
 assert.match(canonical, /fast-player-v141\.js\?v=150/);
+assert.match(canonical, /stable-v150\.js\?v=150/);
 assert.match(fallback, /fast-player-v141\.js\?v=141/);
-assert.match(canonical, /AMPDROP MUSIC/);
-assert.match(canonical, /aria-label="AmpDrop Music 1\.5"/);
+assert.match(canonical, /AMP MUSIC/);
+assert.match(canonical, /aria-label="AmpMusic 1\.5"/);
 assert.match(canonical, /class="bottle15-version">1\.5</);
-assert.match(canonical, /Version 2\.0 · Import all your playlists/);
-assert.ok(!canonical.includes('by bambuchastudent'));
+assert.ok(!canonical.includes('Version 2.0'));
+assert.ok(!canonical.includes('AmpDrop Music'));
 assert.ok(!canonical.includes('FAST 1.4.3'));
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
@@ -27,6 +28,7 @@ const stripped = canonical
   .replace('<script src="./fast-player-v141.js?v=150"></script>', '')
   .replace('<script src="./fast-release-v150.js?v=150" defer></script>', '')
   .replace('<script src="./fast-import-v150.js?v=150" defer></script>', '')
+  .replace('<script src="./stable-v150.js?v=150" defer></script>', '')
   .replace('<script src="./fast-actions-v143.js?v=150" defer></script>', '');
 const dom = new JSDOM(stripped, {
   runScripts: 'outside-only',
@@ -105,5 +107,5 @@ search.dispatchEvent(new window.Event('input', { bubbles: true }));
 assert.equal(window.document.querySelectorAll('.track').length, 1, 'filter must be interactive');
 assert.equal(window.document.querySelector('.track-title')?.textContent, 'Song 150');
 
-console.log(`AmpDrop Music 1.5 core test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
+console.log(`AmpMusic 1.5 core test passed; synchronous startup ${synchronousStartupMs.toFixed(1)}ms`);
 process.exit(0);
