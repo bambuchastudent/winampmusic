@@ -39,12 +39,12 @@
     const script = document.createElement('script');
     script.src = './fast-background-v150.js?v=150';
     script.async = true;
-    script.setAttribute('data-amp-background-150', '1');
+    script.dataset.ampBackground150 = '1';
     document.head.appendChild(script);
   }
 
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 });
   else setTimeout(loadBackground, 900);
 
-  console.info('[AmpDrop Music] release 1.5.0 adapter ready');
+  console.info('[AmpMusic] release 1.5.0 adapter ready');
 })();
