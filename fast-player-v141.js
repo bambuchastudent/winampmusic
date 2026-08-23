@@ -91,7 +91,6 @@
     return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
   };
 
-  // Persist any legacy full-URL IDs that were safely normalized during load.
   saveLibrary();
 
   function highlightCurrent() {
@@ -121,29 +120,17 @@
     const row = document.createElement('li');
     row.className = `track${index === currentIndex ? ' active' : ''}`;
     row.dataset.index = String(index);
-
     const number = document.createElement('span');
     number.className = 'track-index';
     number.textContent = String(index + 1).padStart(2, '0');
-
     const main = document.createElement('button');
-    main.type = 'button';
-    main.className = 'track-main';
-    main.dataset.index = String(index);
+    main.type = 'button'; main.className = 'track-main'; main.dataset.index = String(index);
     main.setAttribute('aria-label', `Play ${track.title}`);
     main.style.cssText = 'display:block;width:100%;border:0;background:transparent;color:inherit;text-align:left;padding:6px 0;cursor:pointer;touch-action:manipulation';
-
-    const title = document.createElement('div');
-    title.className = 'track-title';
-    title.textContent = track.title;
-    const artist = document.createElement('div');
-    artist.className = 'track-artist';
-    artist.textContent = track.artist;
+    const title = document.createElement('div'); title.className = 'track-title'; title.textContent = track.title;
+    const artist = document.createElement('div'); artist.className = 'track-artist'; artist.textContent = track.artist;
     main.append(title, artist);
-
-    const marker = document.createElement('span');
-    marker.className = 'track-play';
-    marker.textContent = index === currentIndex && playing ? '⏸' : '▶';
+    const marker = document.createElement('span'); marker.className = 'track-play'; marker.textContent = index === currentIndex && playing ? '⏸' : '▶';
     row.append(number, main, marker);
     return row;
   }
@@ -158,15 +145,14 @@
     ui.list.replaceChildren();
     ui.count.textContent = String(indices.length);
     ui.empty.hidden = indices.length > 0;
+    ui.empty.style.display = indices.length > 0 ? 'none' : '';
     if (!indices.length) return;
-
     const append = (start, end) => {
       if (generation !== renderGeneration) return;
       const fragment = document.createDocumentFragment();
       for (let pos = start; pos < Math.min(end, indices.length); pos += 1) fragment.appendChild(makeRow(indices[pos]));
       ui.list.appendChild(fragment);
     };
-
     append(0, INITIAL_ROWS);
     let cursor = INITIAL_ROWS;
     const more = () => {
@@ -180,8 +166,7 @@
 
   function filterLibrary() {
     const query = clean(ui.search.value).toLocaleLowerCase();
-    filtered = library
-      .map((track, index) => ({ track, index }))
+    filtered = library.map((track, index) => ({ track, index }))
       .filter(({ track }) => !query || `${track.title} ${track.artist} ${track.playlist || ''}`.toLocaleLowerCase().includes(query))
       .map(({ index }) => index);
     renderLibrary(filtered);
@@ -192,32 +177,17 @@
     if (youtubePromise) return youtubePromise;
     youtubePromise = new Promise((resolve, reject) => {
       const previousReady = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        try { previousReady?.(); } catch {}
-        if (window.YT?.Player) resolve(window.YT);
-      };
+      window.onYouTubeIframeAPIReady = () => { try { previousReady?.(); } catch {} if (window.YT?.Player) resolve(window.YT); };
       let script = document.querySelector('script[data-fast-youtube-api]');
       if (!script) {
-        script = document.createElement('script');
-        script.src = 'https://www.youtube.com/iframe_api';
-        script.async = true;
-        script.dataset.fastYoutubeApi = '1';
-        script.addEventListener('error', () => {
-          youtubePromise = null;
-          reject(new Error('YouTube API failed to load'));
-        }, { once: true });
+        script = document.createElement('script'); script.src = 'https://www.youtube.com/iframe_api'; script.async = true; script.dataset.fastYoutubeApi = '1';
+        script.addEventListener('error', () => { youtubePromise = null; reject(new Error('YouTube API failed to load')); }, { once: true });
         document.head.appendChild(script);
       }
       const started = performance.now();
       const timer = setInterval(() => {
-        if (window.YT?.Player) {
-          clearInterval(timer);
-          resolve(window.YT);
-        } else if (performance.now() - started > 15000) {
-          clearInterval(timer);
-          youtubePromise = null;
-          reject(new Error('YouTube API timeout'));
-        }
+        if (window.YT?.Player) { clearInterval(timer); resolve(window.YT); }
+        else if (performance.now() - started > 15000) { clearInterval(timer); youtubePromise = null; reject(new Error('YouTube API timeout')); }
       }, 100);
     });
     return youtubePromise;
@@ -228,17 +198,11 @@
     if (query.length < 2) return '';
     for (const base of REPAIR_SEARCH_INSTANCES) {
       try {
-        const url = new URL('/api/v1/search', base);
-        url.searchParams.set('q', query);
-        url.searchParams.set('type', 'video');
-        url.searchParams.set('sort', 'relevance');
-        url.searchParams.set('hl', navigator.language?.split('-')[0] || 'en');
+        const url = new URL('/api/v1/search', base); url.searchParams.set('q', query); url.searchParams.set('type', 'video'); url.searchParams.set('sort', 'relevance'); url.searchParams.set('hl', navigator.language?.split('-')[0] || 'en');
         const response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } });
         if (!response.ok) continue;
         const payload = await response.json();
-        const candidate = Array.isArray(payload)
-          ? payload.find((item) => item?.type === 'video' && VIDEO_ID_RE.test(clean(item.videoId)))
-          : null;
+        const candidate = Array.isArray(payload) ? payload.find((item) => item?.type === 'video' && VIDEO_ID_RE.test(clean(item.videoId))) : null;
         if (candidate) return clean(candidate.videoId);
       } catch {}
     }
@@ -252,46 +216,24 @@
     if (repairAttempts.has(attemptKey)) return false;
     repairAttempts.add(attemptKey);
     setStatus('REPAIRING YOUTUBE ID…');
-
     let repairedId = videoIdFromValue(track.id);
     if (!repairedId) repairedId = await findRepairCandidate(track);
     if (!VIDEO_ID_RE.test(repairedId)) return false;
-
     track.id = repairedId;
-    saveLibrary();
-    renderLibrary(filtered);
-    updateNowPlaying();
-    try {
-      player?.loadVideoById(repairedId);
-      return true;
-    } catch {
-      return false;
-    }
+    saveLibrary(); renderLibrary(filtered); updateNowPlaying();
+    try { player?.loadVideoById(repairedId); return true; } catch { return false; }
   }
 
   function onPlayerStateChange(event) {
     const state = event?.data;
-    if (state === window.YT?.PlayerState?.PLAYING) {
-      playing = true;
-      ui.play.textContent = '⏸';
-      setStatus('PLAYING');
-      startProgress();
-    } else if (state === window.YT?.PlayerState?.PAUSED) {
-      playing = false;
-      ui.play.textContent = '▶';
-      setStatus('PAUSED');
-    } else if (state === window.YT?.PlayerState?.ENDED) {
-      playing = false;
-      ui.play.textContent = '▶';
-      playRelative(1);
-    }
+    if (state === window.YT?.PlayerState?.PLAYING) { playing = true; ui.play.textContent = '⏸'; setStatus('PLAYING'); startProgress(); }
+    else if (state === window.YT?.PlayerState?.PAUSED) { playing = false; ui.play.textContent = '▶'; setStatus('PAUSED'); }
+    else if (state === window.YT?.PlayerState?.ENDED) { playing = false; ui.play.textContent = '▶'; playRelative(1); }
     highlightCurrent();
   }
 
   async function onPlayerError(event) {
-    playing = false;
-    ui.play.textContent = '▶';
-    highlightCurrent();
+    playing = false; ui.play.textContent = '▶'; highlightCurrent();
     const code = Number(event?.data);
     if (code === 2) {
       const repaired = await repairCurrentTrack();
@@ -306,45 +248,26 @@
     if (playerPromise) return playerPromise;
     playerPromise = loadYouTubeApi().then(() => new Promise((resolve, reject) => {
       let settled = false;
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        resolve(player);
-      };
+      const finish = () => { if (settled) return; settled = true; resolve(player); };
       try {
         player = new YT.Player('youtubePlayer', {
-          width: '1', height: '1',
-          playerVars: { autoplay: 0, controls: 0, playsinline: 1, rel: 0, origin: location.origin },
+          width: '1', height: '1', playerVars: { autoplay: 0, controls: 0, playsinline: 1, rel: 0, origin: location.origin },
           events: {
-            onReady: () => {
-              try { player.setVolume(Number(ui.volume.value) || 75); } catch {}
-              if (ui.status.textContent.startsWith('WARMING')) setStatus('READY · FAST');
-              finish();
-            },
+            onReady: () => { try { player.setVolume(Number(ui.volume.value) || 75); } catch {} if (ui.status.textContent.startsWith('WARMING')) setStatus('READY · FAST'); finish(); },
             onStateChange: onPlayerStateChange,
             onError: (event) => { void onPlayerError(event); },
           },
         });
         setTimeout(() => { if (!settled && player) finish(); }, 8000);
-      } catch (error) {
-        playerPromise = null;
-        reject(error);
-      }
-    })).catch((error) => {
-      playerPromise = null;
-      setStatus('YOUTUBE UNAVAILABLE · TAP AGAIN');
-      console.warn('[Winamp Music fast]', error);
-      throw error;
-    });
+      } catch (error) { playerPromise = null; reject(error); }
+    })).catch((error) => { playerPromise = null; setStatus('YOUTUBE UNAVAILABLE · TAP AGAIN'); console.warn('[Winamp Music fast]', error); throw error; });
     return playerPromise;
   }
 
   async function playIndex(index) {
     if (!library.length) return setStatus('LIBRARY EMPTY');
     currentIndex = ((Number(index) % library.length) + library.length) % library.length;
-    updateNowPlaying();
-    setStatus('LOADING PLAYER…');
-    ui.play.textContent = '…';
+    updateNowPlaying(); setStatus('LOADING PLAYER…'); ui.play.textContent = '…';
     try {
       const readyPlayer = await ensurePlayer();
       const track = library[currentIndex];
@@ -352,59 +275,33 @@
       const safeId = videoIdFromValue(track.id);
       if (!safeId) {
         const repaired = await repairCurrentTrack();
-        if (!repaired) {
-          ui.play.textContent = '▶';
-          setStatus('TRACK SOURCE INVALID · RE-IMPORT');
-        }
+        if (!repaired) { ui.play.textContent = '▶'; setStatus('TRACK SOURCE INVALID · RE-IMPORT'); }
         return;
       }
-      if (safeId !== track.id) {
-        track.id = safeId;
-        saveLibrary();
-        renderLibrary(filtered);
-      }
-      setStatus('STARTING…');
-      readyPlayer.loadVideoById(safeId);
-    } catch {
-      ui.play.textContent = '▶';
-    }
+      if (safeId !== track.id) { track.id = safeId; saveLibrary(); renderLibrary(filtered); }
+      setStatus('STARTING…'); readyPlayer.loadVideoById(safeId);
+    } catch { ui.play.textContent = '▶'; }
   }
 
   function togglePlayback() {
     if (!library.length) return setStatus('LIBRARY EMPTY');
     if (!player || !window.YT?.PlayerState) return playIndex(currentIndex >= 0 ? currentIndex : 0);
-    let state = null;
-    try { state = player.getPlayerState(); } catch {}
-    if (state === window.YT.PlayerState.PLAYING) {
-      try { player.pauseVideo(); } catch {}
-    } else if (currentIndex >= 0) {
-      setStatus('STARTING…');
-      try { player.playVideo(); } catch { playIndex(currentIndex); }
-    } else playIndex(0);
+    let state = null; try { state = player.getPlayerState(); } catch {}
+    if (state === window.YT.PlayerState.PLAYING) { try { player.pauseVideo(); } catch {} }
+    else if (currentIndex >= 0) { setStatus('STARTING…'); try { player.playVideo(); } catch { playIndex(currentIndex); } }
+    else playIndex(0);
   }
 
-  function playRelative(delta) {
-    if (!library.length) return;
-    playIndex((currentIndex >= 0 ? currentIndex : 0) + delta);
-  }
-
-  function playRandom() {
-    if (!library.length) return;
-    if (library.length === 1) return playIndex(0);
-    let index = currentIndex;
-    while (index === currentIndex) index = Math.floor(Math.random() * library.length);
-    playIndex(index);
-  }
+  function playRelative(delta) { if (library.length) playIndex((currentIndex >= 0 ? currentIndex : 0) + delta); }
+  function playRandom() { if (!library.length) return; if (library.length === 1) return playIndex(0); let index = currentIndex; while (index === currentIndex) index = Math.floor(Math.random() * library.length); playIndex(index); }
 
   function startProgress() {
     if (progressTimer) return;
     progressTimer = setInterval(() => {
       if (!player) return;
       try {
-        const current = Number(player.getCurrentTime()) || 0;
-        const total = Number(player.getDuration()) || 0;
-        ui.elapsed.textContent = formatTime(current);
-        ui.duration.textContent = formatTime(total);
+        const current = Number(player.getCurrentTime()) || 0; const total = Number(player.getDuration()) || 0;
+        ui.elapsed.textContent = formatTime(current); ui.duration.textContent = formatTime(total);
         if (total > 0 && document.activeElement !== ui.seek) ui.seek.value = String(Math.round((current / total) * 1000));
       } catch {}
     }, 750);
@@ -419,65 +316,57 @@
       library.push({ ...item, id, title: clean(item.title) || `YouTube ${id}`, artist: clean(item.artist) || 'YouTube' });
       added += 1;
     }
-    if (added) {
-      saveLibrary();
-      filtered = library.map((_, index) => index);
-      renderLibrary(filtered);
-    }
+    if (added) { saveLibrary(); filtered = library.map((_, index) => index); renderLibrary(filtered); }
     return { added, total: library.length };
+  }
+
+  function updateTrackMetadata(videoId, patch = {}) {
+    const id = videoIdFromValue(videoId);
+    if (!id) return false;
+    const index = library.findIndex((track) => track.id === id);
+    if (index < 0) return false;
+    const track = library[index];
+    const title = clean(patch.title);
+    const artist = clean(patch.artist);
+    const thumbnail = clean(patch.thumbnail);
+    const duration = clean(patch.duration);
+    if (title) track.title = title;
+    if (artist) track.artist = artist;
+    if (thumbnail) track.thumbnail = thumbnail;
+    if (duration) track.duration = duration;
+    saveLibrary();
+    filterLibrary();
+    if (currentIndex === index) updateNowPlaying();
+    return true;
   }
 
   ui.play.addEventListener('click', togglePlayback);
   ui.prev.addEventListener('click', () => playRelative(-1));
   ui.next.addEventListener('click', () => playRelative(1));
   ui.shuffle.addEventListener('click', playRandom);
-  ui.list.addEventListener('click', (event) => {
-    const button = event.target.closest('.track-main');
-    if (!button) return;
-    const index = Number(button.dataset.index);
-    if (Number.isInteger(index)) playIndex(index);
-  });
+  ui.list.addEventListener('click', (event) => { const button = event.target.closest('.track-main'); if (!button) return; const index = Number(button.dataset.index); if (Number.isInteger(index)) playIndex(index); });
   ui.search.addEventListener('input', filterLibrary, { passive: true });
   ui.search.addEventListener('search', filterLibrary, { passive: true });
   ui.volume.addEventListener('input', () => { try { player?.setVolume(Number(ui.volume.value) || 0); } catch {} }, { passive: true });
-  ui.seek.addEventListener('change', () => {
-    if (!player) return;
-    try {
-      const total = Number(player.getDuration()) || 0;
-      if (total > 0) player.seekTo((Number(ui.seek.value) / 1000) * total, true);
-    } catch {}
-  });
+  ui.seek.addEventListener('change', () => { if (!player) return; try { const total = Number(player.getDuration()) || 0; if (total > 0) player.seekTo((Number(ui.seek.value) / 1000) * total, true); } catch {} });
 
   window.playIndex = playIndex;
   window.importTracks = importTracks;
+  window.updateTrackMetadata = updateTrackMetadata;
   window.renderLibrary = () => renderLibrary(filtered);
   window.winampMusicLoadYouTubeApi = loadYouTubeApi;
   window.ampMusicVideoIdFromValue = videoIdFromValue;
 
-  updateNowPlaying();
-  renderLibrary();
-  setStatus('READY · FAST');
-
+  updateNowPlaying(); renderLibrary(); setStatus('READY · FAST');
   scheduleIdle(() => ensurePlayer().catch(() => {}), 1500);
-
-  // Restore safe search lazily after the player is already interactive.
   scheduleIdle(() => {
     if (document.querySelector('script[data-fast-search]')) return;
-    const script = document.createElement('script');
-    script.src = './v059.js?v=141';
-    script.async = true;
-    script.dataset.fastSearch = '1';
-    document.head.appendChild(script);
+    const script = document.createElement('script'); script.src = './v059.js?v=150'; script.async = true; script.dataset.fastSearch = '1'; document.head.appendChild(script);
   }, 1800);
 
-  // Remove obsolete workers/caches in the background; never block first paint.
   setTimeout(() => {
-    navigator.serviceWorker?.getRegistrations?.().then((registrations) => Promise.all(registrations
-      .filter((registration) => registration.scope.includes('/winampmusic/'))
-      .map((registration) => registration.unregister()))).catch(() => {});
-    window.caches?.keys?.().then((keys) => Promise.all(keys
-      .filter((key) => key.startsWith('winampmusic-shell-'))
-      .map((key) => window.caches.delete(key)))).catch(() => {});
+    navigator.serviceWorker?.getRegistrations?.().then((registrations) => Promise.all(registrations.filter((registration) => registration.scope.includes('/winampmusic/')).map((registration) => registration.unregister()))).catch(() => {});
+    window.caches?.keys?.().then((keys) => Promise.all(keys.filter((key) => key.startsWith('winampmusic-shell-')).map((key) => window.caches.delete(key)))).catch(() => {});
   }, 2500);
 
   console.info(`[Winamp Music] ${VERSION} ready`, { tracks: library.length });
