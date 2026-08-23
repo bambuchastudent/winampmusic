@@ -1,0 +1,36 @@
+{
+  "format": "ampula",
+  "version": "0.1",
+  "capturedAt": "2026-08-23T02:13:00+02:00",
+  "moment": {
+    "title": "ночью было хорошо",
+    "note": "вот это сейчас прям оно"
+  },
+  "tracks": [
+    {
+      "title": "Teardrop",
+      "artists": ["Massive Attack"],
+      "album": "Mezzanine",
+      "durationMs": 330000,
+      "observations": [
+        {
+          "service": "youtube",
+          "itemId": "example-old-video-id",
+          "url": "https://www.youtube.com/watch?v=example-old-video-id",
+          "observedAt": "2026-08-23T02:13:00+02:00",
+          "representation": "official-video"
+        }
+      ]
+    },
+    {
+      "title": "Roads",
+      "artists": ["Portishead"],
+      "album": "Dummy",
+      "durationMs": 307000,
+      "cue": {
+        "startMs": 52000,
+        "endMs": 88000
+      }
+    }
+  ]
+}
