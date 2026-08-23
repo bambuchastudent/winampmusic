@@ -1,11 +1,14 @@
 const playlistId = 'pl.u-JPAZE8mFBD6eAr';
-const sources = [
-  ['jina', `https://r.jina.ai/https://music.apple.com/tr/playlist/hit/${playlistId}`],
-  ['embed-slug', `https://embed.music.apple.com/tr/playlist/hit/${playlistId}`],
-  ['embed-id', `https://embed.music.apple.com/tr/playlist/${playlistId}`],
+const appleUrls = [
+  ['tr-default', `https://music.apple.com/tr/playlist/hit/${playlistId}`],
+  ['tr-tr', `https://music.apple.com/tr/playlist/hit/${playlistId}?l=tr`],
+  ['tr-en', `https://music.apple.com/tr/playlist/hit/${playlistId}?l=en`],
+  ['us', `https://music.apple.com/us/playlist/hit/${playlistId}`],
+  ['gb', `https://music.apple.com/gb/playlist/hit/${playlistId}`],
 ];
-for (const [label, url] of sources) {
+for (const [label, appleUrl] of appleUrls) {
   try {
+    const url = `https://r.jina.ai/${appleUrl}`;
     const response = await fetch(url, {
       redirect: 'follow',
       headers: {
@@ -14,14 +17,17 @@ for (const [label, url] of sources) {
       },
     });
     const text = await response.text();
+    const lines = text.split(/\r?\n/).map((line) => line.replace(/\s+/g, ' ').trim());
     console.log(`--- ${label} ---`);
-    console.log('STATUS', response.status, 'FINAL', response.url);
-    console.log('LENGTH', text.length);
-    console.log('PREVIEW_COUNT', (text.match(/PREVIEW/gi) || []).length);
-    console.log('SONG_WORDS', (text.match(/"songs"/g) || []).length);
-    console.log('CATALOG_IDS', (text.match(/catalogId|catalog-id|adamId|songId|trackId/gi) || []).length);
-    console.log('JSON_NAMES', (text.match(/"name"\s*:/g) || []).length);
-    console.log('HEAD', text.slice(0, 6000).replace(/\s+/g, ' '));
+    console.log('STATUS', response.status, 'LEN', text.length);
+    console.log('TITLE', (text.match(/^Title:\s*(.+)$/m) || [])[1] || '');
+    console.log('SONG_HEADER', lines.findIndex((line) => line === 'Song'));
+    console.log('PREVIEW', (text.match(/PREVIEW/gi) || []).length);
+    console.log('DURATIONS', lines.filter((line) => /^\d{1,2}:\d{2}$/.test(line)).length);
+    console.log('SONG_LINKS', [...text.matchAll(/music\.apple\.com\/[^)\s]+\/song\/[^)\s]+\/(\d+)/g)].length);
+    console.log('FEATURED', (text.match(/Featured Artists/gi) || []).length);
+    const hitIndex = lines.findIndex((line) => line === '# Hit');
+    console.log('AFTER_HIT', lines.slice(Math.max(0, hitIndex), Math.max(0, hitIndex) + 45));
   } catch (error) {
     console.log(label, 'ERROR', error?.name, error?.message);
   }
