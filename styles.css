@@ -141,6 +141,7 @@ h2 { margin-bottom: 0; font-size: 18px; }
 .track-play { border: 0; background: transparent; color: var(--muted); font-size: 15px; padding: 0; }
 .track.active .track-title, .track.active .track-play { color: var(--accent); }
 .empty-state { display: grid; gap: 8px; padding: 32px 18px; color: var(--muted); text-align: center; }
+.empty-state[hidden] { display: none; }
 .empty-state strong { color: #fff; }
 .empty-state button { margin: 10px auto 0; padding: 0 16px; }
 .app-version {
