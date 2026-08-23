@@ -11,9 +11,13 @@ const text = await response.text();
 console.log('STATUS', response.status);
 console.log('LENGTH', text.length);
 console.log('TITLE', (text.match(/^Title:\s*(.+)$/m) || [])[1] || '');
+console.log('NEWLINES', (text.match(/\n/g) || []).length);
+console.log('PREVIEW_COUNT', (text.match(/PREVIEW/g) || []).length);
+console.log('HEAD', text.slice(0, 7000).replace(/\s+/g, ' '));
 const lines = text.split(/\r?\n/).map((line) => line.replace(/\s+/g, ' ').trim());
 const songHeader = lines.findIndex((line) => line === 'Song');
 const timeHeader = lines.findIndex((line, index) => index > songHeader && index < songHeader + 16 && line === 'Time');
+console.log('SONG_HEADER', songHeader, 'TIME_HEADER', timeHeader);
 const rows = [];
 let fields = [];
 if (songHeader >= 0 && timeHeader >= 0) {
