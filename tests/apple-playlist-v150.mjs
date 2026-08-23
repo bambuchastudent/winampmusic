@@ -102,10 +102,10 @@ const result = await api.importPlaylistUrl(targetUrl, {
 assert.equal(result.handled, true);
 assert.equal(result.playlist.tracks.length, 5);
 assert.equal(result.tracks.length, 4, 'one unresolved Apple track must not abort the playlist');
-assert.deepEqual(imported.map((track) => track.title), ['Intro', 'Infinity', 'Islands', 'Angels'], 'successful matches must keep Apple playlist order');
-assert.ok(imported.every((track) => track.playlist === 'thexx'));
-assert.ok(imported.every((track) => track.sourceUrl === targetUrl));
-assert.ok(imported.every((track) => track.badges.includes('Apple Music') && track.badges.includes('Playlist')));
+assert.deepEqual(Array.from(imported, (track) => track.title), ['Intro', 'Infinity', 'Islands', 'Angels'], 'successful matches must keep Apple playlist order');
+assert.ok(Array.from(imported).every((track) => track.playlist === 'thexx'));
+assert.ok(Array.from(imported).every((track) => track.sourceUrl === targetUrl));
+assert.ok(Array.from(imported).every((track) => Array.from(track.badges).includes('Apple Music') && Array.from(track.badges).includes('Playlist')));
 assert.equal(playedIndex, 0, 'first resolved playlist track should start');
 assert.equal(input.value, '');
 assert.equal(fetchedUrl, `https://r.jina.ai/${targetUrl}`);
