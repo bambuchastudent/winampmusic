@@ -8,13 +8,17 @@
   const hint = document.getElementById('fastImportHint');
   if (!form || !input) return;
 
-  function appleUrl(value) {
+  function parseApple(value) {
     try {
       const url = new URL(String(value || '').trim());
-      if (url.hostname.replace(/^www\./, '').toLowerCase() !== 'music.apple.com') return '';
-      return url.href;
+      if (url.hostname.replace(/^www\./, '').toLowerCase() !== 'music.apple.com') return null;
+      const parts = url.pathname.split('/').filter(Boolean);
+      return {
+        href: url.href,
+        type: parts.includes('playlist') ? 'playlist' : 'track',
+      };
     } catch {
-      return '';
+      return null;
     }
   }
 
@@ -38,14 +42,26 @@
   }
 
   form.addEventListener('submit', (event) => {
-    const url = appleUrl(input.value);
-    if (!url) return;
+    const apple = parseApple(input.value);
+    if (!apple) return;
 
-    // Open the provider URL while the submit is still a trusted user gesture.
-    // The normal importer is allowed to continue in the background so AmpMusic
-    // still keeps metadata/library state, but its one automatic play is suppressed.
+    const opened = open(apple.href);
+
+    if (apple.type === 'playlist') {
+      // Playlist URLs are provider-native playback: open them directly and do not
+      // spend time matching every entry to another provider first.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      input.value = '';
+      if (hint) hint.textContent = opened
+        ? 'Opened Apple Music playlist from source URL'
+        : 'Could not open Apple Music playlist';
+      return;
+    }
+
+    // For a single track, keep the existing background metadata import, but do not
+    // reopen the provider URL when that importer performs its automatic play step.
     window.__AMP_MUSIC_APPLE_SKIP_NEXT_PLAY__ = true;
-    const opened = open(url);
     if (hint) hint.textContent = opened
       ? 'Opened in Apple Music · importing in background'
       : 'Could not open Apple Music URL';
