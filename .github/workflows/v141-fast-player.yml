@@ -15,6 +15,9 @@ on:
       - 'apple-music-import-v064.js'
       - 'apple-playlist-import-v150.js'
       - 'apple-match-strict-v150.js'
+      - 'apple-album-import-v150.js'
+      - 'apple-album-route-v150.js'
+      - 'apple-no-ad-fallback-v150.js'
       - 'clean-playback-v150.js'
       - 'stable-v150.js'
       - 'fast-background-v150.js'
@@ -23,6 +26,7 @@ on:
       - 'tests/fast-player-v141.mjs'
       - 'tests/fast-import-v142.mjs'
       - 'tests/apple-playlist-v150.mjs'
+      - 'tests/apple-album-source-v150.mjs'
       - 'tests/youtube-error2-v150.mjs'
       - 'tests/ui-polish-v150.mjs'
       - 'tests/real-tracks-radio-v150.mjs'
@@ -38,6 +42,7 @@ on:
       - 'openspec/changes/fix-search-metadata-ui-v1.5/**'
       - 'openspec/changes/restore-apple-playlist-v1.5/**'
       - 'openspec/changes/real-tracks-radio-v1.5/**'
+      - 'openspec/changes/fix-apple-album-source-v1.5/**'
       - 'docs/OPTIMIZATION.md'
       - '.github/workflows/v141-fast-player.yml'
 
@@ -79,6 +84,10 @@ jobs:
           test -s openspec/changes/real-tracks-radio-v1.5/design.md
           test -s openspec/changes/real-tracks-radio-v1.5/tasks.md
           test -s openspec/changes/real-tracks-radio-v1.5/specs/real-track-playback/spec.md
+          test -s openspec/changes/fix-apple-album-source-v1.5/proposal.md
+          test -s openspec/changes/fix-apple-album-source-v1.5/design.md
+          test -s openspec/changes/fix-apple-album-source-v1.5/tasks.md
+          test -s openspec/changes/fix-apple-album-source-v1.5/specs/apple-album-source/spec.md
           test -s docs/OPTIMIZATION.md
 
       - name: Syntax check
@@ -89,6 +98,9 @@ jobs:
           node --check apple-music-import-v064.js
           node --check apple-playlist-import-v150.js
           node --check apple-match-strict-v150.js
+          node --check apple-album-import-v150.js
+          node --check apple-album-route-v150.js
+          node --check apple-no-ad-fallback-v150.js
           node --check clean-playback-v150.js
           node --check stable-v150.js
           node --check fast-background-v150.js
@@ -98,6 +110,7 @@ jobs:
           node --check tests/branding-v150.mjs
           node --check tests/stable-v150.mjs
           node --check tests/apple-playlist-v150.mjs
+          node --check tests/apple-album-source-v150.mjs
           node --check tests/youtube-error2-v150.mjs
           node --check tests/ui-polish-v150.mjs
           node --check tests/real-tracks-radio-v150.mjs
@@ -115,6 +128,8 @@ jobs:
         run: node tests/apple-playlist-v150.mjs
       - name: Functional — strict real-track playback and Radio
         run: node tests/real-tracks-radio-v150.mjs
+      - name: Functional — Apple album source and no-ad fallback
+        run: node tests/apple-album-source-v150.mjs
       - name: Functional — YouTube error 2 recovery
         run: node tests/youtube-error2-v150.mjs
       - name: Functional — search metadata and library UI
