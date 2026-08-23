@@ -18,6 +18,7 @@
     body{overflow-x:hidden}
     .app-shell{position:relative;isolation:isolate}
     .topbar,.player,.library-panel,.controls,.controls button,.track-list,.track,.track-main,.search,.fast-import{position:relative;pointer-events:auto!important}
+    .controls{grid-template-columns:repeat(5,1fr)}
     .controls button,.track-main,.search,.fast-import input,.fast-import button{z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.16)}
     #youtubePlayer{position:fixed!important;left:-12000px!important;top:-12000px!important;width:200px!important;height:200px!important;overflow:hidden!important;pointer-events:none!important;opacity:.001!important}
     .track-main{appearance:none;-webkit-appearance:none}
@@ -85,6 +86,7 @@
         <button id="playButton" type="button" class="primary" aria-label="Play or pause">▶</button>
         <button id="nextButton" type="button" aria-label="Next">⏭</button>
         <button id="shuffleButton" type="button" aria-label="Shuffle">⤨</button>
+        <button id="radioButton" type="button" aria-label="Radio" title="Radio — related tracks">📻</button>
       </div>
 
       <div class="volume-row">
@@ -112,6 +114,8 @@
 
   <script src="./fast-player-v141.js?v=150"></script>
   <script src="./fast-release-v150.js?v=150" defer></script>
+  <script src="./apple-match-strict-v150.js?v=150" defer></script>
+  <script src="./clean-playback-v150.js?v=150" defer></script>
   <script src="./fast-import-v150.js?v=150" defer></script>
   <script src="./stable-v150.js?v=150" defer></script>
   <script src="./fast-actions-v143.js?v=150" defer></script>
