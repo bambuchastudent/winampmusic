@@ -65,6 +65,12 @@
         if (artist) artist.textContent = clean(track?.artist) || 'Apple Music';
         if (play) play.textContent = '▶';
 
+        if (window.__AMP_MUSIC_APPLE_SKIP_NEXT_PLAY__) {
+          window.__AMP_MUSIC_APPLE_SKIP_NEXT_PLAY__ = false;
+          if (status) status.textContent = 'OPENED IN APPLE MUSIC';
+          return true;
+        }
+
         const url = appleUrl(track);
         if (url) {
           if (status) status.textContent = 'OPENING APPLE MUSIC…';
