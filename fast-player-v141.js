@@ -6,6 +6,12 @@
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const INITIAL_ROWS = 30;
   const CHUNK_ROWS = 40;
+  const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+  const REPAIR_SEARCH_INSTANCES = [
+    'https://inv.nadeko.net',
+    'https://invidious.nerdvpn.de',
+    'https://yt.chocolatemoo53.com',
+  ];
   const $ = (id) => document.getElementById(id);
 
   window.__WINAMP_MUSIC_RUNTIME__ = VERSION;
@@ -19,16 +25,40 @@
   };
 
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
+
+  function videoIdFromValue(raw) {
+    const value = clean(raw);
+    if (VIDEO_ID_RE.test(value)) return value;
+    try {
+      const url = new URL(value);
+      const host = url.hostname.replace(/^www\./, '').toLowerCase();
+      if (!['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'].includes(host)) return '';
+      if (host === 'youtu.be') {
+        const id = url.pathname.split('/').filter(Boolean)[0] || '';
+        return VIDEO_ID_RE.test(id) ? id : '';
+      }
+      const queryId = clean(url.searchParams.get('v'));
+      if (VIDEO_ID_RE.test(queryId)) return queryId;
+      const parts = url.pathname.split('/').filter(Boolean);
+      if (['shorts', 'embed', 'live'].includes(parts[0]) && VIDEO_ID_RE.test(parts[1] || '')) return parts[1];
+    } catch {}
+    return '';
+  }
+
   const readLibrary = () => {
     try {
       const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       if (!Array.isArray(value)) return [];
-      return value.filter((track) => track && clean(track.id)).map((track) => ({
-        ...track,
-        id: clean(track.id),
-        title: clean(track.title) || `YouTube ${clean(track.id)}`,
-        artist: clean(track.artist) || 'YouTube',
-      }));
+      return value.filter((track) => track && clean(track.id)).map((track) => {
+        const rawId = clean(track.id);
+        const normalizedId = videoIdFromValue(rawId) || rawId;
+        return {
+          ...track,
+          id: normalizedId,
+          title: clean(track.title) || `YouTube ${normalizedId}`,
+          artist: clean(track.artist) || 'YouTube',
+        };
+      });
     } catch { return []; }
   };
 
@@ -44,6 +74,7 @@
   let progressTimer = null;
   let renderGeneration = 0;
   let playing = false;
+  const repairAttempts = new Set();
 
   const setStatus = (text) => { ui.status.textContent = text; };
   const saveLibrary = () => {
@@ -59,6 +90,9 @@
     const s = total % 60;
     return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
   };
+
+  // Persist any legacy full-URL IDs that were safely normalized during load.
+  saveLibrary();
 
   function highlightCurrent() {
     ui.list.querySelectorAll('.track').forEach((row) => {
@@ -189,6 +223,52 @@
     return youtubePromise;
   }
 
+  async function findRepairCandidate(track) {
+    const query = clean(`${track?.title || ''} ${track?.artist || ''}`);
+    if (query.length < 2) return '';
+    for (const base of REPAIR_SEARCH_INSTANCES) {
+      try {
+        const url = new URL('/api/v1/search', base);
+        url.searchParams.set('q', query);
+        url.searchParams.set('type', 'video');
+        url.searchParams.set('sort', 'relevance');
+        url.searchParams.set('hl', navigator.language?.split('-')[0] || 'en');
+        const response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } });
+        if (!response.ok) continue;
+        const payload = await response.json();
+        const candidate = Array.isArray(payload)
+          ? payload.find((item) => item?.type === 'video' && VIDEO_ID_RE.test(clean(item.videoId)))
+          : null;
+        if (candidate) return clean(candidate.videoId);
+      } catch {}
+    }
+    return '';
+  }
+
+  async function repairCurrentTrack() {
+    const track = library[currentIndex];
+    if (!track) return false;
+    const attemptKey = `${currentIndex}:${clean(track.id)}`;
+    if (repairAttempts.has(attemptKey)) return false;
+    repairAttempts.add(attemptKey);
+    setStatus('REPAIRING YOUTUBE ID…');
+
+    let repairedId = videoIdFromValue(track.id);
+    if (!repairedId) repairedId = await findRepairCandidate(track);
+    if (!VIDEO_ID_RE.test(repairedId)) return false;
+
+    track.id = repairedId;
+    saveLibrary();
+    renderLibrary(filtered);
+    updateNowPlaying();
+    try {
+      player?.loadVideoById(repairedId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function onPlayerStateChange(event) {
     const state = event?.data;
     if (state === window.YT?.PlayerState?.PLAYING) {
@@ -206,6 +286,20 @@
       playRelative(1);
     }
     highlightCurrent();
+  }
+
+  async function onPlayerError(event) {
+    playing = false;
+    ui.play.textContent = '▶';
+    highlightCurrent();
+    const code = Number(event?.data);
+    if (code === 2) {
+      const repaired = await repairCurrentTrack();
+      if (repaired) return;
+      setStatus('TRACK SOURCE INVALID · RE-IMPORT');
+      return;
+    }
+    setStatus(`YOUTUBE ERROR ${event?.data ?? ''}`.trim());
   }
 
   function ensurePlayer() {
@@ -228,12 +322,7 @@
               finish();
             },
             onStateChange: onPlayerStateChange,
-            onError: (event) => {
-              playing = false;
-              ui.play.textContent = '▶';
-              highlightCurrent();
-              setStatus(`YOUTUBE ERROR ${event?.data ?? ''}`.trim());
-            },
+            onError: (event) => { void onPlayerError(event); },
           },
         });
         setTimeout(() => { if (!settled && player) finish(); }, 8000);
@@ -260,8 +349,22 @@
       const readyPlayer = await ensurePlayer();
       const track = library[currentIndex];
       if (!track) return;
+      const safeId = videoIdFromValue(track.id);
+      if (!safeId) {
+        const repaired = await repairCurrentTrack();
+        if (!repaired) {
+          ui.play.textContent = '▶';
+          setStatus('TRACK SOURCE INVALID · RE-IMPORT');
+        }
+        return;
+      }
+      if (safeId !== track.id) {
+        track.id = safeId;
+        saveLibrary();
+        renderLibrary(filtered);
+      }
       setStatus('STARTING…');
-      readyPlayer.loadVideoById(track.id);
+      readyPlayer.loadVideoById(safeId);
     } catch {
       ui.play.textContent = '▶';
     }
@@ -311,7 +414,7 @@
     const incoming = Array.isArray(items) ? items : [];
     let added = 0;
     for (const item of incoming) {
-      const id = clean(item?.id);
+      const id = videoIdFromValue(item?.id);
       if (!id || library.some((track) => track.id === id)) continue;
       library.push({ ...item, id, title: clean(item.title) || `YouTube ${id}`, artist: clean(item.artist) || 'YouTube' });
       added += 1;
@@ -349,6 +452,7 @@
   window.importTracks = importTracks;
   window.renderLibrary = () => renderLibrary(filtered);
   window.winampMusicLoadYouTubeApi = loadYouTubeApi;
+  window.ampMusicVideoIdFromValue = videoIdFromValue;
 
   updateNowPlaying();
   renderLibrary();

@@ -16,6 +16,7 @@ on:
       - 'fast-actions-v143.js'
       - 'tests/fast-player-v141.mjs'
       - 'tests/fast-import-v142.mjs'
+      - 'tests/youtube-error2-v150.mjs'
       - 'tests/fast-actions-v143.mjs'
       - 'tests/background-v150.mjs'
       - 'tests/stable-v150.mjs'
@@ -24,6 +25,7 @@ on:
       - 'tests/branding-v150.mjs'
       - 'openspec/changes/release-v1.5.0/**'
       - 'openspec/changes/stabilize-v1.5/**'
+      - 'openspec/changes/fix-youtube-error-2-v1.5/**'
       - 'docs/OPTIMIZATION.md'
       - '.github/workflows/v141-fast-player.yml'
 
@@ -49,6 +51,10 @@ jobs:
           test -s openspec/changes/stabilize-v1.5/design.md
           test -s openspec/changes/stabilize-v1.5/tasks.md
           test -s openspec/changes/stabilize-v1.5/specs/v1.5-roadmap/spec.md
+          test -s openspec/changes/fix-youtube-error-2-v1.5/proposal.md
+          test -s openspec/changes/fix-youtube-error-2-v1.5/design.md
+          test -s openspec/changes/fix-youtube-error-2-v1.5/tasks.md
+          test -s openspec/changes/fix-youtube-error-2-v1.5/specs/playback-recovery/spec.md
           test -s docs/OPTIMIZATION.md
 
       - name: Syntax check
@@ -62,6 +68,7 @@ jobs:
           node --check sw.js
           node --check tests/branding-v150.mjs
           node --check tests/stable-v150.mjs
+          node --check tests/youtube-error2-v150.mjs
 
       - name: Install test runtime
         run: npm install --no-save jsdom@26
@@ -72,6 +79,8 @@ jobs:
         run: node tests/stable-v150.mjs
       - name: Functional — 183-track core controls
         run: node tests/fast-player-v141.mjs
+      - name: Functional — YouTube error 2 recovery
+        run: node tests/youtube-error2-v150.mjs
       - name: Functional — YouTube and Apple Music track routing
         run: node tests/fast-import-v142.mjs
       - name: Functional — Gift QR and safe Clear
