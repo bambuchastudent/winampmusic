@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 const code = fs.readFileSync('fast-import-v150.js', 'utf8');
 const index = fs.readFileSync('index.html', 'utf8');
 assert.match(index, /id="fastImportForm"/);
-assert.match(index, /YouTube track or playlist/);
+assert.match(index, /YouTube or Apple Music track\/playlist/);
 assert.match(index, /fast-import-v150\.js\?v=150/);
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
@@ -44,6 +44,23 @@ window.YT = {
   },
 };
 window.winampMusicLoadYouTubeApi = async () => window.YT;
+
+for (const marker of ['apple-track-import', 'apple-playlist-import']) {
+  const script = window.document.createElement('script');
+  script.dataset.ampModule = marker;
+  script.dataset.loaded = '1';
+  window.document.head.appendChild(script);
+}
+let applePlaylistHandled = '';
+window.ampMusicApplePlaylist150 = {
+  async importPlaylistUrl(url, options) {
+    applePlaylistHandled = url;
+    options.onStatus?.({ message: '5 tracks · 5 matched · 5 new' });
+    options.input.value = '';
+    return { handled: true, tracks: new Array(5), added: 5 };
+  },
+};
+
 window.eval(code);
 
 async function submit(value, waitMs = 5) {
@@ -77,16 +94,17 @@ assert.equal(played.at(-1), 5);
 
 const appleTrack = window.ampMusicImport150.parseApple('https://music.apple.com/tr/album/mantis-lords/1263341718?i=1263341726');
 assert.equal(appleTrack?.type, 'track');
-const applePlaylist = window.ampMusicImport150.parseApple('https://music.apple.com/us/playlist/todays-hits/pl.f4d106fed2bd41149aaacabb233eb5eb');
+const applePlaylist = window.ampMusicImport150.parseApple('https://music.apple.com/tr/playlist/thexx/pl.u-V9D7mR7TaB8Zkl');
 assert.equal(applePlaylist?.type, 'playlist');
 await submit(applePlaylist.url);
-assert.match(window.document.getElementById('fastImportHint').textContent, /MusicKit connection/);
-assert.equal(window.document.querySelector('script[data-amp-module="apple-track-import"]'), null, 'playlist detection must not eagerly load track importer');
+assert.equal(applePlaylistHandled, applePlaylist.url);
+assert.match(window.document.getElementById('fastImportHint').textContent, /5 tracks · 5 matched/);
+assert.doesNotMatch(window.document.getElementById('fastImportHint').textContent, /MusicKit connection/);
 
 await submit('not a music link');
 saved = JSON.parse(window.localStorage.getItem('winampmusic.library.v1'));
 assert.equal(saved.length, 6);
-assert.match(window.document.getElementById('fastImportHint').textContent, /YouTube track\/playlist or Apple Music track/);
+assert.match(window.document.getElementById('fastImportHint').textContent, /YouTube or Apple Music track\/playlist link/);
 
 console.log('AmpMusic 1.5 fast track/playlist import routing test passed');
 process.exit(0);

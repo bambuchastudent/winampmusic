@@ -12,12 +12,15 @@ on:
       - 'fast-player-v141.js'
       - 'fast-release-v150.js'
       - 'fast-import-v150.js'
+      - 'apple-music-import-v064.js'
+      - 'apple-playlist-import-v150.js'
       - 'stable-v150.js'
       - 'fast-background-v150.js'
       - 'fast-actions-v143.js'
       - 'v059.js'
       - 'tests/fast-player-v141.mjs'
       - 'tests/fast-import-v142.mjs'
+      - 'tests/apple-playlist-v150.mjs'
       - 'tests/youtube-error2-v150.mjs'
       - 'tests/ui-polish-v150.mjs'
       - 'tests/fast-actions-v143.mjs'
@@ -30,6 +33,7 @@ on:
       - 'openspec/changes/stabilize-v1.5/**'
       - 'openspec/changes/fix-youtube-error-2-v1.5/**'
       - 'openspec/changes/fix-search-metadata-ui-v1.5/**'
+      - 'openspec/changes/restore-apple-playlist-v1.5/**'
       - 'docs/OPTIMIZATION.md'
       - '.github/workflows/v141-fast-player.yml'
 
@@ -63,6 +67,10 @@ jobs:
           test -s openspec/changes/fix-search-metadata-ui-v1.5/design.md
           test -s openspec/changes/fix-search-metadata-ui-v1.5/tasks.md
           test -s openspec/changes/fix-search-metadata-ui-v1.5/specs/search-metadata-ui/spec.md
+          test -s openspec/changes/restore-apple-playlist-v1.5/proposal.md
+          test -s openspec/changes/restore-apple-playlist-v1.5/design.md
+          test -s openspec/changes/restore-apple-playlist-v1.5/tasks.md
+          test -s openspec/changes/restore-apple-playlist-v1.5/specs/apple-playlist-import/spec.md
           test -s docs/OPTIMIZATION.md
 
       - name: Syntax check
@@ -70,6 +78,8 @@ jobs:
           node --check fast-player-v141.js
           node --check fast-release-v150.js
           node --check fast-import-v150.js
+          node --check apple-music-import-v064.js
+          node --check apple-playlist-import-v150.js
           node --check stable-v150.js
           node --check fast-background-v150.js
           node --check fast-actions-v143.js
@@ -77,6 +87,7 @@ jobs:
           node --check sw.js
           node --check tests/branding-v150.mjs
           node --check tests/stable-v150.mjs
+          node --check tests/apple-playlist-v150.mjs
           node --check tests/youtube-error2-v150.mjs
           node --check tests/ui-polish-v150.mjs
 
@@ -89,6 +100,8 @@ jobs:
         run: node tests/stable-v150.mjs
       - name: Functional — 183-track core controls
         run: node tests/fast-player-v141.mjs
+      - name: Functional — Apple Music public playlist import
+        run: node tests/apple-playlist-v150.mjs
       - name: Functional — YouTube error 2 recovery
         run: node tests/youtube-error2-v150.mjs
       - name: Functional — search metadata and library UI

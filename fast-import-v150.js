@@ -166,15 +166,37 @@
     finally { button.disabled = false; button.textContent = 'Add & Play'; }
   }
 
+  async function importApplePlaylist(url) {
+    button.disabled = true;
+    button.textContent = 'Importing…';
+    hint.textContent = 'Reading Apple Music playlist…';
+    try {
+      await loadScript('./apple-music-import-v064.js?v=150', 'apple-track-import');
+      await loadScript('./apple-playlist-import-v150.js?v=150', 'apple-playlist-import');
+      const result = await window.ampMusicApplePlaylist150?.importPlaylistUrl?.(url, {
+        input,
+        play: true,
+        onStatus: (state) => { if (state?.message) hint.textContent = state.message; },
+      });
+      if (!result?.handled) hint.textContent = 'Could not read this Apple Music playlist';
+    } catch (error) {
+      console.warn('[AmpMusic] Apple Music playlist import failed', error);
+      hint.textContent = 'Apple Music playlist import unavailable';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Add & Play';
+    }
+  }
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const apple = parseApple(input.value);
-    if (apple?.type === 'playlist') { hint.textContent = 'Apple Music playlists need MusicKit connection — track links work now'; return; }
+    if (apple?.type === 'playlist') { await importApplePlaylist(apple.url); return; }
     if (apple?.type === 'track') { await importAppleTrack(apple.url); return; }
     const youtube = parseYouTube(input.value);
     if (youtube?.type === 'playlist') { await importYouTubePlaylist(youtube); return; }
     const id = youtube?.type === 'track' ? youtube.videoId : '';
-    if (!id) { hint.textContent = 'Paste a YouTube track/playlist or Apple Music track link'; input.focus(); return; }
+    if (!id) { hint.textContent = 'Paste a YouTube or Apple Music track/playlist link'; input.focus(); return; }
     const result = window.importTracks?.([{ id, title: `YouTube ${id}`, artist: 'YouTube', importedAt: new Date().toISOString(), badges: ['YouTube'] }]);
     const index = libraryIndex(id);
     if (index < 0) { hint.textContent = 'Player is still starting — tap Add again'; return; }
@@ -186,7 +208,7 @@
     setTimeout(() => {
       const apple = parseApple(input.value); const youtube = parseYouTube(input.value);
       if (apple?.type === 'track') hint.textContent = 'Apple Music track ready — tap Add & Play';
-      else if (apple?.type === 'playlist') hint.textContent = 'Apple Music playlist detected';
+      else if (apple?.type === 'playlist') hint.textContent = 'Apple Music playlist ready — tap Add & Play';
       else if (youtube?.type === 'playlist') hint.textContent = 'YouTube playlist ready — tap Add & Play';
       else if (youtube?.type === 'track') hint.textContent = 'YouTube track ready — tap Add & Play';
     }, 0);
