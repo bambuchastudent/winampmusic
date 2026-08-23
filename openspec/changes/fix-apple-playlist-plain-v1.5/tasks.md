@@ -8,6 +8,6 @@
 - [x] Keep ordered partial success when individual YouTube matches fail.
 - [x] Bound large-playlist matching concurrency and reuse duplicate title+artist lookups.
 - [x] Add regression coverage using the supplied playlist URL and observed row shape.
-- [ ] Run the AmpMusic 1.5 release gate and Spec-driven guard.
-- [ ] Remove the temporary live probe files before merge.
+- [x] Run the AmpMusic 1.5 release gate and Spec-driven guard.
+- [x] Remove the temporary live probe files before merge.
 - [ ] Merge to `develop` only after the current 1.5 gates pass.
