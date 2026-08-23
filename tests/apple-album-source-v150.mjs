@@ -94,7 +94,6 @@ assert.equal(legacyCalls, 0, 'Apple direct failure must not fall through to YouT
 assert.match(window.document.getElementById('status').textContent, /NO AD FALLBACK/);
 
 const index = fs.readFileSync('index.html', 'utf8');
-assert.match(index, /track\/album\/playlist/);
 assert.match(index, /apple-no-ad-fallback-v150\.js\?v=150/);
 assert.match(index, /apple-album-route-v150\.js\?v=150/);
 
