@@ -10,25 +10,47 @@
   if (!form || !input || !button) return;
 
   const clean = (value) => String(value || '').trim();
+  const PLAYLIST_ID = /^[\w-]{10,160}$/;
 
-  function parseVideoId(raw) {
+  function parseYouTube(raw) {
     const value = clean(raw);
-    if (/^[\w-]{11}$/.test(value)) return value;
+    if (/^[\w-]{11}$/.test(value)) return { type: 'track', videoId: value, url: value };
     try {
       const url = new URL(value);
       const host = url.hostname.replace(/^www\./, '').toLowerCase();
+      if (!['youtu.be', 'youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) return null;
+
+      const playlistId = clean(url.searchParams.get('list'));
+      if (PLAYLIST_ID.test(playlistId)) {
+        let videoId = '';
+        if (host === 'youtu.be') videoId = url.pathname.split('/').filter(Boolean)[0] || '';
+        else videoId = url.searchParams.get('v') || '';
+        return {
+          type: 'playlist',
+          playlistId,
+          videoId: /^[\w-]{11}$/.test(videoId) ? videoId : '',
+          url: url.href,
+        };
+      }
+
       if (host === 'youtu.be') {
         const id = url.pathname.split('/').filter(Boolean)[0];
-        return /^[\w-]{11}$/.test(id || '') ? id : '';
+        return /^[\w-]{11}$/.test(id || '') ? { type: 'track', videoId: id, url: url.href } : null;
       }
-      if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
-        const queryId = url.searchParams.get('v');
-        if (/^[\w-]{11}$/.test(queryId || '')) return queryId;
-        const parts = url.pathname.split('/').filter(Boolean);
-        if (['shorts', 'embed', 'live'].includes(parts[0]) && /^[\w-]{11}$/.test(parts[1] || '')) return parts[1];
+
+      const queryId = url.searchParams.get('v');
+      if (/^[\w-]{11}$/.test(queryId || '')) return { type: 'track', videoId: queryId, url: url.href };
+      const parts = url.pathname.split('/').filter(Boolean);
+      if (['shorts', 'embed', 'live'].includes(parts[0]) && /^[\w-]{11}$/.test(parts[1] || '')) {
+        return { type: 'track', videoId: parts[1], url: url.href };
       }
     } catch {}
-    return '';
+    return null;
+  }
+
+  function parseVideoId(raw) {
+    const youtube = parseYouTube(raw);
+    return youtube?.type === 'track' ? youtube.videoId : '';
   }
 
   function parseApple(raw) {
@@ -86,6 +108,135 @@
     } catch {}
   }
 
+  async function hydratePlaylistMetadata(videoIds) {
+    let cursor = 0;
+    const workerCount = Math.min(4, videoIds.length);
+    await Promise.all(Array.from({ length: workerCount }, async () => {
+      while (cursor < videoIds.length) {
+        const id = videoIds[cursor];
+        cursor += 1;
+        await upgradeMetadata(id);
+      }
+    }));
+  }
+
+  function uniqueVideoIds(values) {
+    const seen = new Set();
+    const ids = [];
+    for (const value of Array.isArray(values) ? values : []) {
+      const id = clean(value);
+      if (!/^[\w-]{11}$/.test(id) || seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
+    }
+    return ids;
+  }
+
+  async function resolveYouTubePlaylist(playlistId) {
+    if (typeof window.winampMusicLoadYouTubeApi !== 'function') throw new Error('YouTube player is not ready');
+    await window.winampMusicLoadYouTubeApi();
+    if (!window.YT?.Player) throw new Error('YouTube player API unavailable');
+
+    const mount = document.createElement('div');
+    mount.id = `amp-playlist-probe-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    mount.hidden = true;
+    document.body.appendChild(mount);
+
+    let probe = null;
+    let pollId = 0;
+    let timeoutId = 0;
+
+    try {
+      return await new Promise((resolve, reject) => {
+        let settled = false;
+
+        const settle = (callback, value) => {
+          if (settled) return;
+          settled = true;
+          clearInterval(pollId);
+          clearTimeout(timeoutId);
+          callback(value);
+        };
+
+        const inspect = () => {
+          let ids = [];
+          try { ids = uniqueVideoIds(probe?.getPlaylist?.()); } catch {}
+          if (ids.length) settle(resolve, ids);
+        };
+
+        try {
+          probe = new window.YT.Player(mount.id, {
+            width: '1',
+            height: '1',
+            playerVars: {
+              autoplay: 0,
+              controls: 0,
+              playsinline: 1,
+              rel: 0,
+              origin: location.origin,
+              listType: 'playlist',
+              list: playlistId,
+            },
+            events: {
+              onReady: (event) => {
+                try {
+                  event.target.cuePlaylist({ listType: 'playlist', list: playlistId, index: 0, startSeconds: 0 });
+                } catch {}
+                inspect();
+                pollId = setInterval(inspect, 180);
+              },
+              onStateChange: inspect,
+              onError: inspect,
+            },
+          });
+          timeoutId = setTimeout(() => settle(reject, new Error('YouTube playlist did not load')), 12000);
+        } catch (error) {
+          settle(reject, error);
+        }
+      });
+    } finally {
+      clearInterval(pollId);
+      clearTimeout(timeoutId);
+      try { probe?.destroy?.(); } catch {}
+      mount.remove();
+    }
+  }
+
+  async function importYouTubePlaylist(youtube) {
+    button.disabled = true;
+    button.textContent = 'Importing…';
+    hint.textContent = 'Reading YouTube playlist…';
+    try {
+      const ids = await resolveYouTubePlaylist(youtube.playlistId);
+      const importedAt = new Date().toISOString();
+      const result = window.importTracks?.(ids.map((id) => ({
+        id,
+        title: `YouTube ${id}`,
+        artist: 'YouTube',
+        playlist: `YouTube playlist ${youtube.playlistId}`,
+        importedAt,
+        badges: ['YouTube', 'Playlist'],
+      })));
+
+      const firstIndex = libraryIndex(ids[0]);
+      if (firstIndex < 0) {
+        hint.textContent = 'Player is still starting — tap Add again';
+        return;
+      }
+
+      hint.textContent = `${ids.length} tracks · ${result?.added || 0} new · starting playlist`;
+      input.value = '';
+      window.playIndex?.(firstIndex);
+      void hydratePlaylistMetadata(ids);
+    } catch (error) {
+      console.warn('[AmpMusic] YouTube playlist import failed', error);
+      hint.textContent = 'Could not read this YouTube playlist';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Add & Play';
+    }
+  }
+
   async function importAppleTrack(url) {
     button.disabled = true;
     button.textContent = 'Matching…';
@@ -116,9 +267,15 @@
       return;
     }
 
-    const id = parseVideoId(input.value);
+    const youtube = parseYouTube(input.value);
+    if (youtube?.type === 'playlist') {
+      await importYouTubePlaylist(youtube);
+      return;
+    }
+
+    const id = youtube?.type === 'track' ? youtube.videoId : '';
     if (!id) {
-      hint.textContent = 'Paste a YouTube video or Apple Music track link';
+      hint.textContent = 'Paste a YouTube track/playlist or Apple Music track link';
       input.focus();
       return;
     }
@@ -140,18 +297,20 @@
     hint.textContent = result?.added ? 'Added · starting track' : 'Already saved · starting track';
     input.value = '';
     window.playIndex?.(index);
-    upgradeMetadata(id);
+    void upgradeMetadata(id);
   });
 
   input.addEventListener('paste', () => {
     setTimeout(() => {
       const apple = parseApple(input.value);
+      const youtube = parseYouTube(input.value);
       if (apple?.type === 'track') hint.textContent = 'Apple Music track ready — tap Add & Play';
       else if (apple?.type === 'playlist') hint.textContent = 'Apple Music playlist detected';
-      else if (parseVideoId(input.value)) hint.textContent = 'YouTube ready — tap Add & Play';
+      else if (youtube?.type === 'playlist') hint.textContent = 'YouTube playlist ready — tap Add & Play';
+      else if (youtube?.type === 'track') hint.textContent = 'YouTube track ready — tap Add & Play';
     }, 0);
   });
 
-  window.ampMusicImport150 = { parseVideoId, parseApple };
+  window.ampMusicImport150 = { parseVideoId, parseApple, parseYouTube, resolveYouTubePlaylist };
   console.info('[AmpMusic] fast import 1.5 ready');
 })();
