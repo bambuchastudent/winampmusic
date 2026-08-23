@@ -12,7 +12,7 @@ This avoids introducing a YouTube Data API key, server-side proxy, or third-part
 Resolved IDs are passed to the existing `window.importTracks` API as normal AmpMusic tracks. Existing library deduplication remains authoritative. The first resolved playlist item is selected and played after import.
 
 ## Metadata
-Playlist IDs are imported immediately so a large playlist does not block on metadata. Titles/artists are hydrated in the background through YouTube oEmbed. A small player-side metadata update API keeps the in-memory library and visible rows in sync without reloading the page.
+Playlist IDs are imported immediately so a large playlist does not block on metadata. Titles/artists are hydrated in the background through YouTube oEmbed and persisted to the existing local library. Playback/import does not wait for that enrichment.
 
 ## Failure behavior
 Private, unavailable, malformed, or timed-out playlists leave the existing library unchanged and show a short status message in the same import card.
