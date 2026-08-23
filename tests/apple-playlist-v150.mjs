@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 
 const targetUrl = 'https://music.apple.com/tr/playlist/thexx/pl.u-V9D7mR7TaB8Zkl';
+const suppliedUrl = 'https://music.apple.com/tr/playlist/favourite-songs/pl.u-BpUq1XGL0';
 const markdown = `Title: ‎thexx by Anastasiia Iangliaeva - Apple Music
 URL Source: ${targetUrl}
 Markdown Content:
@@ -37,6 +38,66 @@ PREVIEW 2:40
 PREVIEW 2:51
 `;
 
+const suppliedMarkdown = `Title: ‎Favorite Songs by Anastasiia Iangliaeva
+
+URL Source: ${suppliedUrl}
+
+Markdown Content:
+Search
+Home
+New
+Radio
+Open in Music
+Sign In
+PLAY
+PLAY
+PLAY
+Mute
+Favorite Songs
+Anastasiia Iangliaeva
+Updated Tuesday
+Preview
+\t
+Song
+\t
+Artist
+\t
+Album
+\tTime
+
+\t
+Hollow Knight
+\t
+Christopher Larkin
+\t
+Hollow Knight (Original Soundtrack)
+\t
+PREVIEW
+1:36
+
+
+\t
+Crystal Peak
+\t
+Christopher Larkin
+\t
+Hollow Knight (Original Soundtrack)
+\t
+PREVIEW
+4:08
+
+
+\t
+Когда ты грустишь
+\t
+Flëur
+\t
+Волшебство
+\t
+PREVIEW
+3:24
+`;
+
 const dom = new JSDOM('<!doctype html><body><input id="input"></body>', {
   url: 'https://bambuchastudent.github.io/winampmusic/',
   runScripts: 'outside-only',
@@ -49,6 +110,9 @@ const ids = {
   Infinity: 'aaaaaaaaaaa',
   Islands: 'bbbbbbbbbbb',
   Angels: 'ccccccccccc',
+  'Hollow Knight': 'hhhhhhhhhhh',
+  'Crystal Peak': 'iiiiiiiiiii',
+  'Когда ты грустишь': 'jjjjjjjjjjj',
 };
 const matchCalls = [];
 window.winampMusicAppleImport = {
@@ -62,7 +126,11 @@ window.winampMusicAppleImport = {
 let fetchedUrl = '';
 window.fetch = async (url) => {
   fetchedUrl = String(url);
-  return { ok: true, status: 200, text: async () => markdown };
+  return {
+    ok: true,
+    status: 200,
+    text: async () => fetchedUrl.includes('pl.u-BpUq1XGL0') ? suppliedMarkdown : markdown,
+  };
 };
 
 let imported = [];
@@ -90,6 +158,17 @@ assert.deepEqual(Array.from(extracted.tracks, (track) => track.title), ['Intro',
 assert.equal(extracted.tracks[0].artist, 'The xx');
 assert.equal(extracted.tracks[0].durationMs, 127000);
 
+const suppliedParsed = api.parsePlaylistUrl(suppliedUrl);
+assert.equal(suppliedParsed?.storefront, 'tr');
+assert.equal(suppliedParsed?.playlistId, 'pl.u-BpUq1XGL0');
+const suppliedExtracted = api.parsePlaylistMarkdown(suppliedMarkdown, suppliedParsed);
+assert.equal(suppliedExtracted.name, 'Favorite Songs');
+assert.deepEqual(Array.from(suppliedExtracted.tracks, (track) => track.title), ['Hollow Knight', 'Crystal Peak', 'Когда ты грустишь']);
+assert.deepEqual(Array.from(suppliedExtracted.tracks, (track) => track.artist), ['Christopher Larkin', 'Christopher Larkin', 'Flëur']);
+assert.deepEqual(Array.from(suppliedExtracted.tracks, (track) => track.album), ['Hollow Knight (Original Soundtrack)', 'Hollow Knight (Original Soundtrack)', 'Волшебство']);
+assert.equal(suppliedExtracted.tracks[0].durationMs, 96000);
+assert.equal(suppliedExtracted.tracks[2].durationMs, 204000);
+
 const input = window.document.getElementById('input');
 input.value = targetUrl;
 const statuses = [];
@@ -111,6 +190,27 @@ assert.equal(input.value, '');
 assert.equal(fetchedUrl, `https://r.jina.ai/${targetUrl}`);
 assert.ok(statuses.some((text) => /5 tracks · 4 matched · 4 new/.test(text)));
 assert.equal(matchCalls.length, 5);
+
+window.localStorage.removeItem('winampmusic.library.v1');
+imported = [];
+playedIndex = -1;
+input.value = suppliedUrl;
+const suppliedStatuses = [];
+const suppliedResult = await api.importPlaylistUrl(suppliedUrl, {
+  input,
+  play: true,
+  onStatus: (state) => suppliedStatuses.push(state.message),
+});
+assert.equal(suppliedResult.handled, true);
+assert.equal(suppliedResult.playlist.name, 'Favorite Songs');
+assert.equal(suppliedResult.playlist.tracks.length, 3);
+assert.equal(suppliedResult.tracks.length, 3);
+assert.deepEqual(Array.from(imported, (track) => track.title), ['Hollow Knight', 'Crystal Peak', 'Когда ты грустишь']);
+assert.equal(playedIndex, 0);
+assert.equal(input.value, '');
+assert.equal(fetchedUrl, `https://r.jina.ai/${suppliedUrl}`);
+assert.ok(suppliedStatuses.some((text) => /3 tracks · 3 matched · 3 new/.test(text)));
+assert.equal(matchCalls.length, 8);
 
 const router = fs.readFileSync('fast-import-v150.js', 'utf8');
 assert.match(router, /apple-playlist-import-v150\.js\?v=150/);

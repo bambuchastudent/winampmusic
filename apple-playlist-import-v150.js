@@ -43,14 +43,21 @@
   }
 
   function playlistNameFromMarkdown(markdown, fallback) {
-    const heading = String(markdown || '').match(/(?:^|\n)#\s+([^\n]+)/);
+    const source = String(markdown || '');
+    const heading = source.match(/(?:^|\n)#\s+([^\n]+)/);
     if (heading?.[1]) return markdownText(heading[1]);
-    const title = String(markdown || '').match(/^Title:\s*‎?(.+?)(?:\s+by\s+.+)?\s+-\s+Apple Music\s*$/m);
-    return markdownText(title?.[1]) || fallback;
+
+    const titleLine = source.match(/^Title:\s*‎?(.+)$/m)?.[1];
+    if (titleLine) {
+      let title = markdownText(titleLine).replace(/\s+-\s+Apple Music\s*$/i, '');
+      const byIndex = title.lastIndexOf(' by ');
+      if (byIndex > 0) title = title.slice(0, byIndex).trim();
+      if (title) return title;
+    }
+    return fallback;
   }
 
-  function parsePlaylistMarkdown(markdown, parsed) {
-    const source = String(markdown || '');
+  function parseLinkedTracks(source) {
     const songRe = /\[([^\]\n]+)\]\((https:\/\/music\.apple\.com\/[^)\s]+\/song\/[^)\s]+\/(\d+)[^)]*)\)/g;
     const matches = [...source.matchAll(songRe)];
     const seen = new Set();
@@ -77,7 +84,62 @@
         appleUrl: clean(match[2]),
       });
     }
+    return tracks;
+  }
 
+  function parsePlainTableTracks(source, parsed) {
+    const lines = String(source || '').split(/\r?\n/);
+    const songHeader = lines.findIndex((line) => markdownText(line) === 'Song');
+    if (songHeader < 0) return [];
+
+    let timeHeader = -1;
+    for (let index = songHeader + 1; index < Math.min(lines.length, songHeader + 14); index += 1) {
+      if (markdownText(lines[index]) === 'Time') {
+        timeHeader = index;
+        break;
+      }
+    }
+    if (timeHeader < 0) return [];
+
+    const tracks = [];
+    let fields = [];
+    const ignored = /^(?:PREVIEW|E|EXPLICIT|LOSSLESS|DOLBY ATMOS)$/i;
+    const footer = /^(?:More by |Featured On|You Might Also Like|About |Apple Music|Copyright|Terms of Use|Privacy Policy)/i;
+
+    for (let index = timeHeader + 1; index < lines.length; index += 1) {
+      const value = markdownText(lines[index]);
+      if (!value || ignored.test(value)) continue;
+
+      if (/^\d{1,2}:\d{2}$/.test(value)) {
+        if (fields.length >= 3) {
+          const [title, artist, album] = fields;
+          if (title && artist) {
+            tracks.push({
+              appleTrackId: '',
+              title,
+              artist,
+              album: album || '',
+              durationMs: durationMs(value),
+              appleUrl: parsed.href,
+            });
+          }
+        }
+        fields = [];
+        continue;
+      }
+
+      if (!fields.length && tracks.length && footer.test(value)) break;
+      fields.push(value);
+      if (fields.length > 6) fields = fields.slice(-6);
+    }
+
+    return tracks;
+  }
+
+  function parsePlaylistMarkdown(markdown, parsed) {
+    const source = String(markdown || '');
+    const linkedTracks = parseLinkedTracks(source);
+    const tracks = linkedTracks.length ? linkedTracks : parsePlainTableTracks(source, parsed);
     return {
       name: playlistNameFromMarkdown(source, parsed.slug || 'Apple Music playlist'),
       tracks,
@@ -111,9 +173,10 @@
     const finder = window.winampMusicAppleImport?.findYouTubeMatch;
     if (typeof finder !== 'function') throw new Error('Apple Music matcher is not ready');
     const results = new Array(playlist.tracks.length).fill(null);
+    const matchCache = new Map();
     let cursor = 0;
     let completed = 0;
-    const workers = Math.min(2, playlist.tracks.length);
+    const workers = Math.min(4, playlist.tracks.length);
 
     await Promise.all(Array.from({ length: workers }, async () => {
       while (!signal.aborted) {
@@ -122,12 +185,18 @@
         if (index >= playlist.tracks.length) return;
         const appleTrack = playlist.tracks[index];
         try {
-          const match = await finder({
-            title: appleTrack.title,
-            artist: appleTrack.artist,
-            album: appleTrack.album,
-            durationMs: appleTrack.durationMs,
-          }, signal);
+          const cacheKey = `${clean(appleTrack.title).toLowerCase()}\u0000${clean(appleTrack.artist).toLowerCase()}`;
+          let matchPromise = matchCache.get(cacheKey);
+          if (!matchPromise) {
+            matchPromise = Promise.resolve(finder({
+              title: appleTrack.title,
+              artist: appleTrack.artist,
+              album: appleTrack.album,
+              durationMs: appleTrack.durationMs,
+            }, signal));
+            matchCache.set(cacheKey, matchPromise);
+          }
+          const match = await matchPromise;
           const videoId = clean(match?.id);
           if (VIDEO_ID_RE.test(videoId)) {
             results[index] = {
