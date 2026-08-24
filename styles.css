@@ -202,4 +202,12 @@ dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(5px); }
   .library-header { align-items: flex-end; }
   .header-actions { gap: 6px; }
   .ghost { padding: 0 9px; }
+
+  /* The bottle is also used in narrow browser previews; keep every label glyph inside it. */
+  .bottle15 { width: 68px !important; height: 102px !important; }
+  .bottle15-body { width: 60px !important; }
+  .bottle15-label { left: 3px !important; right: 3px !important; top: 26px !important; height: 48px !important; padding: 6px 5px 13px !important; }
+  .bottle15-name { width: 100% !important; max-width: none !important; font-size: 7px !important; letter-spacing: 0 !important; white-space: nowrap !important; }
+  .bottle15-name .bolt-l { margin: -1px -1px 0 !important; font-size: 9px !important; line-height: .75 !important; vertical-align: -1px !important; }
+  .bottle15-version { left: 5px !important; right: 5px !important; bottom: 4px !important; padding-top: 3px !important; font-size: 6px !important; letter-spacing: .08em !important; }
 }
