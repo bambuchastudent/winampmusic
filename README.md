@@ -24,7 +24,7 @@ The current implementation is a mobile-first web player focused primarily on mus
 
 1. Open ÁmpulaMP.
 2. Use the single music field to search by artist/track name or paste a supported YouTube or Apple Music track, album, or playlist link.
-3. ÁmpulaMP searches or imports the available track metadata into the local library.
+3. ÁmpulaMP searches or imports the available track metadata into the local library. If music is already playing, background imports do not steal the visible Now Playing state or interrupt the current track.
 4. Pick a track and play it through an available playback source.
 5. Use the small search control in `Your library` only when you want to filter music already saved locally.
 6. Share the current selection by link/QR today; the portable product format is `.ampula`.
@@ -38,6 +38,8 @@ The player is designed so provider integrations remain playback/import/resolutio
 - local persistent library with an optional collapsible filter;
 - play/pause, previous, next, shuffle, seek, and volume;
 - provider-specific playback adapters;
+- playback-preserving background imports;
+- compact bottle brand/repository link plus a playback-state spectrum indicator;
 - Media Session integration and playback snapshots where supported;
 - playlist sharing by link / QR;
 - installable PWA shell;
