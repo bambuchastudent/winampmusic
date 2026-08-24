@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#17191f" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>ÁmpulaMP 1.5</title>
-  <meta name="description" content="ÁmpulaMP 1.5 — the Ámpula player for portable musical moments, saved music links and playlists." />
+  <title>Ampula MP 1.5</title>
+  <meta name="description" content="Ampula MP 1.5 — the Ámpula player for portable musical moments, saved music links and playlists." />
   <link rel="canonical" href="https://bambuchastudent.github.io/winampmusic/" />
   <link rel="icon" href="./favicon.ico?v=150" sizes="any" />
   <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=150" />
@@ -22,11 +22,10 @@
     .controls button,.track-main,.search,.fast-import input,.fast-import button{z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.16)}
     #youtubePlayer{position:fixed!important;left:-12000px!important;top:-12000px!important;width:200px!important;height:200px!important;overflow:hidden!important;pointer-events:none!important;opacity:.001!important}
     .track-main{appearance:none;-webkit-appearance:none}
-    .fast-note{margin:8px 0 0;text-align:center;color:#8f98a8;font-size:11px}
     .fast-import{margin:0 0 8px;padding:12px;border:1px solid #343a46;border-radius:14px;background:linear-gradient(180deg,#22262d,#15181e)}
     .fast-import-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:8px}.fast-import-head strong{font-size:13px}.fast-import-hint{font-size:10px;color:#8f98a8;text-align:right}
     .fast-import-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.fast-import-form input{min-width:0;min-height:46px;border:1px solid #343a46;border-radius:9px;background:#101217;color:#fff;padding:0 12px;font-size:16px;outline:none}.fast-import-form button{min-width:110px;border:1px solid #c99c22;border-radius:9px;background:linear-gradient(#ffe680,#c9a630);color:#171717;font-weight:900;padding:0 14px}
-    .brand-stack{display:grid;gap:2px}.brand-by{font-size:10px;letter-spacing:.09em;color:#717988;text-transform:uppercase}
+    .brand-stack{display:grid;gap:2px}.brand-title-row{display:flex;align-items:center;gap:10px}.brand-github{width:38px;height:38px;display:grid;place-items:center;border:1px solid #3e4552;border-radius:9px;background:#1c2027;color:#d7dce5;text-decoration:none;flex:0 0 auto;transition:border-color .15s ease,background .15s ease}.brand-github:hover{border-color:#697383;background:#252a33}.brand-github svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .bottle15{width:78px;height:118px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35));pointer-events:none;user-select:none}
     .bottle15-cap{position:absolute;top:0;width:30px;height:12px;border-radius:6px 6px 3px 3px;background:linear-gradient(#fafafa,#9299a4);border:1px solid #dfe4e8}
     .bottle15-neck{position:absolute;top:10px;width:34px;height:20px;border:1px solid rgba(255,255,255,.4);border-bottom:0;border-radius:8px 8px 2px 2px;background:rgba(176,219,232,.11)}
@@ -35,10 +34,9 @@
     .bottle15-bubble{position:absolute;border:1px solid rgba(255,255,255,.8);border-radius:50%;background:rgba(255,255,255,.12)}
     .bottle15-b1{width:7px;height:7px;left:15px;bottom:20px}.bottle15-b2{width:5px;height:5px;right:13px;bottom:34px}.bottle15-b3{width:9px;height:9px;left:31px;bottom:44px}.bottle15-b4{width:4px;height:4px;right:26px;bottom:16px}
     .bottle15-label{position:absolute;left:3px;right:3px;top:29px;height:54px;border-radius:7px;background:linear-gradient(135deg,#e32b3e,#8b1325);padding:7px 7px 15px;box-shadow:0 2px 5px rgba(0,0,0,.25);overflow:hidden}
-    .bottle15-name{display:block;max-width:42px;font:950 9px/.92 system-ui,sans-serif;color:#fff;letter-spacing:.035em;text-transform:uppercase;text-shadow:0 1px 1px rgba(0,0,0,.2)}
-    .bottle15-version{position:absolute;left:7px;right:7px;bottom:4px;padding-top:3px;border-top:1px solid rgba(255,255,255,.38);font:850 6.5px/1 system-ui,sans-serif;color:rgba(255,255,255,.95);letter-spacing:.14em;text-align:center;text-transform:uppercase}
-    .bottle15-bolt{position:absolute;right:5px;top:8px;font-size:16px;transform:rotate(8deg);text-shadow:0 1px 2px rgba(0,0,0,.3)}
-    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}.bottle15{width:64px;height:98px}.bottle15-body{width:56px}.bottle15-label{top:26px;height:50px;padding:6px 6px 14px}.bottle15-name{max-width:36px;font-size:8px}.bottle15-version{left:6px;right:6px;font-size:6px}.bottle15-bolt{right:4px;top:7px;font-size:14px}}
+    .bottle15-name{display:block;max-width:50px;font:950 9px/.92 system-ui,sans-serif;color:#fff;letter-spacing:.035em;text-transform:uppercase;text-shadow:0 1px 1px rgba(0,0,0,.2);white-space:nowrap}.bottle15-name .bolt-l{display:inline-block;margin:-2px -1px 0;font-size:13px;line-height:.7;vertical-align:-1px;transform:rotate(7deg);text-shadow:0 1px 2px rgba(0,0,0,.28)}
+    .bottle15-version{position:absolute;left:7px;right:7px;bottom:4px;padding-top:3px;border-top:1px solid rgba(255,255,255,.38);font:850 7px/1 system-ui,sans-serif;color:rgba(255,255,255,.95);letter-spacing:.11em;text-align:center;text-transform:uppercase}
+    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}.brand-title-row{gap:7px}.brand-github{width:34px;height:34px}.bottle15{width:64px;height:98px}.bottle15-body{width:56px}.bottle15-label{top:26px;height:50px;padding:6px 6px 14px}.bottle15-name{max-width:45px;font-size:8px}.bottle15-name .bolt-l{font-size:12px}.bottle15-version{left:6px;right:6px;font-size:6.5px}}
   </style>
 </head>
 <body>
@@ -46,16 +44,20 @@
     <header class="topbar">
       <div class="brand-stack">
         <div class="eyebrow">YOUR MUSIC. YOUR MOMENT.</div>
-        <h1>ÁmpulaMP</h1>
-        <div class="brand-by">by bambuchastudent</div>
+        <div class="brand-title-row">
+          <h1>Ampula MP</h1>
+          <a class="brand-github" href="https://github.com/bambuchastudent/winampmusic" target="_blank" rel="noopener noreferrer" aria-label="Open Ampula MP on GitHub" title="GitHub">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15 15 9"/><path d="M10 6h8v8"/><path d="M18 13v5H6V6h5"/></svg>
+          </a>
+        </div>
       </div>
-      <div class="bottle15" aria-label="ÁmpulaMP 1.5">
+      <div class="bottle15" aria-label="Ampula MP v1.5">
         <div class="bottle15-cap"></div>
         <div class="bottle15-neck"></div>
         <div class="bottle15-body">
           <div class="bottle15-soda"></div>
           <i class="bottle15-bubble bottle15-b1"></i><i class="bottle15-bubble bottle15-b2"></i><i class="bottle15-bubble bottle15-b3"></i><i class="bottle15-bubble bottle15-b4"></i>
-          <div class="bottle15-label"><span class="bottle15-name">ÁMPULA<br>MP</span><span class="bottle15-version">VERSION 1.5</span><span class="bottle15-bolt">⚡</span></div>
+          <div class="bottle15-label"><span class="bottle15-name">AMPU<span class="bolt-l">⚡</span>A<br>MP</span><span class="bottle15-version">v1.5</span></div>
         </div>
       </div>
     </header>
@@ -96,7 +98,6 @@
         <input id="volume" type="range" min="0" max="100" value="75" aria-label="Volume" />
       </div>
       <div id="youtubePlayer" aria-hidden="true"></div>
-      <p class="fast-note">Controls are local and instant. Provider code loads separately.</p>
     </section>
 
     <section class="library-panel">
