@@ -56,5 +56,15 @@
   ".github/workflows/v064.yml",
   "activity-ticker-v1.js",
   "support-v1.js",
-  "unified-search-v065.js"
+  "unified-search-v065.js",
+  "direct-youtube-import.js",
+  "fixes-v054.js",
+  "mobile-share.js",
+  "mobile-url-import.js",
+  "mobile.css",
+  "playlist-metadata.css",
+  "playlist-metadata.js",
+  "winamp-features.css",
+  "winamp-features.js",
+  "youtube-context.js"
 ]
