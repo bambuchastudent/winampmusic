@@ -45,6 +45,9 @@
     .header-spectrum{width:104px;height:70px;flex:0 0 auto;display:flex;align-items:flex-end;justify-content:center;gap:4px;padding:11px 10px;border:1px solid #343a46;border-radius:14px;background:linear-gradient(180deg,#20242b,#12151a);box-shadow:inset 0 1px rgba(255,255,255,.04),0 12px 30px rgba(0,0,0,.24);overflow:hidden}.header-spectrum i{display:block;width:6px;height:18%;min-height:5px;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,#a9f08b 0 54%,#f0c94d 55% 100%);transform-origin:50% 100%;opacity:.62}.header-spectrum[data-playing="1"] i{opacity:1;animation:spectrumBounce .62s ease-in-out infinite alternate}.header-spectrum[data-playing="1"] i:nth-child(2){animation-duration:.42s;animation-delay:-.16s}.header-spectrum[data-playing="1"] i:nth-child(3){animation-duration:.71s;animation-delay:-.31s}.header-spectrum[data-playing="1"] i:nth-child(4){animation-duration:.5s;animation-delay:-.09s}.header-spectrum[data-playing="1"] i:nth-child(5){animation-duration:.78s;animation-delay:-.4s}.header-spectrum[data-playing="1"] i:nth-child(6){animation-duration:.46s;animation-delay:-.22s}.header-spectrum[data-playing="1"] i:nth-child(7){animation-duration:.67s;animation-delay:-.35s}.header-spectrum[data-playing="1"] i:nth-child(8){animation-duration:.54s;animation-delay:-.12s}.header-spectrum[data-playing="1"] i:nth-child(9){animation-duration:.73s;animation-delay:-.28s}@keyframes spectrumBounce{from{transform:scaleY(.35)}to{transform:scaleY(4.5)}}
     .app-version-link{color:inherit;text-decoration:none}.app-version-link:hover{color:#f0c94d}.app-version-link:focus-visible{outline:1px solid #f0c94d;outline-offset:4px;border-radius:2px}
     @media(max-width:520px){.topbar{align-items:center}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}.brand-lockup{gap:7px}.brand-bottle-link,.bottle15{width:54px;height:84px}.bottle15-body{top:22px;width:48px}.bottle15-cap{width:26px;height:10px}.bottle15-neck{top:9px;width:30px;height:18px}.bottle15-soda{height:52px}.bottle15-label{top:23px;height:44px;padding:5px 3px 13px}.bottle15-name{font-size:6.5px}.bottle15-name .bolt-l{font-size:9px}.bottle15-version{font-size:5.8px}.brand-stack h1{font-size:clamp(24px,8vw,34px)}.header-spectrum{width:66px;height:58px;gap:3px;padding:9px 7px}.header-spectrum i{width:4px}.fast-import-form{grid-template-columns:1fr}}
+    .eq-toggle-row{display:flex;align-items:center;gap:10px;margin-top:10px}.eq-toggle{min-width:76px;min-height:34px;border:1px solid #4a515d;border-radius:8px;background:#252a32;color:#d9dde4;font-weight:900;letter-spacing:.08em}.eq-toggle.active{border-color:#caa62d;color:#ffe06a}.eq-toggle-hint{font-size:10px;color:#777f8d}
+    .equalizer{margin-top:10px;padding:12px;border:1px solid #343a46;border-radius:12px;background:linear-gradient(180deg,#1c2026,#111419)}.equalizer[hidden]{display:none!important}.eq-header{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:10px}.eq-header strong{font-size:13px;letter-spacing:.08em}.eq-header span{font-size:10px;color:#8f98a8;letter-spacing:.14em}.eq-bands{display:grid;grid-template-columns:repeat(11,minmax(34px,1fr));gap:6px;align-items:end;overflow-x:auto;padding:4px 0 8px}.eq-band{display:grid;justify-items:center;gap:5px;min-width:34px;color:#9099a8;font-size:9px;font-weight:800}.eq-band input[type="range"]{width:72px;height:18px;transform:rotate(-90deg);margin:28px -19px;accent-color:#e5bd35}.eq-value{font-variant-numeric:tabular-nums;color:#c4cad3}.eq-capability-note{margin:4px 0 0;color:#737b88;font-size:10px;line-height:1.35}.eq-capability-live{color:#94a888}
+    @media(max-width:520px){.eq-toggle-row{justify-content:space-between}.eq-bands{grid-template-columns:repeat(11,42px);padding-bottom:12px}}
   </style>
 </head>
 <body>
@@ -113,6 +116,32 @@
         <span>VOL</span>
         <input id="volume" type="range" min="0" max="100" value="75" aria-label="Volume" />
       </div>
+
+      <div class="eq-toggle-row">
+        <button id="eqToggle" class="eq-toggle" type="button" aria-expanded="false" aria-controls="equalizerPanel">EQ ▼</button>
+        <span class="eq-toggle-hint">Winamp-style equalizer</span>
+      </div>
+
+      <section id="equalizerPanel" class="equalizer" aria-label="Equalizer" data-eq-capability="visual-only" hidden>
+        <div class="eq-header">
+          <div><span>ÁMPULAMP EQUALIZER</span><strong>PRE + 10 BAND</strong></div>
+        </div>
+        <div class="eq-bands">
+          <label class="eq-band"><span>PRE</span><input data-eq-band="preamp" type="range" min="-12" max="12" value="0" aria-label="Preamp" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>60</span><input data-eq-band="60" type="range" min="-12" max="12" value="0" aria-label="60 Hz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>170</span><input data-eq-band="170" type="range" min="-12" max="12" value="0" aria-label="170 Hz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>310</span><input data-eq-band="310" type="range" min="-12" max="12" value="0" aria-label="310 Hz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>600</span><input data-eq-band="600" type="range" min="-12" max="12" value="0" aria-label="600 Hz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>1K</span><input data-eq-band="1k" type="range" min="-12" max="12" value="0" aria-label="1 kHz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>3K</span><input data-eq-band="3k" type="range" min="-12" max="12" value="0" aria-label="3 kHz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>6K</span><input data-eq-band="6k" type="range" min="-12" max="12" value="0" aria-label="6 kHz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>12K</span><input data-eq-band="12k" type="range" min="-12" max="12" value="0" aria-label="12 kHz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>14K</span><input data-eq-band="14k" type="range" min="-12" max="12" value="0" aria-label="14 kHz" /><span class="eq-value">0</span></label>
+          <label class="eq-band"><span>16K</span><input data-eq-band="16k" type="range" min="-12" max="12" value="0" aria-label="16 kHz" /><span class="eq-value">0</span></label>
+        </div>
+        <p id="eqCapabilityNote" class="eq-capability-note">EQ is visual only for this source — provider audio cannot be filtered here.</p>
+      </section>
+
       <div id="youtubePlayer" aria-hidden="true"></div>
     </section>
 
@@ -132,6 +161,7 @@
   </main>
 
   <script src="./fast-player-v141.js?v=150"></script>
+  <script src="./equalizer-v150.js?v=150" defer></script>
   <script src="./fast-release-v150.js?v=150" defer></script>
   <script src="./apple-match-strict-v150.js?v=150" defer></script>
   <script src="./clean-playback-v150.js?v=150" defer></script>
