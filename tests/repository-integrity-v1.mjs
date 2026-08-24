@@ -136,6 +136,18 @@ const removedFiles = [
   '.github/workflows/v138-hard-controls.yml',
   '.github/workflows/v139-native-controls.yml',
   '.github/workflows/v140-core-safe.yml',
+  'boot-v134.js',
+  'sw-v135.js',
+  'recover-fresh-137.html',
+  'recover-fresh-138.html',
+  'recover-fresh-139.html',
+  'tests/boot-smoke-v134.mjs',
+  'tests/safari-playback-v135.mjs',
+  'tests/runtime-cache-v136.mjs',
+  '.github/workflows/v134-zero-blocking-boot.yml',
+  '.github/workflows/v135-safari-playback.yml',
+  '.github/workflows/v136-runtime-cache.yml',
+  '.github/workflows/v137-fresh-recovery.yml',
 ];
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
