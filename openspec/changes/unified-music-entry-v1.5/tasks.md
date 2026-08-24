@@ -11,4 +11,6 @@
 - [x] Remove the provider implementation note from the visible player chrome.
 - [x] Stabilize the bottle logo so it does not shift or animate during use.
 - [x] Rename the playlist action from Gift / QR to Share / QR.
+- [x] Make ÁMPULA MP clearly readable on the bottle label.
+- [x] Move the version to a separate bottom line on the label.
 - [ ] Verify CI and PR checks.
