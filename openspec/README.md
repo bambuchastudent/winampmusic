@@ -1,4 +1,4 @@
-# Winamp Music OpenSpec workflow
+# Ámpula OpenSpec workflow
 
 Production changes are spec-driven.
 

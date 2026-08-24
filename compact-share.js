@@ -198,8 +198,8 @@
 
   function shareData(url, count) {
     return {
-      title: 'Winamp Music playlist',
-      text: `Listen to my ${count}-track Winamp Music playlist`,
+      title: 'ÁmpulaMP playlist',
+      text: `Listen to my ${count}-track ÁmpulaMP playlist`,
       url,
     };
   }
@@ -293,7 +293,7 @@
       const remoteUrl = await createRemoteShare(tracks);
       await showShareLink(remoteUrl, ids.length, false);
     } catch (error) {
-      console.warn('[Winamp Music share] remote short link failed, using URL fallback', error);
+      console.warn('[ÁmpulaMP share] remote short link failed, using URL fallback', error);
       await showShareLink(buildFallbackShareUrl(ids), ids.length, true);
     }
   }
@@ -379,7 +379,7 @@
       try {
         await loadRemotePlaylist(slug);
       } catch (error) {
-        console.warn('[Winamp Music share]', error);
+        console.warn('[ÁmpulaMP share]', error);
         if (STATUS) STATUS.textContent = error.message.toUpperCase();
       }
       return true;
