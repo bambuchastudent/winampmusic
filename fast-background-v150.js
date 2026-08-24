@@ -78,7 +78,7 @@
       session.metadata = new MediaMetadata({
         title: track.title || `YouTube ${track.id}`,
         artist: track.artist || 'YouTube',
-        album: track.playlist || 'AmpMusic',
+        album: track.playlist || 'ÁmpulaMP',
         artwork: track.thumbnail ? [{ src: track.thumbnail }] : [],
       });
     } catch {}
@@ -193,5 +193,5 @@
     syncPosition();
   }, 1500);
 
-  console.info('[AmpMusic] background 1.5.0 ready');
+  console.info('[ÁmpulaMP] background 1.5.0 ready');
 })();
