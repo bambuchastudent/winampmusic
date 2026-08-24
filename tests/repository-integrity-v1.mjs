@@ -125,7 +125,18 @@ assert.match(pagesWorkflow, /path:\s*\./);
 assert.ok(exists('scripts/generate-apple-music-config.mjs'));
 
 // 11. Proven-dead removals must leave no executable/config references.
-const removedFiles = ['fast-import-v142.js'];
+const removedFiles = [
+  'fast-import-v142.js',
+  'controls-failsafe-v138.js',
+  'controls-failsafe-v139.js',
+  'boot-v140.js',
+  'tests/hard-controls-v138.mjs',
+  'tests/native-controls-v139.mjs',
+  'tests/core-v140.mjs',
+  '.github/workflows/v138-hard-controls.yml',
+  '.github/workflows/v139-native-controls.yml',
+  '.github/workflows/v140-core-safe.yml',
+];
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
 const scanExtensions = new Set(['.js', '.mjs', '.html', '.css', '.json', '.webmanifest', '.yml', '.yaml']);
