@@ -148,6 +148,22 @@ const removedFiles = [
   '.github/workflows/v135-safari-playback.yml',
   '.github/workflows/v136-runtime-cache.yml',
   '.github/workflows/v137-fresh-recovery.yml',
+  '.github/workflows/ci.yml',
+  '.github/workflows/ampula-branding.yml',
+  '.github/workflows/startup-budget-v132.yml',
+  '.github/workflows/v056.yml',
+  '.github/workflows/v057.yml',
+  '.github/workflows/v060.yml',
+  '.github/workflows/v061.yml',
+  '.github/workflows/v062.yml',
+  '.github/workflows/v063.yml',
+  '.github/workflows/v065.yml',
+  '.github/workflows/v1-activity-ticker.yml',
+  '.github/workflows/v1-qr-share.yml',
+  '.github/workflows/v11-background-playback.yml',
+  '.github/workflows/v12-production-polish.yml',
+  '.github/workflows/v13-core-recovery.yml',
+  'tests/branding-v150.mjs',
 ];
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
