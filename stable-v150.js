@@ -35,11 +35,24 @@
     }
   }
 
+  function loadOriginPlaybackBridge() {
+    if (window.__AMP_MUSIC_ORIGIN_PLAYBACK_151__) return;
+    const existing = document.querySelector('script[data-amp-origin-playback-151]');
+    if (existing) return;
+    const script = document.createElement('script');
+    script.src = './origin-playback-v151.js?v=151';
+    script.async = true;
+    script.dataset.ampOriginPlayback151 = '1';
+    script.addEventListener('error', () => console.warn('[AmpMusic] origin/playback bridge failed to load'), { once: true });
+    document.head.appendChild(script);
+  }
+
   // Register after the FAST shell is interactive. The inherited FAST runtime still
   // performs one delayed stale-worker cleanup, so re-register once after that window.
   if (document.readyState === 'complete') registerPwa();
   else window.addEventListener('load', registerPwa, { once: true });
   setTimeout(registerPwa, 3200);
 
+  loadOriginPlaybackBridge();
   console.info('[AmpMusic] stable 1.5 bridge ready');
 })();
