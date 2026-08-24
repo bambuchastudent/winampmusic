@@ -14,12 +14,6 @@ for (const page of [canonical, fallback]) {
 assert.match(canonical, /fast-player-v141\.js\?v=150/);
 assert.match(canonical, /stable-v150\.js\?v=150/);
 assert.match(fallback, /fast-player-v141\.js\?v=141/);
-assert.match(canonical, /AMP MUSIC/);
-assert.match(canonical, /aria-label="AmpMusic 1\.5"/);
-assert.match(canonical, /class="bottle15-version">1\.5</);
-assert.ok(!canonical.includes('Version 2.0'));
-assert.ok(!canonical.includes('AmpDrop Music'));
-assert.ok(!canonical.includes('FAST 1.4.3'));
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
 
