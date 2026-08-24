@@ -124,64 +124,20 @@ assert.match(pagesWorkflow, /scripts\/generate-apple-music-config\.mjs apple-mus
 assert.match(pagesWorkflow, /path:\s*\./);
 assert.ok(exists('scripts/generate-apple-music-config.mjs'));
 
-// 11. Proven-dead removals must leave no executable/config references.
-const removedFiles = [
-  'fast-import-v142.js',
-  'controls-failsafe-v138.js',
-  'controls-failsafe-v139.js',
-  'boot-v140.js',
-  'tests/hard-controls-v138.mjs',
-  'tests/native-controls-v139.mjs',
-  'tests/core-v140.mjs',
-  '.github/workflows/v138-hard-controls.yml',
-  '.github/workflows/v139-native-controls.yml',
-  '.github/workflows/v140-core-safe.yml',
-  'boot-v134.js',
-  'sw-v135.js',
-  'recover-fresh-137.html',
-  'recover-fresh-138.html',
-  'recover-fresh-139.html',
-  'tests/boot-smoke-v134.mjs',
-  'tests/safari-playback-v135.mjs',
-  'tests/runtime-cache-v136.mjs',
-  '.github/workflows/v134-zero-blocking-boot.yml',
-  '.github/workflows/v135-safari-playback.yml',
-  '.github/workflows/v136-runtime-cache.yml',
-  '.github/workflows/v137-fresh-recovery.yml',
-  '.github/workflows/ci.yml',
-  '.github/workflows/ampula-branding.yml',
-  '.github/workflows/startup-budget-v132.yml',
-  '.github/workflows/v056.yml',
-  '.github/workflows/v057.yml',
-  '.github/workflows/v060.yml',
-  '.github/workflows/v061.yml',
-  '.github/workflows/v062.yml',
-  '.github/workflows/v063.yml',
-  '.github/workflows/v065.yml',
-  '.github/workflows/v1-activity-ticker.yml',
-  '.github/workflows/v1-qr-share.yml',
-  '.github/workflows/v11-background-playback.yml',
-  '.github/workflows/v12-production-polish.yml',
-  '.github/workflows/v13-core-recovery.yml',
-  'tests/branding-v150.mjs',
-  'app.js',
-  'metadata-refresh.js',
-  'core-interactions-v13.js',
-  'production-polish-v12.js',
-  'background-playback-v11.js',
-  'playback-continuity.js',
-  '.github/workflows/native-interactions-v133.yml',
-  'paste-import.js',
-  'paste-import.css',
-  'verify-paste-import-contract.mjs',
-];
+// 11. Every archived removal is absent and has no surviving executable/config reference.
+const removalLedger = 'tests/repository-removed-files-v1.json';
+const removedFiles = JSON.parse(read(removalLedger));
+assert.ok(Array.isArray(removedFiles) && removedFiles.length > 0, 'Removal ledger must be a non-empty array');
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
 const scanExtensions = new Set(['.js', '.mjs', '.html', '.css', '.json', '.webmanifest', '.yml', '.yaml']);
 const ignoredReferenceRoots = [
   path.join(ROOT, 'openspec', 'changes', 'repository-cleanup-v1'),
 ];
-const ignoredReferenceFiles = new Set([path.resolve(fileURLToPath(import.meta.url))]);
+const ignoredReferenceFiles = new Set([
+  path.resolve(fileURLToPath(import.meta.url)),
+  path.resolve(full(removalLedger)),
+]);
 
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -202,4 +158,4 @@ for (const file of walk(ROOT)) {
   }
 }
 
-console.log(`Repository integrity OK: ${startupScripts.length} startup scripts, ${visited.size} runtime JS nodes checked`);
+console.log(`Repository integrity OK: ${startupScripts.length} startup scripts, ${visited.size} runtime JS nodes checked, ${removedFiles.length} archived removals guarded`);
