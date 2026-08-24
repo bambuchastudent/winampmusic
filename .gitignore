@@ -1,0 +1,13 @@
+# Test runtime, installed on demand with: npm install --no-save jsdom@26
+node_modules/
+package-lock.json
+
+# Local tool and IDE artifacts. These are absent in CI, so scanning them would
+# fail the repository-integrity removed-filename check for developers only.
+.idea/
+.vscode/
+.qodo/
+graphify-out/
+
+# OS noise
+.DS_Store
