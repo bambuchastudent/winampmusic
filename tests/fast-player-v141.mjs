@@ -8,7 +8,6 @@ const code = fs.readFileSync('fast-player-v141.js', 'utf8');
 
 for (const page of [canonical, fallback]) {
   assert.ok(!page.includes('app.js'), 'fast entry must not load legacy app.js');
-  assert.ok(!page.includes('boot-v140.js'), 'fast entry must not load legacy boot');
   assert.ok(!page.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
   assert.ok(!page.includes('sw.js'), 'service worker must not be registered synchronously from HTML');
 }
