@@ -36,9 +36,11 @@ jobs:
             node "$test" || status=1
             echo "::endgroup::"
           done
-          echo "::group::verify-share-nonblocking-v158.mjs"
-          node verify-share-nonblocking-v158.mjs || status=1
-          echo "::endgroup::"
+          for contract in verify-*.mjs; do
+            echo "::group::$contract"
+            node "$contract" || status=1
+            echo "::endgroup::"
+          done
           exit $status
 
   deploy:

@@ -55,6 +55,11 @@ jobs:
       - name: Non-blocking Share and QR contract
         run: node verify-share-nonblocking-v158.mjs
 
+      - name: Branding and logo geometry contracts
+        run: |
+          node verify-logo-fit-v158.mjs
+          node verify-mobile-bottle-fit-v157.mjs
+
       - name: Apple origin is not playability contract
         run: node tests/apple-origin-playback-v151.mjs
 
