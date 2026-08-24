@@ -9,47 +9,21 @@ This repository implements **Ámpulamp**.
 - Ámpulas are transferred as **`.ampula`** files.
 - The repository name `winampmusic` is legacy/internal and must not redefine the user-facing product identity.
 
-Before changing product behavior, UX, data models, import/export, playback resolution, naming, documentation, or architecture, read [`AMPULA_SPEC.md`](./AMPULA_SPEC.md). It is the canonical product specification.
+## Product rules
 
-## Product invariants
-
-Treat the following as constraints unless a task explicitly changes the product specification:
+Keep these rules unless the maintainer explicitly asks to change them:
 
 1. Ámpulamp is a music player for **sharing a moment through music**, not another streaming service.
 2. A `.ampula` preserves the intended moment and ordered track selection so it can be opened now or later.
-3. A provider URL, service-specific ID, or catalog match is **provenance/recovery information**, not the canonical identity of the musical moment.
-4. Creation source and playback source may differ. The recipient should be able to resolve recordings using sources available to them.
-5. Do not make a centralized backend, hosted music catalog, mandatory social network, or a single streaming provider a prerequisite for the Ámpula concept.
-6. Never describe a provider URL merely being present as proof that a track is playable. Distinguish historical/source metadata from a source actually usable for playback.
+3. Provider URLs and service-specific IDs are source/recovery information, not the product itself.
+4. The source used to create an Ámpula may differ from the source used to play it later.
+5. Do not make a centralized backend, hosted music catalog, mandatory social network, or single streaming provider a requirement for the core concept.
+6. Do not treat a stored provider URL as proof that a track is playable.
 
-## Source of truth
+## Development guidance
 
-Use this order when repository documents disagree:
-
-1. Explicit task/request from the maintainer.
-2. `AMPULA_SPEC.md` for product identity and product boundaries.
-3. Accepted ADRs under `docs/adr/` for durable technical/product decisions.
-4. `AGENTS.md` for agent workflow and repository invariants.
-5. `README.md` for public overview and current implementation notes.
-
-If a change intentionally alters a product invariant, update `AMPULA_SPEC.md` and add or supersede the relevant ADR in the same pull request instead of silently changing the meaning in code.
-
-## Development behavior
-
-- Preserve existing runtime behavior unless the task explicitly asks for a behavioral change.
-- Prefer provider-independent domain concepts and isolate provider-specific adapters.
-- Keep `.ampula` versionable and portable; avoid making its meaning depend on local browser state or one provider's current URL format.
-- When adding source metadata, keep provenance and playability/resolution state conceptually separate.
-- Update tests and documentation when a change modifies a documented contract.
-
-## Pull requests
-
-PR descriptions should state whether the change affects any of these contracts:
-
-- product identity/naming;
-- `.ampula` format or semantics;
-- track identity/recovery;
-- provider adapters/playability;
-- persistence/portability.
-
-If none are affected, say so explicitly.
+- Prefer provider-independent domain concepts.
+- Keep provider-specific code behind import/resolution/playback adapters.
+- Keep `.ampula` portable and versionable.
+- Preserve existing runtime behavior unless the task explicitly asks to change it.
+- Update `README.md` when user-facing product behavior or terminology changes.
