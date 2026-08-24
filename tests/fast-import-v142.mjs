@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 const code = fs.readFileSync('fast-import-v150.js', 'utf8');
 const index = fs.readFileSync('index.html', 'utf8');
 assert.match(index, /id="fastImportForm"/);
-assert.match(index, /YouTube or Apple Music track\/album\/playlist/);
+assert.match(index, /Search or paste a track, album, or playlist/);
 assert.match(index, /fast-import-v150\.js\?v=150/);
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
