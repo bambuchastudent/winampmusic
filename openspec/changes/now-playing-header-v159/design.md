@@ -2,15 +2,18 @@
 
 ## Ownership
 
-- `clean-playback-v150.js` owns direct-source resolution and transition from the currently playing provider to a resolved direct source.
+- `import-playback-guard-v159.js` owns the rule that background imports cannot steal active playback.
+- Existing provider adapters continue to own explicit playback/source resolution.
 - `index.html` owns product header/footer composition.
 - `header-visualizer-v159.js` owns only decorative playback-state visualization and must not own playback events.
 
-## Playback transition
+## Import/playback transition
 
-Direct playback becomes transactional. Resolve the requested track's exact video/source payload and audio stream first. Only after a playable stream exists may the adapter pause the currently playing legacy source, update Now Playing, and start the replacement audio.
+The import adapter captures whether playback is already active before delegating to Apple track/album/playlist import APIs. If something is playing, the import is delegated with `play: false`: metadata is saved, but the importer does not invoke a provider switch and therefore cannot replace Now Playing.
 
-If resolution fails, do not call `updateNow`, do not change the saved current index, and do not pause the existing legacy player. The import/provenance UI may still report that the newly added Apple item has no playable source.
+If nothing is playing, the caller's normal `play` intent is preserved, so `Add & Play` still behaves as before on an idle player.
+
+The guard also re-patches lazily loaded Apple import APIs after their script `load` event so it remains effective with the existing lazy provider architecture.
 
 ## Header layout
 
@@ -23,5 +26,5 @@ The spectrum is a visual playback indicator with several independent bands. Beca
 ## Failure modes
 
 - If visualization JS fails, playback and controls remain unaffected.
-- If direct source resolution fails, existing playback remains untouched.
+- If an import cannot resolve a playable source while another track is active, the current playback remains untouched and the imported item stays in the library with provenance.
 - If the user has no active playback, bars remain in their idle state.
