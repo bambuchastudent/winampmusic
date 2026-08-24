@@ -75,7 +75,7 @@
     panel.innerHTML = `
       <div class="winamp-playlist-qr-title"><strong>Point the other phone here</strong><span>SCAN PLAYLIST</span></div>
       <div id="winampPlaylistQrCode" class="winamp-playlist-qr-code" aria-label="Playlist QR code"></div>
-      <p class="winamp-playlist-qr-note">Scan → Winamp Music opens → playlist is received. The same link below can also be sent in chat.</p>`;
+      <p class="winamp-playlist-qr-note">Scan → ÁmpulaMP opens → playlist is received. The same link below can also be sent in chat.</p>`;
 
     const note = dialog.querySelector('#winampShareNote');
     const input = dialog.querySelector('#winampShareUrl');
@@ -117,7 +117,7 @@
         STATUS.textContent = 'PLAYLIST QR READY';
       }
     } catch (error) {
-      console.warn('[Winamp Music QR share]', error);
+      console.warn('[ÁmpulaMP QR share]', error);
       host.replaceChildren();
       host.removeAttribute('style');
       const message = document.createElement('div');
