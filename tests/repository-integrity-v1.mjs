@@ -164,6 +164,13 @@ const removedFiles = [
   '.github/workflows/v12-production-polish.yml',
   '.github/workflows/v13-core-recovery.yml',
   'tests/branding-v150.mjs',
+  'app.js',
+  'metadata-refresh.js',
+  'core-interactions-v13.js',
+  'production-polish-v12.js',
+  'background-playback-v11.js',
+  'playback-continuity.js',
+  '.github/workflows/native-interactions-v133.yml',
 ];
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
