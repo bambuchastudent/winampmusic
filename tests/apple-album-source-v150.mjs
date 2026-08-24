@@ -76,7 +76,7 @@ assert.deepEqual(Array.from(imported, (track) => track.title), ['Unexpected Song
 assert.deepEqual(Array.from(imported, (track) => track.artist), ['Last October', 'Last October']);
 assert.ok(Array.from(imported).every((track) => track.sourceUrl === exactUrl));
 assert.ok(Array.from(imported).every((track) => Array.from(track.badges).includes('Album') && Array.from(track.badges).includes('Strict match')));
-assert.equal(directPlayed, 0, 'album starts through direct playback, not legacy YouTube iframe');
+assert.equal(directPlayed, 0, 'album starts through the preferred in-player playback entry point');
 assert.equal(input.value, '');
 assert.ok(statuses.some((text) => /2 tracks · 2 matched · 2 new/.test(text)));
 
@@ -94,7 +94,10 @@ assert.equal(legacyCalls, 0, 'Apple direct failure must not fall through to YouT
 assert.match(window.document.getElementById('status').textContent, /NO AD FALLBACK/);
 
 const index = fs.readFileSync('index.html', 'utf8');
-assert.match(index, /apple-no-ad-fallback-v150\.js\?v=150/);
+assert.doesNotMatch(index, /apple-no-ad-fallback-v150\.js/);
+assert.doesNotMatch(index, /apple-url-route-v151\.js/);
+assert.match(index, /apple-musickit-v150\.js\?v=150/);
 assert.match(index, /apple-album-route-v150\.js\?v=150/);
+assert.match(index, /track\/album\/playlist/);
 
-console.log('Apple album source routing + no-ad fallback: OK');
+console.log('Apple album source routing + in-player no-navigation fallback: OK');

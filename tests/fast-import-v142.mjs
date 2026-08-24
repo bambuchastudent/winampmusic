@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 const code = fs.readFileSync('fast-import-v150.js', 'utf8');
 const index = fs.readFileSync('index.html', 'utf8');
 assert.match(index, /id="fastImportForm"/);
-assert.match(index, /YouTube or Apple Music track\/playlist/);
+assert.match(index, /YouTube or Apple Music track\/album\/playlist/);
 assert.match(index, /fast-import-v150\.js\?v=150/);
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
@@ -106,5 +106,5 @@ saved = JSON.parse(window.localStorage.getItem('winampmusic.library.v1'));
 assert.equal(saved.length, 6);
 assert.match(window.document.getElementById('fastImportHint').textContent, /YouTube or Apple Music track\/playlist link/);
 
-console.log('AmpMusic 1.5 fast track/playlist import routing test passed');
+console.log('AmpMusic 1.5 fast track/album/playlist import routing test passed');
 process.exit(0);
