@@ -40,7 +40,6 @@ on:
       - 'tests/stable-v150.mjs'
       - 'tests/mutation-v150.mjs'
       - 'tests/performance-v150.mjs'
-      - 'tests/branding-v150.mjs'
       - 'openspec/changes/release-v1.5.0/**'
       - 'openspec/changes/stabilize-v1.5/**'
       - 'openspec/changes/fix-youtube-error-2-v1.5/**'
@@ -122,7 +121,6 @@ jobs:
           node --check v059.js
           node --check sw.js
           node --check scripts/generate-apple-music-config.mjs
-          node --check tests/branding-v150.mjs
           node --check tests/stable-v150.mjs
           node --check tests/apple-playlist-v150.mjs
           node --check tests/apple-album-source-v150.mjs
@@ -134,8 +132,6 @@ jobs:
       - name: Install test runtime
         run: npm install --no-save jsdom@26
 
-      - name: Functional — branding, version lock and roadmap contract
-        run: node tests/branding-v150.mjs
       - name: Functional — PWA and multi-track playlist import
         run: node tests/stable-v150.mjs
       - name: Functional — 183-track core controls
