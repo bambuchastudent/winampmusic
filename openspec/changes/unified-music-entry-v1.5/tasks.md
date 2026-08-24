@@ -8,4 +8,7 @@
 - [x] Add the library search toggle.
 - [x] Add automated static contract coverage.
 - [x] Update README user flow.
+- [x] Remove the provider implementation note from the visible player chrome.
+- [x] Stabilize the bottle logo so it does not shift or animate during use.
+- [x] Rename the playlist action from Gift / QR to Share / QR.
 - [ ] Verify CI and PR checks.
