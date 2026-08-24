@@ -22,35 +22,6 @@
     return badges.includes('Apple Music') || Boolean(track?.appleTrackId) || /music\.apple\.com/i.test(clean(track?.sourceUrl));
   }
 
-  function appleUrl(track) {
-    for (const raw of [track?.appleTrackUrl, track?.sourceUrl]) {
-      const value = clean(raw);
-      if (!value) continue;
-      try {
-        const url = new URL(value);
-        if (url.hostname.replace(/^www\./, '').toLowerCase() === 'music.apple.com') return url.href;
-      } catch {}
-    }
-    return '';
-  }
-
-  function openAppleUrl(url) {
-    if (!url) return false;
-    try {
-      const popup = window.open(url, '_blank');
-      if (popup) {
-        try { popup.opener = null; } catch {}
-        return true;
-      }
-    } catch {}
-    try {
-      window.location.assign(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   window.playIndex = (index) => {
     const library = readLibrary();
     if (library.length) {
@@ -59,34 +30,14 @@
       if (isApple(track)) {
         const status = document.getElementById('status');
         const play = document.getElementById('playButton');
-        const title = document.getElementById('nowTitle');
-        const artist = document.getElementById('nowArtist');
-        if (title) title.textContent = clean(track?.title) || 'Apple Music';
-        if (artist) artist.textContent = clean(track?.artist) || 'Apple Music';
+        if (status) status.textContent = 'APPLE AUDIO UNAVAILABLE · NO AD FALLBACK';
         if (play) play.textContent = '▶';
-
-        if (window.__AMP_MUSIC_APPLE_SKIP_NEXT_PLAY__) {
-          window.__AMP_MUSIC_APPLE_SKIP_NEXT_PLAY__ = false;
-          if (status) status.textContent = 'OPENED IN APPLE MUSIC';
-          return true;
-        }
-
-        const url = appleUrl(track);
-        if (url) {
-          if (status) status.textContent = 'OPENING APPLE MUSIC…';
-          const opened = openAppleUrl(url);
-          if (!opened && status) status.textContent = 'APPLE MUSIC LINK UNAVAILABLE';
-          console.info('[AmpMusic] opening Apple source URL', url);
-          return opened;
-        }
-
-        if (status) status.textContent = 'APPLE AUDIO UNAVAILABLE · NO SOURCE URL';
-        console.warn('[AmpMusic] Apple track has no usable source URL', track?.title || track?.id);
+        console.warn('[AmpMusic] blocked external/YouTube iframe fallback for Apple track', track?.title || track?.id);
         return false;
       }
     }
     return legacyPlayIndex(index);
   };
 
-  window.ampMusicAppleNoAd150 = { isApple, appleUrl, openAppleUrl };
+  window.ampMusicAppleNoAd150 = { isApple };
 })();
