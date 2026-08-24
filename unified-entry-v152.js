@@ -86,7 +86,7 @@
 
   function prepareSearchUi() {
     const panel = $('songSearchBar');
-    const results = $('songSearchResults');
+    const results = $('songSearchResults') || $('unifiedSearchResults');
     const status = $('songSearchStatus');
     if (!panel || !results) return false;
 
@@ -150,7 +150,7 @@
     toggle.id = 'librarySearchToggle';
     toggle.type = 'button';
     toggle.className = 'library-search-toggle';
-    toggle.textContent = '⌕';
+    toggle.textContent = '🔍';
     toggle.title = 'Search your library';
     toggle.setAttribute('aria-label', 'Search your library');
     toggle.setAttribute('aria-expanded', 'false');
