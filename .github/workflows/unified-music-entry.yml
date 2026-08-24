@@ -18,16 +18,9 @@ jobs:
           node-version: 22
       - name: Check adapter syntax
         run: node --check unified-entry-v152.js
-      - name: Check unified entry contract
+      - name: Run behavioral contract
+        run: node tests/unified-music-entry.mjs
+      - name: Check PWA wiring
         run: |
           grep -q 'unified-entry-v152.js?v=152' index.html
-          grep -q 'Song, artist, or YouTube / Apple Music link' index.html
-          grep -q 'id="search".*hidden' index.html
-          grep -q 'event.stopImmediatePropagation()' unified-entry-v152.js
-          grep -q "isUrlLike(value)" unified-entry-v152.js
-          grep -q "script.src = './v059.js?v=152'" unified-entry-v152.js
-          grep -q "results.id = 'unifiedSearchResults'" unified-entry-v152.js
-          grep -q "toggle.textContent = '🔍'" unified-entry-v152.js
-          grep -q "libraryFilter.dispatchEvent(new Event('input'" unified-entry-v152.js
           grep -q "'./unified-entry-v152.js'" sw.js
-          ! grep -q '<section[^>]*song-search-bar' index.html
