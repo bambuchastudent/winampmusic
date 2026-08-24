@@ -57,8 +57,8 @@
   shareButton.id = 'sharePlaylistButton';
   shareButton.type = 'button';
   shareButton.className = 'fast-playlist-action share';
-  shareButton.textContent = 'Gift / QR';
-  shareButton.setAttribute('aria-label', 'Gift playlist by link or QR code');
+  shareButton.textContent = 'Share / QR';
+  shareButton.setAttribute('aria-label', 'Share playlist by link or QR code');
 
   const clearButton = document.createElement('button');
   clearButton.id = 'clearPlaylistButton';
@@ -75,7 +75,7 @@
     if (shareLoading) return;
     shareButton.disabled = true;
     shareButton.textContent = 'Preparing…';
-    setStatus('PREPARING PLAYLIST GIFT…');
+    setStatus('PREPARING PLAYLIST SHARE…');
 
     shareLoading = (async () => {
       await loadScript('./compact-share.js?v=143', 'compact-share');
@@ -92,7 +92,7 @@
       console.warn('[Winamp Music fast actions] share failed', error);
       const installed = document.getElementById('sharePlaylistButton') || shareButton;
       installed.disabled = false;
-      installed.textContent = 'Gift / QR';
+      installed.textContent = 'Share / QR';
       setStatus('SHARE UNAVAILABLE · TRY AGAIN');
     } finally {
       shareLoading = null;
