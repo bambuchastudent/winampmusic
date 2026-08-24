@@ -13,4 +13,8 @@
 - [x] Rename the playlist action from Gift / QR to Share / QR.
 - [x] Make ÁMPULA MP clearly readable on the bottle label.
 - [x] Move the version to a separate bottom line on the label.
+- [x] Replace the L in AMPU(L)A with the lightning mark on the bottle label.
+- [x] Shorten the bottle version label to v1.5.
+- [x] Simplify the visible header name to Ampula MP.
+- [x] Remove the byline and keep GitHub access as a compact external-link button.
 - [ ] Verify CI and PR checks.
