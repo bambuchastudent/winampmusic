@@ -58,14 +58,14 @@
       </div>
     </header>
 
-    <section class="fast-import" aria-label="Music import">
+    <section class="fast-import" aria-label="Music search and import">
       <div class="fast-import-head">
-        <div><div class="eyebrow">MUSIC IMPORT</div><strong>Paste YouTube or Apple Music track/album/playlist</strong></div>
-        <span id="fastImportHint" class="fast-import-hint">Fast core first · providers load on demand</span>
+        <div><div class="eyebrow">MUSIC</div><strong>Search or paste a track, album, or playlist</strong></div>
+        <span id="fastImportHint" class="fast-import-hint">Type a song or paste a YouTube / Apple Music link</span>
       </div>
       <form id="fastImportForm" class="fast-import-form">
-        <input id="fastImportInput" type="url" inputmode="url" autocomplete="off" placeholder="YouTube or Apple Music track/album/playlist…" aria-label="Music URL" />
-        <button id="fastImportButton" type="submit">Add & Play</button>
+        <input id="fastImportInput" type="search" inputmode="search" autocomplete="off" placeholder="Song, artist, or YouTube / Apple Music link…" aria-label="Search music or paste a YouTube or Apple Music link" />
+        <button id="fastImportButton" type="submit">Search</button>
       </form>
     </section>
 
@@ -101,11 +101,11 @@
       <div class="library-header">
         <div><div class="eyebrow">PLAYLIST</div><h2>Your library <span id="trackCount">0</span></h2></div>
       </div>
-      <input id="search" class="search" type="search" placeholder="Filter title or artist…" autocomplete="off" aria-label="Filter library" />
+      <input id="search" class="search" type="search" placeholder="Filter title or artist…" autocomplete="off" aria-label="Filter library" hidden />
       <ol id="trackList" class="track-list"></ol>
       <div id="emptyState" class="empty-state" hidden>
         <strong>No saved music.</strong>
-        <span>Paste a supported music link above to begin.</span>
+        <span>Search for music or paste a supported link above to begin.</span>
       </div>
     </section>
 
