@@ -15,6 +15,7 @@ const CORE = [
   './stable-v150.js',
   './fast-actions-v143.js',
   './fast-background-v150.js',
+  './unified-entry-v152.js',
   './compact-share.js',
   './qr-share-v1.js',
 ];
