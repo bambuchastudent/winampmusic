@@ -16,14 +16,22 @@ const dom = new JSDOM(`<!doctype html><body>
 
 const { window } = dom;
 window.console = console;
-window.localStorage.setItem('winampmusic.library.v1', JSON.stringify([{
-  id: 'abcdefghijk',
-  title: 'Amulet',
-  artist: 'Ext',
-  sourceUrl: appleUrl,
-  appleTrackId: '1445697457',
-  badges: ['Apple Music', 'Strict match'],
-}]));
+window.localStorage.setItem('winampmusic.library.v1', JSON.stringify([
+  {
+    id: 'abcdefghijk',
+    title: 'Amulet',
+    artist: 'Ext',
+    sourceUrl: appleUrl,
+    appleTrackId: '1445697457',
+    badges: ['Apple Music', 'Strict match'],
+  },
+  {
+    id: 'zyxwvutsrqp',
+    title: 'Plain YouTube track',
+    artist: 'YouTube Artist',
+    badges: ['YouTube'],
+  },
+]));
 window.localStorage.setItem('winampmusic.fast.current.v1', '0');
 
 window.eval(fs.readFileSync('origin-playback-v151.js', 'utf8'));
@@ -66,6 +74,13 @@ assert.equal(
   window.document.getElementById('fastImportHint').textContent,
   'Apple Music (TR) origin preserved · no playable source in AMP',
 );
+
+window.localStorage.setItem('winampmusic.fast.current.v1', '1');
+window.document.getElementById('nowTitle').textContent = 'Plain YouTube track';
+window.document.getElementById('status').textContent = 'PLAYING';
+await tick();
+assert.equal(source.hidden, true, 'stale Apple provenance must disappear on an ordinary YouTube track');
+assert.equal(source.textContent, '');
 
 const stable = fs.readFileSync('stable-v150.js', 'utf8');
 assert.match(stable, /origin-playback-v151\.js\?v=151/);
