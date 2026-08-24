@@ -75,6 +75,7 @@ function makeDom() {
   assert.equal(directCalls, 0, 'YouTube/direct fallback is not used when MusicKit succeeds');
   assert.equal(baseCalls, 0, 'legacy YouTube iframe player is not used for successful Apple playback');
   assert.equal(window.document.getElementById('status').textContent, 'APPLE MUSIC · PLAYING');
+  dom.window.close();
 }
 
 {
@@ -96,6 +97,7 @@ function makeDom() {
   assert.equal(directCalls, 1, 'without MusicKit credentials Apple playback stays in-player and uses direct YouTube fallback');
   assert.equal(baseCalls, 0, 'fallback does not invoke the YouTube iframe path');
   assert.equal(window.document.getElementById('status').textContent, 'YOUTUBE DIRECT · PLAYING');
+  dom.window.close();
 }
 
 {
@@ -131,6 +133,7 @@ function makeDom() {
   assert.equal(strictSearchCalls, 0, 'Apple catalog track imports before any YouTube matching');
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(playedIndex, 0);
+  dom.window.close();
 }
 
 assert.doesNotMatch(playerSource, /window\.open\s*\(/);
@@ -177,3 +180,4 @@ assert.match(pagesSource, /generate-apple-music-config\.mjs/);
 }
 
 console.log('AmpMusic 1.5 Apple MusicKit-first in-player playback: OK');
+process.exit(0);
