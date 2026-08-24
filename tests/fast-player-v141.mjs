@@ -7,7 +7,7 @@ const fallback = fs.readFileSync('fast-141.html', 'utf8');
 const code = fs.readFileSync('fast-player-v141.js', 'utf8');
 
 for (const page of [canonical, fallback]) {
-  assert.ok(!page.includes('app.js'), 'fast entry must not load legacy app.js');
+  assert.ok(!page.includes('window.__WINAMP_MUSIC_CORE_INTERACTIONS_V13__'), 'fast entry must not boot a legacy interaction owner');
   assert.ok(!page.includes('controls-failsafe'), 'fast entry must not load interaction failsafes');
   assert.ok(!page.includes('sw.js'), 'service worker must not be registered synchronously from HTML');
 }
