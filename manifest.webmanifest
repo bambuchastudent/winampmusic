@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "AmpMusic",
-  "short_name": "AmpMusic",
-  "description": "AmpMusic — a fast desktop and mobile player for your imported music links and playlists.",
+  "name": "ÁmpulaMP",
+  "short_name": "ÁmpulaMP",
+  "description": "ÁmpulaMP — the Ámpula player for creating, opening and playing portable musical moments.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
