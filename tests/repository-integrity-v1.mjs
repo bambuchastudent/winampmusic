@@ -100,8 +100,11 @@ assert.match(fastActions, /loadScript\('\.\/compact-share\.js\?v=158'/);
 assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*compact-share\.js/);
 assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*qr-share-v1\.js/);
 const compactShare = read('compact-share.js');
-assert.match(compactShare, /searchParams\.get\('s'\)/);
-assert.match(compactShare, /searchParams\.get\('p'\)/);
+assert.match(compactShare, /const REMOTE_PARAM = 's'/);
+assert.match(compactShare, /const FALLBACK_PARAM = 'p'/);
+assert.match(compactShare, /function loadRemotePlaylist/);
+assert.match(compactShare, /function applyBundle/);
+assert.match(compactShare, /parseCompactIds/);
 assert.match(compactShare, /window\.importTracks/);
 
 // 9. Compatibility storage identifiers remain represented by current runtime.
