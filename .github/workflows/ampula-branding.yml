@@ -1,0 +1,25 @@
+name: Ámpula branding contract
+
+on:
+  pull_request:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  branding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check renamed JavaScript syntax
+        run: |
+          node --check compact-share.js
+          node --check fast-background-v150.js
+          node --check qr-share-v1.js
+      - name: Check Ámpula / ÁmpulaMP contract
+        run: node tests/branding-v150.mjs
