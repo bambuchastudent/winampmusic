@@ -66,5 +66,6 @@
   "playlist-metadata.js",
   "winamp-features.css",
   "winamp-features.js",
-  "youtube-context.js"
+  "youtube-context.js",
+  "shared-playlist-onboarding-v1.js"
 ]
