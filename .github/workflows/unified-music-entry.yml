@@ -1,0 +1,26 @@
+name: Unified music entry
+
+on:
+  pull_request:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check adapter syntax
+        run: node --check unified-entry-v152.js
+      - name: Run behavioral contract
+        run: node tests/unified-music-entry.mjs
+      - name: Check PWA wiring
+        run: |
+          grep -q 'unified-entry-v152.js?v=152' index.html
+          grep -q "'./unified-entry-v152.js'" sw.js

@@ -23,19 +23,20 @@ The current implementation is a mobile-first web player focused primarily on mus
 ## MVP flow
 
 1. Open ÁmpulaMP.
-2. Paste a supported YouTube or Apple Music track, album, or playlist link.
-3. ÁmpulaMP imports the available track metadata into the local library.
+2. Use the single music field to search by artist/track name or paste a supported YouTube or Apple Music track, album, or playlist link.
+3. ÁmpulaMP searches or imports the available track metadata into the local library.
 4. Pick a track and play it through an available playback source.
-5. Share the current selection by link/QR today; the portable product format is `.ampula`.
+5. Use the small search control in `Your library` only when you want to filter music already saved locally.
+6. Share the current selection by link/QR today; the portable product format is `.ampula`.
 
 The player is designed so provider integrations remain playback/import/resolution sources rather than the identity of the musical moment.
 
 ## What is included
 
 - mobile-first player UI;
-- YouTube and Apple Music link import paths;
-- local persistent library;
-- search, play/pause, previous, next, shuffle, seek, and volume;
+- one primary music field for text search and YouTube / Apple Music link import;
+- local persistent library with an optional collapsible filter;
+- play/pause, previous, next, shuffle, seek, and volume;
 - provider-specific playback adapters;
 - Media Session integration and playback snapshots where supported;
 - playlist sharing by link / QR;
