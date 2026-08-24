@@ -53,5 +53,8 @@
   "share-current-v062.js",
   "apple-music-import-v063.js",
   ".github/workflows/v059.yml",
-  ".github/workflows/v064.yml"
+  ".github/workflows/v064.yml",
+  "activity-ticker-v1.js",
+  "support-v1.js",
+  "unified-search-v065.js"
 ]
