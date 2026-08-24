@@ -4,8 +4,8 @@
 - [x] Specify truthful provider-owned audio limitation.
 - [x] Specify persistence and future capability hook.
 - [x] Add targeted automated contract test.
-- [ ] Add equalizer markup and responsive styling.
-- [ ] Add deferred equalizer behavior module.
-- [ ] Update README user-facing feature description.
-- [ ] Wire targeted test into CI.
+- [x] Add equalizer markup and responsive styling.
+- [x] Add deferred equalizer behavior module.
+- [x] Update README user-facing feature description.
+- [x] Wire targeted test into CI.
 - [ ] Verify PR checks.
