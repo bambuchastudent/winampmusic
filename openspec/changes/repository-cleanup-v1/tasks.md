@@ -7,8 +7,8 @@
 - [x] Create `cleanup/repository-dead-files` from the recorded `develop` baseline.
 - [x] Add a repository-integrity behavioral contract for startup scripts, lazy JS targets, PWA/manifest assets, current critical scripts, Now Playing/import preservation, header branding, Share/QR, compatibility keys, and Pages inputs.
 - [x] Add a dedicated GitHub Actions integrity gate using current targeted contracts.
-- [ ] Remove only the first proven-dead file batch.
-- [ ] Verify no runtime/test/workflow/PWA/build reference to removed filenames remains.
-- [ ] Run the dedicated integrity gate and review targeted results.
-- [ ] Report exact removed files and cleanup size in the pull request.
-- [ ] Open a pull request to `develop` without merging it.
+- [x] Remove only the first proven-dead file batch (`fast-import-v142.js`).
+- [x] Verify no runtime/test/workflow/PWA/build reference to the removed filename remains.
+- [x] Run the dedicated integrity gate: syntax, repository graph, Now Playing/header, unified entry, Share/QR, Apple provenance, and current import routing all pass.
+- [x] Report the exact removed file and cleanup size in pull request #73.
+- [x] Open draft pull request #73 to `develop` without merging it.
