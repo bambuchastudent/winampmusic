@@ -171,6 +171,9 @@ const removedFiles = [
   'background-playback-v11.js',
   'playback-continuity.js',
   '.github/workflows/native-interactions-v133.yml',
+  'paste-import.js',
+  'paste-import.css',
+  'verify-paste-import-contract.mjs',
 ];
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
