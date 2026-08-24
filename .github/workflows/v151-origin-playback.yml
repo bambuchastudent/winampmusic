@@ -1,0 +1,42 @@
+name: AmpMusic 1.5.1 origin/playback gate
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'origin-playback-v151.js'
+      - 'stable-v150.js'
+      - 'tests/apple-origin-playback-v151.mjs'
+      - 'openspec/changes/apple-origin-vs-playback-v1.5/**'
+      - '.github/workflows/v151-origin-playback.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: OpenSpec contract
+        run: |
+          test -s openspec/changes/apple-origin-vs-playback-v1.5/proposal.md
+          test -s openspec/changes/apple-origin-vs-playback-v1.5/design.md
+          test -s openspec/changes/apple-origin-vs-playback-v1.5/tasks.md
+          test -s openspec/changes/apple-origin-vs-playback-v1.5/specs/apple-origin-playback/spec.md
+
+      - name: Syntax check
+        run: |
+          node --check origin-playback-v151.js
+          node --check stable-v150.js
+          node --check tests/apple-origin-playback-v151.mjs
+
+      - name: Install test runtime
+        run: npm install --no-save jsdom@26
+
+      - name: Functional — Apple origin is not playback
+        run: node tests/apple-origin-playback-v151.mjs
