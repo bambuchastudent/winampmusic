@@ -18,25 +18,29 @@ const visualizer = read('header-visualizer-v159.js');
 // 1. Every local startup script referenced by index.html must exist.
 const startupScripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/g)]
   .map((match) => match[1])
-  .filter((src) => src.startsWith('./'))
+  .filter((src) => !/^(?:[a-z]+:)?\/\//i.test(src))
   .map(rel);
 assert.ok(startupScripts.length > 0, 'index.html must expose local startup scripts');
 for (const script of startupScripts) assert.ok(exists(script), `Missing index script: ${script}`);
 
-// 2. Recursively follow quoted local .js targets from the current runtime graph.
-// This catches script.src strings, lazy module strings, and service-worker registration targets.
+// 2. Recursively follow quoted local JS/CSS targets from the current runtime graph.
+// This catches script.src, import(), lazy module strings, CSS link strings, and service-worker registration
+// whether the path is written as './module.js' or bare 'module.js'.
 const queue = [...new Set([...startupScripts, 'sw.js'])];
 const visited = new Set();
+const runtimeAssets = new Set();
 while (queue.length) {
   const file = queue.shift();
   if (visited.has(file)) continue;
   visited.add(file);
   assert.ok(exists(file), `Missing runtime graph file: ${file}`);
   const source = read(file);
-  for (const match of source.matchAll(/["'`]((?:\.\/)[^"'`?#]+\.js)(?:\?[^"'`]*)?["'`]/g)) {
+  for (const match of source.matchAll(/["'`]((?![a-z]+:|\/\/)(?:\.\/)?[A-Za-z0-9_./-]+\.(?:js|css))(?:\?[^"'`]*)?["'`]/gi)) {
     const target = rel(match[1]);
-    assert.ok(exists(target), `Missing lazy/runtime JS target ${target} referenced by ${file}`);
-    if (!visited.has(target)) queue.push(target);
+    if (!target || target.startsWith('../')) continue;
+    runtimeAssets.add(target);
+    assert.ok(exists(target), `Missing lazy/runtime asset ${target} referenced by ${file}`);
+    if (target.endsWith('.js') && !visited.has(target)) queue.push(target);
   }
 }
 
@@ -50,7 +54,7 @@ for (const match of sw.matchAll(/["'](\.\/[^"']+)["']/g)) {
 // 4. Manifest assets must exist.
 const manifest = JSON.parse(read('manifest.webmanifest'));
 for (const icon of manifest.icons || []) {
-  if (typeof icon?.src === 'string' && icon.src.startsWith('./')) {
+  if (typeof icon?.src === 'string' && !/^(?:[a-z]+:)?\/\//i.test(icon.src)) {
     assert.ok(exists(icon.src), `Missing manifest icon: ${icon.src}`);
   }
 }
@@ -158,4 +162,4 @@ for (const file of walk(ROOT)) {
   }
 }
 
-console.log(`Repository integrity OK: ${startupScripts.length} startup scripts, ${visited.size} runtime JS nodes checked, ${removedFiles.length} archived removals guarded`);
+console.log(`Repository integrity OK: ${startupScripts.length} startup scripts, ${visited.size} runtime JS nodes, ${runtimeAssets.size} local runtime assets, ${removedFiles.length} archived removals guarded`);
