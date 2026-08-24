@@ -28,7 +28,14 @@
   }
 
   patchAll();
-  new MutationObserver(() => setTimeout(patchAll, 0)).observe(document.head, { childList: true, subtree: true });
+  new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes || []) {
+        if (node?.tagName === 'SCRIPT') node.addEventListener('load', () => setTimeout(patchAll, 0), { once: true });
+      }
+    }
+    setTimeout(patchAll, 0);
+  }).observe(document.head, { childList: true, subtree: true });
   window.addEventListener('load', patchAll, { once: true });
 
   window.ampMusicImportPlaybackGuard159 = { patchAll, isPlaybackActive };
