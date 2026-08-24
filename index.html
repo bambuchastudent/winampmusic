@@ -25,41 +25,43 @@
     .fast-import{margin:0 0 8px;padding:12px;border:1px solid #343a46;border-radius:14px;background:linear-gradient(180deg,#22262d,#15181e)}
     .fast-import-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:8px}.fast-import-head strong{font-size:13px}.fast-import-hint{font-size:10px;color:#8f98a8;text-align:right}
     .fast-import-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.fast-import-form input{min-width:0;min-height:46px;border:1px solid #343a46;border-radius:9px;background:#101217;color:#fff;padding:0 12px;font-size:16px;outline:none}.fast-import-form button{min-width:110px;border:1px solid #c99c22;border-radius:9px;background:linear-gradient(#ffe680,#c9a630);color:#171717;font-weight:900;padding:0 14px}
-    .brand-stack{display:grid;gap:2px}.brand-title-row{display:flex;align-items:center;gap:10px}.brand-github{width:38px;height:38px;display:grid;place-items:center;border:1px solid #3e4552;border-radius:9px;background:#1c2027;color:#d7dce5;text-decoration:none;flex:0 0 auto;transition:border-color .15s ease,background .15s ease}.brand-github:hover{border-color:#697383;background:#252a33}.brand-github svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    .bottle15{width:78px;height:118px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35));pointer-events:none;user-select:none}
+    .brand-lockup{display:flex;align-items:center;gap:11px;min-width:0}.brand-stack{display:grid;gap:2px}.brand-title-row{display:flex;align-items:center;gap:10px}.brand-bottle-link{display:block;width:64px;height:98px;flex:0 0 auto;border-radius:18px;text-decoration:none;outline:none}.brand-bottle-link:focus-visible{box-shadow:0 0 0 2px #f0c94d}.brand-bottle-link .bottle15{transition:transform .15s ease,filter .15s ease}.brand-bottle-link:hover .bottle15{transform:translateY(-1px);filter:drop-shadow(0 12px 22px rgba(0,0,0,.45))}
+    .bottle15{width:64px;height:98px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35));pointer-events:none;user-select:none}
     .bottle15-cap{position:absolute;top:0;width:30px;height:12px;border-radius:6px 6px 3px 3px;background:linear-gradient(#fafafa,#9299a4);border:1px solid #dfe4e8}
     .bottle15-neck{position:absolute;top:10px;width:34px;height:20px;border:1px solid rgba(255,255,255,.4);border-bottom:0;border-radius:8px 8px 2px 2px;background:rgba(176,219,232,.11)}
-    .bottle15-body{position:absolute;top:25px;bottom:0;width:66px;border:1px solid rgba(255,255,255,.4);border-radius:16px 16px 20px 20px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(93,185,206,.2) 35%,rgba(255,255,255,.08) 64%,rgba(0,0,0,.08));box-shadow:inset 10px 0 16px rgba(255,255,255,.06),inset -8px 0 12px rgba(0,0,0,.15);overflow:hidden}
+    .bottle15-body{position:absolute;top:25px;bottom:0;width:56px;border:1px solid rgba(255,255,255,.4);border-radius:16px 16px 20px 20px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(93,185,206,.2) 35%,rgba(255,255,255,.08) 64%,rgba(0,0,0,.08));box-shadow:inset 10px 0 16px rgba(255,255,255,.06),inset -8px 0 12px rgba(0,0,0,.15);overflow:hidden}
     .bottle15-soda{position:absolute;left:5px;right:5px;bottom:5px;height:62px;border-radius:12px 12px 16px 16px;background:linear-gradient(#f3d34d,#d5a61d);opacity:.94}
     .bottle15-bubble{position:absolute;border:1px solid rgba(255,255,255,.8);border-radius:50%;background:rgba(255,255,255,.12)}
-    .bottle15-b1{width:7px;height:7px;left:15px;bottom:20px}.bottle15-b2{width:5px;height:5px;right:13px;bottom:34px}.bottle15-b3{width:9px;height:9px;left:31px;bottom:44px}.bottle15-b4{width:4px;height:4px;right:26px;bottom:16px}
-    .bottle15-label{position:absolute;left:3px;right:3px;top:29px;height:54px;border-radius:7px;background:linear-gradient(135deg,#e32b3e,#8b1325);padding:7px 4px 15px;box-shadow:0 2px 5px rgba(0,0,0,.25);overflow:hidden}
-    .bottle15-name{display:block;width:100%;max-width:none;box-sizing:border-box;font:950 8.5px/.92 system-ui,sans-serif;color:#fff;letter-spacing:0;text-transform:uppercase;text-shadow:0 1px 1px rgba(0,0,0,.2);white-space:nowrap}.bottle15-name .bolt-l{display:inline-block;margin:-2px -2px 0;font-size:11px;line-height:.7;vertical-align:-1px;transform:rotate(7deg);text-shadow:0 1px 2px rgba(0,0,0,.28)}
-    .bottle15-version{position:absolute;left:7px;right:7px;bottom:4px;padding-top:3px;border-top:1px solid rgba(255,255,255,.38);font:850 7px/1 system-ui,sans-serif;color:rgba(255,255,255,.95);letter-spacing:.11em;text-align:center;text-transform:uppercase}
-    @media(max-width:520px){.topbar{align-items:flex-start}.topbar>div:last-child{display:grid;justify-items:end}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}.brand-title-row{gap:7px}.brand-github{width:34px;height:34px}.bottle15{width:72px;height:98px}.bottle15-body{width:64px}.bottle15-label{top:26px;height:50px;padding:6px 4px 14px}.bottle15-name{width:100%;max-width:none;font-size:7.5px;letter-spacing:0}.bottle15-name .bolt-l{font-size:10.5px;margin-left:-2px;margin-right:-2px}.bottle15-version{left:6px;right:6px;font-size:6.5px}}
+    .bottle15-b1{width:7px;height:7px;left:15px;bottom:20px}.bottle15-b2{width:5px;height:5px;right:13px;bottom:34px}.bottle15-b3{width:9px;height:9px;left:27px;bottom:44px}.bottle15-b4{width:4px;height:4px;right:22px;bottom:16px}
+    .bottle15-label{position:absolute;left:3px;right:3px;top:26px;height:50px;border-radius:7px;background:linear-gradient(135deg,#e32b3e,#8b1325);padding:6px 4px 14px;box-shadow:0 2px 5px rgba(0,0,0,.25);overflow:hidden}
+    .bottle15-name{display:block;width:100%;max-width:none;box-sizing:border-box;font:950 7.5px/.92 system-ui,sans-serif;color:#fff;letter-spacing:0;text-transform:uppercase;text-shadow:0 1px 1px rgba(0,0,0,.2);white-space:nowrap}.bottle15-name .bolt-l{display:inline-block;margin:-2px -2px 0;font-size:10.5px;line-height:.7;vertical-align:-1px;transform:rotate(7deg);text-shadow:0 1px 2px rgba(0,0,0,.28)}
+    .bottle15-version{position:absolute;left:6px;right:6px;bottom:4px;padding-top:3px;border-top:1px solid rgba(255,255,255,.38);font:850 6.5px/1 system-ui,sans-serif;color:rgba(255,255,255,.95);letter-spacing:.11em;text-align:center;text-transform:uppercase}
+    .header-spectrum{width:104px;height:70px;flex:0 0 auto;display:flex;align-items:flex-end;justify-content:center;gap:4px;padding:11px 10px;border:1px solid #343a46;border-radius:14px;background:linear-gradient(180deg,#20242b,#12151a);box-shadow:inset 0 1px rgba(255,255,255,.04),0 12px 30px rgba(0,0,0,.24);overflow:hidden}.header-spectrum i{display:block;width:6px;height:18%;min-height:5px;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,#a9f08b 0 54%,#f0c94d 55% 100%);transform-origin:50% 100%;opacity:.62}.header-spectrum[data-playing="1"] i{opacity:1;animation:spectrumBounce .62s ease-in-out infinite alternate}.header-spectrum[data-playing="1"] i:nth-child(2){animation-duration:.42s;animation-delay:-.16s}.header-spectrum[data-playing="1"] i:nth-child(3){animation-duration:.71s;animation-delay:-.31s}.header-spectrum[data-playing="1"] i:nth-child(4){animation-duration:.5s;animation-delay:-.09s}.header-spectrum[data-playing="1"] i:nth-child(5){animation-duration:.78s;animation-delay:-.4s}.header-spectrum[data-playing="1"] i:nth-child(6){animation-duration:.46s;animation-delay:-.22s}.header-spectrum[data-playing="1"] i:nth-child(7){animation-duration:.67s;animation-delay:-.35s}.header-spectrum[data-playing="1"] i:nth-child(8){animation-duration:.54s;animation-delay:-.12s}.header-spectrum[data-playing="1"] i:nth-child(9){animation-duration:.73s;animation-delay:-.28s}@keyframes spectrumBounce{from{transform:scaleY(.35)}to{transform:scaleY(4.5)}}
+    .app-version-link{color:inherit;text-decoration:none}.app-version-link:hover{color:#f0c94d}.app-version-link:focus-visible{outline:1px solid #f0c94d;outline-offset:4px;border-radius:2px}
+    @media(max-width:520px){.topbar{align-items:center}.player{border-radius:14px}.library-panel{border-radius:14px}.app-shell{padding-top:max(10px,env(safe-area-inset-top))}.fast-import-form{grid-template-columns:1fr}.fast-import-form button{min-height:44px}.fast-import-head{display:grid}.fast-import-hint{text-align:left}.brand-lockup{gap:7px}.brand-bottle-link,.bottle15{width:54px;height:84px}.bottle15-body{top:22px;width:48px}.bottle15-cap{width:26px;height:10px}.bottle15-neck{top:9px;width:30px;height:18px}.bottle15-soda{height:52px}.bottle15-label{top:23px;height:44px;padding:5px 3px 13px}.bottle15-name{font-size:6.5px}.bottle15-name .bolt-l{font-size:9px}.bottle15-version{font-size:5.8px}.brand-stack h1{font-size:clamp(24px,8vw,34px)}.header-spectrum{width:66px;height:58px;gap:3px;padding:9px 7px}.header-spectrum i{width:4px}.fast-import-form{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand-stack">
-        <div class="eyebrow">YOUR MUSIC. YOUR MOMENT.</div>
-        <div class="brand-title-row">
-          <h1>Ámpula MP</h1>
-          <a class="brand-github" href="https://github.com/bambuchastudent/winampmusic" target="_blank" rel="noopener noreferrer" aria-label="Open Ámpula MP on GitHub" title="GitHub">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15 15 9"/><path d="M10 6h8v8"/><path d="M18 13v5H6V6h5"/></svg>
-          </a>
+      <div class="brand-lockup">
+        <a class="brand-bottle-link" href="https://github.com/bambuchastudent/winampmusic" target="_blank" rel="noopener noreferrer" aria-label="Open Ámpula MP repository" title="GitHub repository">
+          <div class="bottle15" aria-hidden="true">
+            <div class="bottle15-cap"></div>
+            <div class="bottle15-neck"></div>
+            <div class="bottle15-body">
+              <div class="bottle15-soda"></div>
+              <i class="bottle15-bubble bottle15-b1"></i><i class="bottle15-bubble bottle15-b2"></i><i class="bottle15-bubble bottle15-b3"></i><i class="bottle15-bubble bottle15-b4"></i>
+              <div class="bottle15-label"><span class="bottle15-name">ÁMPU<span class="bolt-l">⚡</span>A<br>MP</span><span class="bottle15-version">v1.5</span></div>
+            </div>
+          </div>
+        </a>
+        <div class="brand-stack">
+          <div class="eyebrow">YOUR MUSIC. YOUR MOMENT.</div>
+          <div class="brand-title-row"><h1>Ámpula MP</h1></div>
         </div>
       </div>
-      <div class="bottle15" aria-label="Ámpula MP v1.5">
-        <div class="bottle15-cap"></div>
-        <div class="bottle15-neck"></div>
-        <div class="bottle15-body">
-          <div class="bottle15-soda"></div>
-          <i class="bottle15-bubble bottle15-b1"></i><i class="bottle15-bubble bottle15-b2"></i><i class="bottle15-bubble bottle15-b3"></i><i class="bottle15-bubble bottle15-b4"></i>
-          <div class="bottle15-label"><span class="bottle15-name">ÁMPU<span class="bolt-l">⚡</span>A<br>MP</span><span class="bottle15-version">v1.5</span></div>
-        </div>
-      </div>
+      <div id="headerSpectrum" class="header-spectrum" data-playing="0" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     </header>
 
     <section class="fast-import" aria-label="Music search and import">
@@ -112,7 +114,7 @@
       </div>
     </section>
 
-    <footer class="app-version">1.5</footer>
+    <footer class="app-version"><a class="app-version-link" href="https://github.com/bambuchastudent/winampmusic" target="_blank" rel="noopener noreferrer" title="Open GitHub repository">1.5</a></footer>
   </main>
 
   <script src="./fast-player-v141.js?v=150"></script>
@@ -122,10 +124,12 @@
   <script src="./apple-music-config.js?v=150" defer></script>
   <script src="./apple-musickit-v150.js?v=150" defer></script>
   <script src="./apple-catalog-first-v150.js?v=150" defer></script>
+  <script src="./import-playback-guard-v159.js?v=159" defer></script>
   <script src="./fast-import-v150.js?v=150" defer></script>
   <script src="./apple-album-route-v150.js?v=150" defer></script>
   <script src="./stable-v150.js?v=150" defer></script>
   <script src="./fast-actions-v143.js?v=150" defer></script>
   <script src="./unified-entry-v152.js?v=152" defer></script>
+  <script src="./header-visualizer-v159.js?v=159" defer></script>
 </body>
 </html>
