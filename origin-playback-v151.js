@@ -62,7 +62,8 @@
 
   function activeOrigin() {
     const track = currentTrack();
-    return { track, origin: appleOrigin(track) || parseAppleUrl(lastAppleUrl) };
+    if (track) return { track, origin: appleOrigin(track) };
+    return { track: null, origin: parseAppleUrl(lastAppleUrl) };
   }
 
   function ensureSourceLine() {
@@ -135,6 +136,7 @@
         line.hidden = true;
         line.textContent = '';
         line.removeAttribute('data-origin-url');
+        line.removeAttribute('title');
         return;
       }
 
