@@ -100,6 +100,10 @@
     }
   }
 
+  function setHint(next) {
+    if (ui.hint && clean(ui.hint.textContent) !== clean(next)) ui.hint.textContent = next;
+  }
+
   function rewriteImportHint(track, origin) {
     if (!ui.hint || !origin) return;
     const text = clean(ui.hint.textContent);
@@ -108,19 +112,19 @@
     const apple = `Apple Music${region}`;
 
     if (/APPLE TRACK NOT MATCHED|NO PLAYABLE SOURCE/.test(status)) {
-      if (/Apple Music/i.test(text) || lastAppleUrl) ui.hint.textContent = `${apple} origin preserved · no playable source in AMP`;
+      if (/Apple Music/i.test(text) || lastAppleUrl) setHint(`${apple} origin preserved · no playable source in AMP`);
       return;
     }
     if (/APPLE MUSIC\s*·\s*PLAYING/.test(status)) {
-      if (/Apple Music/i.test(text) || lastAppleUrl) ui.hint.textContent = `${apple} origin preserved · playing from Apple Music`;
+      if (/Apple Music/i.test(text) || lastAppleUrl) setHint(`${apple} origin preserved · playing from Apple Music`);
       return;
     }
     if (/YOUTUBE DIRECT\s*·\s*PLAYING|PLAYING\s*·\s*DIRECT/.test(status)) {
-      if (/Apple Music/i.test(text) || lastAppleUrl) ui.hint.textContent = `${apple} origin preserved · playing from YouTube`;
+      if (/Apple Music/i.test(text) || lastAppleUrl) setHint(`${apple} origin preserved · playing from YouTube`);
       return;
     }
     if (text === 'Apple Music track added · playing YouTube match') {
-      ui.hint.textContent = `${apple} origin preserved · YouTube match found · playback not verified`;
+      setHint(`${apple} origin preserved · YouTube match found · playback not verified`);
     }
   }
 
@@ -141,8 +145,9 @@
       }
 
       const region = origin.storefront ? ` (${origin.storefront})` : '';
+      const sourceText = `Origin · Apple Music${region} · ${providerState(track, ui.status?.textContent)}`;
       line.hidden = false;
-      line.textContent = `Origin · Apple Music${region} · ${providerState(track, ui.status?.textContent)}`;
+      if (clean(line.textContent) !== clean(sourceText)) line.textContent = sourceText;
       if (origin.url) {
         line.dataset.originUrl = origin.url;
         line.title = `Original Apple Music link: ${origin.url}`;
