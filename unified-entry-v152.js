@@ -23,7 +23,11 @@
     .library-search-toggle{width:38px;min-width:38px;height:38px;border:1px solid #4a515e;border-radius:8px;background:#242a32;color:#fff;font-weight:900;display:grid;place-items:center;touch-action:manipulation}
     .library-search-toggle[aria-expanded="true"]{border-color:#8f7724;color:#f7d95d;background:#2f2a19}
     #search[hidden]{display:none!important}
-    @media(max-width:520px){.library-search-toggle{width:42px;min-width:42px;height:42px}}
+    .fast-note{display:none!important}
+    .bottle15{flex:0 0 78px;align-self:flex-start;animation:none!important;transition:none!important;transform:none!important}
+    .bottle15 *{animation:none!important;transition:none!important}
+    .bottle15-label{transform:none!important}
+    @media(max-width:520px){.library-search-toggle{width:42px;min-width:42px;height:42px}.bottle15{flex-basis:64px}}
   `;
   document.head.appendChild(style);
 
@@ -50,6 +54,14 @@
     if (strong) strong.textContent = 'Search or paste a track, album, or playlist';
     hint.textContent = 'Type a song or paste a YouTube / Apple Music link';
     setMode();
+  }
+
+  function polishUi() {
+    document.querySelector('.fast-note')?.remove();
+    const share = $('sharePlaylistButton');
+    if (!share) return;
+    if (clean(share.textContent) === 'Gift / QR') share.textContent = 'Share / QR';
+    share.setAttribute('aria-label', 'Share playlist by link or QR code');
   }
 
   function waitForSearchUi(timeoutMs = 4500) {
@@ -186,11 +198,15 @@
     });
   }
 
-  const observer = new MutationObserver(() => prepareSearchUi());
+  const observer = new MutationObserver(() => {
+    prepareSearchUi();
+    polishUi();
+  });
   observer.observe(document.body, { childList: true, subtree: true });
 
   rewritePrimaryCopy();
   mountLibraryFilterToggle();
   prepareSearchUi();
-  console.info('[ÁmpulaMP] unified music entry 1.5.2 ready');
+  polishUi();
+  console.info('[ÁmpulaMP] unified music entry 1.5.3 polish ready');
 })();
