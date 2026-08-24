@@ -1,0 +1,62 @@
+name: Repository integrity cleanup
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Syntax check current runtime and integrity test
+        run: |
+          for file in \
+            fast-player-v141.js \
+            clean-playback-v150.js \
+            apple-catalog-first-v150.js \
+            apple-musickit-v150.js \
+            unified-entry-v152.js \
+            import-playback-guard-v159.js \
+            header-visualizer-v159.js \
+            fast-actions-v143.js \
+            fast-import-v150.js \
+            apple-music-import-v064.js \
+            apple-playlist-import-v150.js \
+            apple-album-import-v150.js \
+            fast-background-v150.js \
+            origin-playback-v151.js \
+            v059.js \
+            compact-share.js \
+            qr-share-v1.js \
+            sw.js \
+            tests/repository-integrity-v1.mjs; do
+            node --check "$file"
+          done
+
+      - name: Install targeted test runtime
+        run: npm install --no-save jsdom@26
+
+      - name: Repository dependency integrity
+        run: node tests/repository-integrity-v1.mjs
+
+      - name: Now Playing and header contract
+        run: node tests/now-playing-header-v159.mjs
+
+      - name: Unified music entry contract
+        run: node tests/unified-music-entry.mjs
+
+      - name: Non-blocking Share and QR contract
+        run: node verify-share-nonblocking-v158.mjs
+
+      - name: Apple origin is not playability contract
+        run: node tests/apple-origin-playback-v151.mjs
+
+      - name: Current YouTube and Apple import routing
+        run: node tests/fast-import-v142.mjs

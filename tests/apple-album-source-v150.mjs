@@ -98,6 +98,6 @@ assert.doesNotMatch(index, /apple-no-ad-fallback-v150\.js/);
 assert.doesNotMatch(index, /apple-url-route-v151\.js/);
 assert.match(index, /apple-musickit-v150\.js\?v=150/);
 assert.match(index, /apple-album-route-v150\.js\?v=150/);
-assert.match(index, /track\/album\/playlist/);
+assert.match(index, /Search or paste a track, album, or playlist/);
 
 console.log('Apple album source routing + in-player no-navigation fallback: OK');

@@ -168,6 +168,6 @@ assert.match(indexHtml, /apple-match-strict-v150\.js\?v=150/);
 assert.match(indexHtml, /clean-playback-v150\.js\?v=150/);
 assert.ok(indexHtml.indexOf('apple-match-strict-v150.js?v=150') < indexHtml.indexOf('fast-import-v150.js?v=150'), 'strict matcher must install before lazy Apple import');
 assert.ok(indexHtml.indexOf('clean-playback-v150.js?v=150') < indexHtml.indexOf('fast-import-v150.js?v=150'), 'direct playlist wrapper must install before lazy Apple playlist import');
-assert.match(indexHtml, /<title>AmpMusic 1\.5<\/title>/);
+assert.match(indexHtml, /<title>Ámpula MP 1\.5<\/title>/);
 
 console.log('AmpMusic 1.5 strict real-track playback + Radio: OK');
