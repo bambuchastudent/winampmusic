@@ -18,4 +18,6 @@
 - [x] Simplify the visible header name to Ámpula MP.
 - [x] Remove the byline and keep GitHub access as a compact external-link button.
 - [x] Keep the bottle label fully inside the bottle in narrow/mobile browser previews.
+- [x] Make Share / QR open immediately without waiting on the remote short-link service.
+- [x] Add a timeout for lazy-loaded share/QR modules and always restore the Share / QR button state.
 - [ ] Verify CI and PR checks.
