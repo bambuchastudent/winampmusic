@@ -24,6 +24,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Generate Apple Music MusicKit config
+        env:
+          APPLE_MUSIC_TEAM_ID: ${{ secrets.APPLE_MUSIC_TEAM_ID }}
+          APPLE_MUSIC_KEY_ID: ${{ secrets.APPLE_MUSIC_KEY_ID }}
+          APPLE_MUSIC_PRIVATE_KEY: ${{ secrets.APPLE_MUSIC_PRIVATE_KEY }}
+          APPLE_MUSIC_ORIGIN: https://bambuchastudent.github.io
+        run: node scripts/generate-apple-music-config.mjs apple-music-config.js
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
