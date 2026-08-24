@@ -158,6 +158,7 @@ Included today:
 - local persistent working library;
 - provider-independent track identity, including visible unresolved tracks;
 - play/pause, previous, next, shuffle, seek, volume and Radio;
+- collapsible Winamp-style PRE + 10-band equalizer UI; for provider-owned playback such as YouTube/Apple Music it is explicitly visual/stateful only because that audio cannot be routed through ÁmpulaMP filters;
 - playback-preserving background imports;
 - Media Session integration where supported;
 - Ámpula v1 self-contained link sharing;
