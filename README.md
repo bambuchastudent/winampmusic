@@ -1,51 +1,44 @@
-# Ámpulamp
+# Ámpula
 
-**Ámpulamp — Music Player for sharing moments through music.**
+**Ámpula** is a project for passing a musical moment through music.
 
-Ámpulamp is a player for selecting tracks from your music library, preserving that selection as a portable musical moment, and sending it to another person.
+**ÁmpulaMP** is the player that creates, opens, restores, and plays those moments. The ending **MP** means **Music Player**.
 
-That transferable object is called an **Ámpula** and is stored as a **`.ampula`** file. The recipient can keep it, open it now or later, and Ámpulamp attempts to reconstruct the intended listening experience from music sources available to them.
+A musical moment is transferred as a **`.ampula`** file: an ordered track selection plus enough identity and source context for the player to try to reconstruct the intended listening experience now or later.
 
-The ending **MP** in **Ámpulamp** means **Music Player**.
-
-> `winampmusic` is the legacy repository name. The product/player name is **Ámpulamp**; **Ámpula** is the portable musical moment.
+> `winampmusic` is the legacy repository and GitHub Pages path. It is infrastructure, not the product name. The project is **Ámpula** and the player is **ÁmpulaMP**.
 
 ## Product idea
 
-The point of Ámpulamp is not to become another streaming service. It is a convenient player for passing a moment and its tracks from your library to another person.
+Ámpula is not another streaming service. The point is to make a moment and its tracks from your library easy to pass to another person and meaningful to reopen later.
 
-A `.ampula` preserves the moment and ordered track selection. Provider URLs and service IDs are useful source/recovery information, but they are not the product itself and should not be treated as a guarantee that a track is playable.
+A `.ampula` preserves the moment and ordered track selection. Provider URLs and service IDs are useful source/recovery information, but they are not the product itself and must not be treated as proof that a track is playable.
 
-The source used when the Ámpula is created may differ from the source used when it is played later.
+The source used when a `.ampula` is created may differ from the source used when it is played later. ÁmpulaMP resolves recordings against sources available to the recipient.
 
 ## Current MVP
 
-The current implementation is a mobile-first web player focused primarily on music imported from YouTube playlists, while the product direction is provider-independent Ámpula creation, transfer and recovery.
+The current implementation is a mobile-first web player focused primarily on music imported from YouTube and Apple Music links, while the product direction is provider-independent `.ampula` creation, transfer, recovery, and playback.
 
 ## MVP flow
 
-1. Open the deployed player site.
-2. Press **Import** and copy `youtube-import.js`.
-3. Open a YouTube playlist or **Liked videos** on `youtube.com`.
-4. Open DevTools → Console, paste the importer, and press Enter.
-5. The importer opens Ámpulamp immediately, scrolls the current YouTube list, extracts rendered video metadata, and sends it to the player with `window.postMessage`.
-6. The player deduplicates tracks by YouTube video ID and stores the library in browser `localStorage`.
-7. Pick a track and play it through the embedded YouTube IFrame Player.
+1. Open ÁmpulaMP.
+2. Paste a supported YouTube or Apple Music track, album, or playlist link.
+3. ÁmpulaMP imports the available track metadata into the local library.
+4. Pick a track and play it through an available playback source.
+5. Share the current selection by link/QR today; the portable product format is `.ampula`.
 
-No backend, OAuth token, YouTube password, audio download, or re-hosting is used in this MVP.
+The player is designed so provider integrations remain playback/import/resolution sources rather than the identity of the musical moment.
 
 ## What is included
 
-- mobile-first retro player UI;
-- playlist / Liked videos importer for YouTube and basic YouTube Music selectors;
-- automatic scrolling while importing long lists;
-- cross-origin import transport through `window.postMessage`;
-- local persistent library with deduplication;
-- search, play/pause, previous, next, random track, seek, and volume;
-- YouTube IFrame playback with a visible video surface;
-- v1.1 background mode with Media Session metadata and system play/pause/previous/next/seek controls where supported;
-- playback snapshots before the page is hidden, frozen, or unloaded;
-- one-tap resume from the saved position when a mobile browser suspends embedded playback;
+- mobile-first player UI;
+- YouTube and Apple Music link import paths;
+- local persistent library;
+- search, play/pause, previous, next, shuffle, seek, and volume;
+- provider-specific playback adapters;
+- Media Session integration and playback snapshots where supported;
+- playlist sharing by link / QR;
 - installable PWA shell;
 - GitHub Pages deployment workflow from `develop`.
 
@@ -56,47 +49,55 @@ Music source / library
         |
         | import / resolve
         v
-Ámpulamp
-  app.js
-      |
-      +--> local library + playback snapshots
-      |
-      +--> source-specific playback adapters
-      |
-      +--> Media Session API / system controls
-      |
-      +--> .ampula create / open / recover   (product direction)
+ÁmpulaMP
+        |
+        +--> local library + playback snapshots
+        |
+        +--> source-specific playback adapters
+        |
+        +--> Media Session API / system controls
+        |
+        +--> .ampula create / open / recover
 ```
 
-The current YouTube importer accepts imports only from explicit YouTube origins and normalizes every imported track before storing it.
+## `.ampula`
+
+A `.ampula` is the portable representation of a musical moment. It should remain useful even if the provider originally used to select a recording later disappears or becomes unavailable to the recipient.
+
+Provider URLs, catalog IDs, and matches are provenance and recovery candidates. They are not the canonical identity of the moment, and storing one does not mean that source is currently playable.
 
 ## Deploy
 
 The repository default branch is `develop`. The included Pages workflow deploys on every push to `develop`.
 
-In GitHub repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions** once. The intended production URL is:
+While the GitHub repository keeps its legacy slug, the production URL remains:
 
 `https://bambuchastudent.github.io/winampmusic/`
 
-## Background playback in v1.1
+## Background playback
 
-Ámpulamp does not intentionally pause playback when the page becomes hidden. On browsers and operating systems that allow the embedded YouTube player to remain active, audio can keep playing while the PWA is in the background and Media Session exposes controls in the system media UI.
+ÁmpulaMP does not intentionally pause playback when the page becomes hidden. On browsers and operating systems that allow the active provider player to remain alive, Media Session exposes supported system controls.
 
-If the browser or OS suspends the page or pauses the YouTube iframe, v1.1 stores the current track and position and offers a one-tap resume when the app becomes active again. If the browser process or tab is fully closed, a web page cannot keep the iframe running; reopening the app restores the saved session instead of pretending playback continued.
+If the browser or OS suspends the page or player, ÁmpulaMP stores playback state and can restore the saved session when the app becomes active again. Web-platform/provider restrictions still apply.
 
-## Current limitations
+## Product boundaries
 
-- Import currently reads the playlist/list that is open in the browser; it does not query the entire account through OAuth/API.
-- YouTube can change its DOM selectors, so the importer is deliberately isolated in `youtube-import.js`.
-- True background playback still depends on browser/OS/YouTube behavior; v1.1 uses supported Media Session and session-resume mechanisms and does not bypass platform restrictions.
-- Tracks that cannot be embedded are skipped automatically when playback returns an error.
+Ámpula is not intended to become:
+
+- a new streaming service;
+- a centralized hosted music catalog;
+- mandatory cloud storage for users' music;
+- a mandatory social network;
+- an application tied to one music provider.
+
+Existing music services are sources that ÁmpulaMP can import, resolve, or play from.
 
 ## Next sensible capabilities
 
 - create/open a versioned `.ampula` format;
-- portable track identity and recovery metadata;
-- importing several playlists while preserving playlist/group metadata;
+- portable recording identity and recovery metadata;
+- preserve playlist/group/context metadata in transferred moments;
 - queue, repeat, favorites, and manual ordering;
-- optional provider adapters for additional music sources.
+- additional provider adapters without changing the core format.
 
-This project is independent and is not affiliated with YouTube or Winamp.
+This project is independent and is not affiliated with YouTube, Apple Music, or Winamp.
