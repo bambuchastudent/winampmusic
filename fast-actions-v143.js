@@ -41,19 +41,35 @@
 
   const actions = document.createElement('div');
   actions.className = 'fast-playlist-actions';
+
   const shareButton = document.createElement('button');
   shareButton.id = 'sharePlaylistButton';
   shareButton.type = 'button';
   shareButton.className = 'fast-playlist-action share';
   shareButton.textContent = 'Share / QR';
   shareButton.setAttribute('aria-label', 'Share portable Ámpula by link, QR, or file');
+
+  const openButton = document.createElement('button');
+  openButton.id = 'openAmpulaButton';
+  openButton.type = 'button';
+  openButton.className = 'fast-playlist-action';
+  openButton.textContent = 'Open .ampula';
+  openButton.setAttribute('aria-label', 'Open a portable .ampula file');
+
+  const fileInput = document.createElement('input');
+  fileInput.id = 'openAmpulaInput';
+  fileInput.type = 'file';
+  fileInput.accept = '.ampula,application/vnd.ampula+json,application/json';
+  fileInput.hidden = true;
+
   const clearButton = document.createElement('button');
   clearButton.id = 'clearPlaylistButton';
   clearButton.type = 'button';
   clearButton.className = 'fast-playlist-action clear';
   clearButton.textContent = 'Clear';
   clearButton.setAttribute('aria-label', 'Clear playlist');
-  actions.append(shareButton, clearButton);
+
+  actions.append(shareButton, openButton, clearButton, fileInput);
   header.appendChild(actions);
 
   let shareBusy = false;
@@ -77,6 +93,29 @@
       shareBusy = false;
       shareButton.disabled = false;
       shareButton.textContent = 'Share / QR';
+    }
+  });
+
+  openButton.addEventListener('click', () => {
+    fileInput.value = '';
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    openButton.disabled = true;
+    setStatus('OPENING .AMPULA');
+    try {
+      await loadScript('./compact-share.js?v=160', 'compact-share');
+      await loadScript('./ampula-file-open-v1.js?v=160', 'ampula-file-open');
+      if (typeof window.ampulaFileOpen?.openFile !== 'function') throw new Error('.ampula opener unavailable');
+      await window.ampulaFileOpen.openFile(file);
+    } catch (error) {
+      console.warn('[AMPULAMP .ampula open]', error);
+      setStatus('INVALID OR UNSUPPORTED .AMPULA');
+    } finally {
+      openButton.disabled = false;
     }
   });
 
