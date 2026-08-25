@@ -1,106 +1,123 @@
 # Ámpula
 
-**Ámpula** is a project for passing a musical moment through music.
+**Ámpula** is an open, portable format for passing a musical moment through music.
 
-**ÁmpulaMP** is the player that creates, opens, restores, and plays those moments. The ending **MP** means **Music Player**.
+The player in this repository is a reference client that can collect music from available services, create an Ámpula, open one, resolve playable representations locally, and play them.
 
-A musical moment is transferred as a **`.ampula`** file: an ordered track selection plus enough identity and source context for the player to try to reconstruct the intended listening experience now or later.
+> `winampmusic` is the legacy repository and GitHub Pages path. It is infrastructure, not the musical format.
 
-> `winampmusic` is the legacy repository and GitHub Pages path. It is infrastructure, not the product name. The project is **Ámpula** and the player is **ÁmpulaMP**.
+## What an Ámpula is
 
-## Product idea
+An Ámpula is a small ordered description of the recordings somebody intended to pass on. It is deliberately independent of the streaming service used when it was created.
 
-Ámpula is not another streaming service. The point is to make a moment and its tracks from your library easy to pass to another person and meaningful to reopen later.
+A minimal track needs human-readable `title` and `artists`. Optional evidence can include duration, album/version information, ISRC, MusicBrainz recording ID, fingerprint data, cues, and historical provider observations.
 
-A `.ampula` preserves the moment and ordered track selection. Provider URLs and service IDs are useful source/recovery information, but they are not the product itself and must not be treated as proof that a track is playable.
+Provider URLs and provider-specific IDs are **observations/recovery hints**, not canonical recording identity and not a promise that the same provider will still be usable later.
 
-The source used when a `.ampula` is created may differ from the source used when it is played later. ÁmpulaMP resolves recordings against sources available to the recipient.
+The canonical human-readable representation is a UTF-8 **`.ampula` JSON file**. The schema and protocol documentation live under [`ampula/`](./ampula/README.md).
 
-## Current MVP
+## Current flow
 
-The current implementation is a mobile-first web player focused primarily on music imported from YouTube and Apple Music links, while the product direction is provider-independent `.ampula` creation, transfer, recovery, and playback.
+1. Search for music or paste a supported YouTube / Apple Music track, album, or playlist link.
+2. Keep the working playback library locally in the browser.
+3. Press **Share / QR** to turn the current ordered library into Ámpula Core v1.
+4. The app creates a **self-contained `?a=` link**. The musical metadata is inside the link; opening it does not require an Ámpula backend, hosted catalog, Pastepile, or short-link service.
+5. The same link can be shown as a QR code or the same Core object can be exported as a **`.ampula` file**.
+6. A receiver opens a distinct **Received Ámpula** view. Merely opening it does **not** add anything to `Your library`.
+7. The receiver can explicitly **Save Ámpula** as a separate local object, play/resolve tracks from locally available sources, or explicitly **Add playable tracks** to the working library.
+8. **Open .ampula** accepts a portable file and opens it through the same Received Ámpula flow.
 
-## MVP flow
+Legacy provider-ID-only share links such as `?p=id.id.id` are not Ámpula v1 and are no longer generated or silently imported.
 
-1. Open ÁmpulaMP.
-2. Use the single music field to search by artist/track name or paste a supported YouTube or Apple Music track, album, or playlist link.
-3. ÁmpulaMP searches or imports the available track metadata into the local library. If music is already playing, background imports do not steal the visible Now Playing state or interrupt the current track.
-4. Pick a track and play it through an available playback source.
-5. Use the small search control in `Your library` only when you want to filter music already saved locally.
-6. Share the current selection by link/QR today; the portable product format is `.ampula`.
+## Format
 
-The player is designed so provider integrations remain playback/import/resolution sources rather than the identity of the musical moment.
+Canonical minimal example:
 
-## What is included
-
-- mobile-first player UI;
-- one primary music field for text search and YouTube / Apple Music link import;
-- local persistent library with an optional collapsible filter;
-- play/pause, previous, next, shuffle, seek, and volume;
-- provider-specific playback adapters;
-- playback-preserving background imports;
-- compact bottle brand/repository link plus a playback-state spectrum indicator;
-- Media Session integration and playback snapshots where supported;
-- playlist sharing by link / QR;
-- installable PWA shell;
-- GitHub Pages deployment workflow from `develop`.
-
-## Architecture
-
-```text
-Music source / library
-        |
-        | import / resolve
-        v
-ÁmpulaMP
-        |
-        +--> local library + playback snapshots
-        |
-        +--> source-specific playback adapters
-        |
-        +--> Media Session API / system controls
-        |
-        +--> .ampula create / open / recover
+```json
+{
+  "format": "ampula",
+  "version": "1",
+  "tracks": [
+    {
+      "title": "Teardrop",
+      "artists": ["Massive Attack"]
+    }
+  ]
+}
 ```
 
-## `.ampula`
+Core v1 documentation:
 
-A `.ampula` is the portable representation of a musical moment. It should remain useful even if the provider originally used to select a recording later disappears or becomes unavailable to the recipient.
+- [`ampula/README.md`](./ampula/README.md) — semantics and boundaries;
+- [`ampula/schema/ampula-1.schema.json`](./ampula/schema/ampula-1.schema.json) — JSON Schema;
+- [`ampula/URI.md`](./ampula/URI.md) — compact self-contained link/QR transport;
+- [`ampula/RESOLVER.md`](./ampula/RESOLVER.md) — provider-independent local resolution profile;
+- [`ampula/examples/night.ampula`](./ampula/examples/night.ampula) — readable example.
 
-Provider URLs, catalog IDs, and matches are provenance and recovery candidates. They are not the canonical identity of the moment, and storing one does not mean that source is currently playable.
+## Transport
 
-## Deploy
+The canonical `.ampula` file and compact link are two representations of the same domain object.
 
-The repository default branch is `develop`. The included Pages workflow deploys on every push to `develop`.
+Current web links use:
 
-While the GitHub repository keeps its legacy slug, the production URL remains:
+```text
+?a=<encoding>.<payload>
+```
 
-`https://bambuchastudent.github.io/winampmusic/`
+The compact payload is base64url compact JSON and uses gzip when the browser supports it and compression makes the link smaller. If compression is unavailable, the app uses the uncompressed self-contained representation instead.
 
-## Background playback
+QR encodes that same link. If a payload is too large for a useful QR, the link and `.ampula` file remain valid transports.
 
-ÁmpulaMP does not intentionally pause playback when the page becomes hidden. On browsers and operating systems that allow the active provider player to remain alive, Media Session exposes supported system controls.
+## Resolution
 
-If the browser or OS suspends the page or player, ÁmpulaMP stores playback state and can restore the saved session when the app becomes active again. Web-platform/provider restrictions still apply.
+Resolution happens on the receiver side and is separate from the received object. A client can use, in roughly this order:
+
+1. local exact files/stable IDs;
+2. previous local matches;
+3. stable recording identifiers supported by an attached service;
+4. historical provider observations;
+5. fresh title/artist/album/duration search;
+6. fuzzy matching with explicit confidence.
+
+A successful current match must not rewrite the original received evidence. An unresolved track remains part of the Ámpula and remains visible.
+
+## Current player
+
+The current web implementation is mobile-first and currently has the strongest playback/import integrations for YouTube and Apple Music. Those integrations are adapters around Ámpula rather than the format itself.
+
+Included today:
+
+- text search and YouTube / Apple Music link import;
+- local persistent working library;
+- play/pause, previous, next, shuffle, seek, volume and Radio;
+- playback-preserving background imports;
+- Media Session integration where supported;
+- Ámpula v1 self-contained link sharing;
+- QR sharing of the same link;
+- `.ampula` export and open;
+- non-destructive Received Ámpula context;
+- separate local saved-Ámpula collection;
+- explicit add-to-library action;
+- installable PWA shell;
+- GitHub Pages deployment from `develop` after the behavioral verification suite passes.
 
 ## Product boundaries
 
 Ámpula is not intended to become:
 
-- a new streaming service;
+- a streaming service;
 - a centralized hosted music catalog;
 - mandatory cloud storage for users' music;
-- a mandatory social network;
-- an application tied to one music provider.
+- a mandatory account system or social network;
+- an application tied to one provider;
+- a container for audio bytes, artwork, lyrics, comments, or provider catalogs in Core v1.
 
-Existing music services are sources that ÁmpulaMP can import, resolve, or play from.
+## Deploy
 
-## Next sensible capabilities
+The repository default/deployment branch is `develop`. The Pages workflow runs the full behavioral/contract suite on every push and deploys only after verification succeeds.
 
-- create/open a versioned `.ampula` format;
-- portable recording identity and recovery metadata;
-- preserve playlist/group/context metadata in transferred moments;
-- queue, repeat, favorites, and manual ordering;
-- additional provider adapters without changing the core format.
+Production URL while the repository keeps its legacy slug:
 
-This project is independent and is not affiliated with YouTube, Apple Music, or Winamp.
+`https://bambuchastudent.github.io/winampmusic/`
+
+This project is independent and is not affiliated with YouTube, Apple Music, Spotify, or Winamp.
