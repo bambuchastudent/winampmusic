@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ampula.dev/schema/ampula-1.schema.json",
+  "$id": "https://bambuchastudent.github.io/winampmusic/ampula/schema/ampula-1.schema.json",
   "title": "Ámpula Core v1",
   "description": "A small portable memory of a musical moment.",
   "type": "object",
