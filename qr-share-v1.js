@@ -18,7 +18,7 @@
       .winamp-playlist-qr-code{display:grid;place-items:center;min-width:268px;min-height:268px;padding:14px;border-radius:10px;background:#fff}
       .winamp-playlist-qr-code canvas,.winamp-playlist-qr-code img{display:block!important;max-width:240px!important;width:240px!important;height:240px!important;image-rendering:pixelated}
       .winamp-playlist-qr-note{margin:0;color:#aab2bf;font-size:11px;line-height:1.45;text-align:center;max-width:380px}
-      .winamp-playlist-qr-error{color:#f1b9b9;font-size:11px;text-align:center;max-width:320px}
+      .winamp-playlist-qr-error{color:#8b1f2d;font-size:12px;font-weight:800;line-height:1.4;text-align:center;max-width:320px;padding:18px}
       @media(max-width:420px){.winamp-playlist-qr-code{min-width:238px;min-height:238px;padding:10px}.winamp-playlist-qr-code canvas,.winamp-playlist-qr-code img{max-width:218px!important;width:218px!important;height:218px!important}}
     `;
     document.head.appendChild(style);
@@ -31,30 +31,29 @@
     libraryPromise = new Promise((resolve, reject) => {
       const existing = document.querySelector('script[data-winamp-qrcode-library]');
       const script = existing || document.createElement('script');
-      const timeout = setTimeout(() => reject(new Error('QR library timeout')), 8000);
-      const done = () => {
+      let settled = false;
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timeout);
-        if (window.QRCode) resolve(window.QRCode);
-        else reject(new Error('QR library unavailable'));
+        fn(value);
       };
-      const fail = () => {
-        clearTimeout(timeout);
-        reject(new Error('QR library failed to load'));
-      };
+      const done = () => window.QRCode
+        ? finish(resolve, window.QRCode)
+        : finish(reject, new Error('QR library unavailable'));
+      const fail = () => finish(reject, new Error('QR library failed to load'));
+      const timeout = setTimeout(() => finish(reject, new Error('QR library timeout')), 5000);
 
+      script.addEventListener('load', done, { once: true });
+      script.addEventListener('error', fail, { once: true });
       if (!existing) {
         script.src = QR_SCRIPT;
         script.async = true;
         script.crossOrigin = 'anonymous';
         script.dataset.winampQrcodeLibrary = '1';
-        script.addEventListener('load', done, { once: true });
-        script.addEventListener('error', fail, { once: true });
         document.head.appendChild(script);
       } else if (window.QRCode) {
         done();
-      } else {
-        script.addEventListener('load', done, { once: true });
-        script.addEventListener('error', fail, { once: true });
       }
     }).catch((error) => {
       libraryPromise = null;
@@ -75,7 +74,7 @@
     panel.innerHTML = `
       <div class="winamp-playlist-qr-title"><strong>Point the other phone here</strong><span>SCAN PLAYLIST</span></div>
       <div id="winampPlaylistQrCode" class="winamp-playlist-qr-code" aria-label="Playlist QR code"></div>
-      <p class="winamp-playlist-qr-note">Scan → ÁmpulaMP opens → playlist is received. The same link below can also be sent in chat.</p>`;
+      <p class="winamp-playlist-qr-note">Scan → Ámpula MP opens → playlist is received. The same link below can also be sent in chat.</p>`;
 
     const note = dialog.querySelector('#winampShareNote');
     const input = dialog.querySelector('#winampShareUrl');
@@ -94,8 +93,9 @@
     if (!host) return;
     panel.hidden = false;
 
-    if (panel.dataset.url === url && host.childElementCount) return;
+    if (panel.dataset.url === url && host.dataset.ready === '1') return;
     panel.dataset.url = url;
+    host.dataset.ready = '0';
     host.replaceChildren();
     host.textContent = 'Creating QR…';
     host.style.color = '#111';
@@ -103,6 +103,7 @@
 
     try {
       const QRCodeCtor = await ensureLibrary();
+      if (!dialog.open || String(input?.value || '').trim() !== url) return;
       host.replaceChildren();
       host.removeAttribute('style');
       new QRCodeCtor(host, {
@@ -113,18 +114,20 @@
         colorLight: '#ffffff',
         correctLevel: QRCodeCtor.CorrectLevel.M,
       });
+      host.dataset.ready = '1';
       if (STATUS && /LINK (READY|COPIED)|SHORT LINK/i.test(STATUS.textContent || '')) {
         STATUS.textContent = 'PLAYLIST QR READY';
       }
     } catch (error) {
-      console.warn('[ÁmpulaMP QR share]', error);
+      console.warn('[Ámpula MP QR share]', error);
       host.replaceChildren();
       host.removeAttribute('style');
+      host.dataset.ready = '0';
       const message = document.createElement('div');
       message.className = 'winamp-playlist-qr-error';
-      message.textContent = 'QR generator unavailable. Send the playlist link below instead.';
+      message.textContent = 'QR unavailable — use the link below.';
       host.appendChild(message);
-      if (STATUS) STATUS.textContent = 'QR SHARE UNAVAILABLE';
+      if (STATUS) STATUS.textContent = 'QR UNAVAILABLE · LINK READY';
     }
   }
 
@@ -134,7 +137,7 @@
     ensurePanel(dialog);
 
     const eyebrow = dialog.querySelector('div[style*="letter-spacing"]');
-    if (eyebrow) eyebrow.textContent = 'QR / SHARE PLAYLIST';
+    if (eyebrow && eyebrow.textContent !== 'QR / SHARE PLAYLIST') eyebrow.textContent = 'QR / SHARE PLAYLIST';
 
     const observer = new MutationObserver(() => {
       if (dialog.open) queueMicrotask(() => render(dialog));
@@ -146,23 +149,27 @@
       if (panel) panel.hidden = true;
     });
 
-    if (dialog.open) render(dialog);
+    if (dialog.open) void render(dialog);
   }
 
-  function renameShareButton() {
-    const button = document.getElementById('sharePlaylistButton');
-    if (!button) return;
-    button.textContent = 'QR / Share';
-    button.setAttribute('aria-label', 'Show playlist QR code or share link');
-  }
-
-  function scan() {
-    renameShareButton();
-    const dialog = document.getElementById('winampShareDialog');
+  function scanForDialog(root = document) {
+    const dialog = root.querySelector?.('#winampShareDialog') || document.getElementById('winampShareDialog');
     if (dialog) bindDialog(dialog);
   }
 
   ensureStyles();
-  scan();
-  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+  scanForDialog();
+
+  const bodyObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes || []) {
+        if (!(node instanceof Element)) continue;
+        if (node.id === 'winampShareDialog' || node.querySelector?.('#winampShareDialog')) {
+          scanForDialog(node.id === 'winampShareDialog' ? node.parentElement : node);
+          return;
+        }
+      }
+    }
+  });
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
 })();
