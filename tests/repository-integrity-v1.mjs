@@ -135,6 +135,9 @@ assert.ok(Array.isArray(removedFiles) && removedFiles.length > 0, 'Removal ledge
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
 const scanExtensions = new Set(['.js', '.mjs', '.html', '.css', '.json', '.webmanifest', '.yml', '.yaml']);
+// Local tool/IDE artifacts are not repository content. They are absent in CI but present in working
+// copies, so scanning them would fail the integrity gate for developers only.
+const ignoredDirectoryNames = new Set(['.git', 'node_modules', 'graphify-out', '.idea', '.qodo', '.vscode']);
 const ignoredReferenceRoots = [
   path.join(ROOT, 'openspec', 'changes', 'repository-cleanup-v1'),
 ];
@@ -145,7 +148,7 @@ const ignoredReferenceFiles = new Set([
 
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === '.git' || entry.name === 'node_modules') continue;
+    if (ignoredDirectoryNames.has(entry.name)) continue;
     const absolute = path.join(dir, entry.name);
     if (ignoredReferenceRoots.some((root) => absolute === root || absolute.startsWith(`${root}${path.sep}`))) continue;
     if (entry.isDirectory()) walk(absolute, out);

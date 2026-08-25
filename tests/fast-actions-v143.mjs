@@ -15,29 +15,44 @@ const dom = new JSDOM(`<!doctype html><body>
   pretendToBeVisual: true,
 });
 const { window } = dom;
+// jsdom does not implement <dialog>.showModal/close; shim them so the share flow can be exercised.
+const dialogProto = window.HTMLDialogElement?.prototype;
+if (dialogProto && typeof dialogProto.showModal !== 'function') {
+  dialogProto.showModal = function showModal() { this.setAttribute('open', ''); };
+  dialogProto.close = function close() { this.removeAttribute('open'); };
+}
 window.localStorage.setItem('winampmusic.library.v1', JSON.stringify([{ id: 'abcdefghijk' }]));
 window.eval(code);
 
-const gift = window.document.getElementById('sharePlaylistButton');
+const share = window.document.getElementById('sharePlaylistButton');
 const clear = window.document.getElementById('clearPlaylistButton');
-assert.ok(gift, 'Gift / QR button must be installed');
+assert.ok(share, 'Share / QR button must be installed');
 assert.ok(clear, 'Clear button must be installed');
-assert.equal(gift.textContent, 'Gift / QR');
+assert.equal(share.textContent, 'Share / QR');
 assert.equal(window.document.querySelector('script[data-fast-module="compact-share"]'), null, 'share code must not load at startup');
 assert.equal(window.document.querySelector('script[data-fast-module="qr-share"]'), null, 'QR code must not load at startup');
+
+// Sender flow is non-blocking (v1.5.8): the share dialog opens from a locally built fallback link,
+// so compact-share must stay unloaded and only QR rendering is lazy-loaded.
+// Must run while the library still has tracks.
+share.click();
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.ok(window.document.getElementById('winampShareDialog'), 'Share must open the quick share dialog');
+assert.ok(
+  window.document.querySelector('script[data-fast-module="qr-share"]'),
+  'Share must lazy-load the QR module',
+);
+assert.equal(
+  window.document.querySelector('script[data-fast-module="compact-share"]'),
+  null,
+  'sender flow must not wait on compact share',
+);
 
 clear.click();
 assert.ok(window.localStorage.getItem('winampmusic.library.v1'), 'first clear tap must not delete playlist');
 assert.equal(clear.textContent, 'Confirm clear');
 clear.click();
 assert.equal(window.localStorage.getItem('winampmusic.library.v1'), null, 'second clear tap must delete playlist');
-
-// Gift action must lazy-load compact sharing first. QR is loaded only after compact-share is ready.
-gift.click();
-await new Promise((resolve) => setTimeout(resolve, 0));
-const compact = window.document.querySelector('script[data-fast-module="compact-share"]');
-assert.ok(compact, 'Gift must lazy-load compact share module');
-assert.equal(window.document.querySelector('script[data-fast-module="qr-share"]'), null, 'QR must wait for compact share');
 
 console.log('v1.4.3 fast actions test passed');
 process.exit(0);

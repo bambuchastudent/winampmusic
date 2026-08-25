@@ -67,5 +67,14 @@
   "winamp-features.css",
   "winamp-features.js",
   "youtube-context.js",
-  "shared-playlist-onboarding-v1.js"
+  "shared-playlist-onboarding-v1.js",
+  "comments.js",
+  "lyrics-sync.js",
+  "lyrics.js",
+  "lyrics-v057.js",
+  "comments.css",
+  "captions.css",
+  "verify-bottle-label-v154.mjs",
+  "verify-bottle-lightning-v155.mjs",
+  "verify-brand-v155.mjs"
 ]

@@ -143,7 +143,9 @@ assert.doesNotMatch(indexSource, /apple-no-ad-fallback-v150\.js/);
 assert.match(indexSource, /apple-music-config\.js\?v=150/);
 assert.match(indexSource, /apple-musickit-v150\.js\?v=150/);
 assert.match(indexSource, /apple-catalog-first-v150\.js\?v=150/);
-assert.match(indexSource, /track\/album\/playlist/);
+// The single music field must keep advertising all three import entities.
+// Tolerates both the legacy "track/album/playlist" and the current "track, album, or playlist" copy.
+assert.match(indexSource, /track[,/]\s*(?:or\s+)?album[,/]\s*(?:or\s+)?playlist/i);
 
 assert.match(pagesSource, /APPLE_MUSIC_TEAM_ID: \$\{\{ secrets\.APPLE_MUSIC_TEAM_ID \}\}/);
 assert.match(pagesSource, /APPLE_MUSIC_KEY_ID: \$\{\{ secrets\.APPLE_MUSIC_KEY_ID \}\}/);
