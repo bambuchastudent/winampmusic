@@ -1,33 +1,28 @@
 # Design: Native Ámpula sharing and receiving
 
+> This sharing design now consumes **Ámpula Core v1** as defined by `ampula/README.md` and `ampula/schema/ampula-1.schema.json`. It does not define a second domain model.
+
 ## Domain model
 
-Sharing operates on a versioned Ámpula domain object, not on a list of provider IDs.
+Sharing operates on a canonical Ámpula Core v1 object, not on a list of provider IDs.
 
-Minimum logical shape:
+Core requires only:
 
 ```text
 Ampula {
-  version
-  id
-  createdAt
-  startTrackId
+  format = "ampula"
+  version = "1"
   tracks[]
 }
 
-AmpulaTrack {
-  id
+Track {
   title
-  artist
-  duration?
-  provenance[]
-  sourceHints[]
+  artists[]
+  ...optional identity evidence / observations
 }
 ```
 
-`id` identifies the track or Ámpula inside the portable object. Provider IDs and URLs belong in provenance/source hints and are not the canonical identity.
-
-The exact serialized schema may evolve, but all transports must decode into the same versioned Ámpula object.
+`capturedAt`, `moment`, and `startTrack` are optional context. Provider IDs and URLs belong only in `observations` and are not canonical identity. Core v1 does not require a globally assigned Ámpula ID or internal per-track ID.
 
 ## Runtime states
 
@@ -37,76 +32,63 @@ The exact serialized schema may evolve, but all transports must decode into the 
 
 ### Received Ámpula
 
-A shared payload opens in a separate transient context:
+A shared payload opens in a separate transient context with:
 
 - its own ordered track list;
-- its own selected/start track;
-- preserved sender metadata;
+- preserved sender metadata/context;
 - local playback-resolution state;
-- explicit actions such as `Save Ámpula` and, separately, `Add tracks to library`.
+- explicit `Save Ámpula` and separate `Add playable tracks` actions.
 
-Closing the received context without saving must leave the local library and saved Ámpulas unchanged.
+Closing the received context without saving leaves the local library and saved Ámpulas unchanged.
 
 ### Saved Ámpulas
 
-`Save Ámpula` persists the received Ámpula as a first-class local object. The saved object retains the received order, metadata, and provenance. Resolution/playback results are cacheable local state and must not redefine the saved object's identity.
+`Save Ámpula` persists the original received Core object as a first-class local object. Local resolution/playback matches are cacheable runtime knowledge and must not redefine or rewrite the saved object's identity.
 
 ## Sharing contract
 
-The sender creates a complete versioned Ámpula payload from the current musical moment.
+The sender builds a valid Core v1 object from the current musical moment.
 
-The share transport may be:
+Transports may include:
 
-- a URL;
-- a QR code representing that URL;
-- a `.ampula` file.
+- a self-contained URL;
+- QR representing that URL;
+- a `.ampula` JSON file.
 
-Transport is not the domain model. A URL transport may embed or reference an opaque serialized payload, but the receiver must reconstruct and validate the complete Ámpula before presenting it.
+Transport is not the domain model. Current AMPULAMP web transport uses `?a=<compact-payload>` and decodes back to Core v1 before presenting the moment.
 
-The old `?p=<provider-id>...` contract is removed. There is no compatibility fallback from a failed full share to a provider-ID list.
+The old `?p=<provider-id>...` and remote `?s=` contracts are not Ámpula v1 and are not fallback transports.
 
 ## Receive flow
 
-1. Detect an Ámpula transport on startup or explicit open/import.
-2. Decode and validate the versioned Ámpula payload.
-3. Create a `Received Ámpula` session without calling the normal library-import path.
-4. Render preserved title/artist/order immediately, before or independently of playback resolution.
-5. Resolve playable sources locally as needed.
+1. Detect `?a=` on startup.
+2. Decode and validate Core v1.
+3. Present a Received Ámpula context without calling the normal library-import path.
+4. Render preserved title/artist/order immediately, independently of successful playback resolution.
+5. Resolve playable sources locally as requested.
 6. Allow explicit `Save Ámpula`.
-7. Allow a separate explicit `Add tracks to library` action if/when exposed by UI.
+7. Allow separate explicit `Add playable tracks`.
 
 ## Save semantics
 
-Saving is intentionally not equivalent to importing tracks.
+Saving is intentionally not equivalent to importing tracks. It preserves the received Core v1 object and stores a local saved timestamp outside musical identity.
 
-`Save Ámpula` stores:
-
-- the received Ámpula identity/version;
-- ordered track selection;
-- human-readable track metadata;
-- provenance/source hints;
-- intended start track;
-- local saved timestamp as local metadata.
-
-A later resolver may choose different playable providers without rewriting the original provenance or changing the musical moment.
+A later resolver may choose different playable providers without rewriting the original observations or changing the musical moment.
 
 ## Compatibility
 
-This change is intentionally breaking for the old share format.
-
 - Do not generate `?p=` links.
-- Do not parse `?p=` links.
+- Do not parse `?p=` or `?s=` as Ámpula.
 - Do not silently import provider-ID-only payloads.
-- Existing local library storage remains intact unless a separate migration requires otherwise.
+- Existing local library storage remains intact.
 
 ## Critical-path constraints
 
 The FAST invariant remains in force:
 
-- optional share/receive modules must not block player startup;
-- an invalid or unavailable shared payload must not break normal local playback;
-- opening a shared Ámpula must not take ownership of unrelated core control events;
-- receiving must not write to the general library until the user explicitly requests a library import.
+- optional share/receive code stays lazy outside normal startup;
+- an invalid shared payload must not break normal local playback;
+- receiving must not write to the general library until an explicit library action.
 
 ## Failure modes
 
@@ -116,12 +98,12 @@ Show a non-destructive error and keep the normal local player usable.
 
 ### Some tracks cannot be resolved
 
-Keep the full Ámpula visible with preserved metadata. Mark unresolved tracks as unavailable/unresolved rather than deleting or replacing them.
+Keep the full Ámpula visible with preserved metadata. Mark unresolved tracks unavailable/unresolved rather than deleting or replacing them.
 
-### Share transport unavailable
+### QR unavailable or too large
 
-Do not fall back to provider-ID-only sharing. Offer another full-fidelity transport, such as copying/exporting the complete Ámpula representation.
+Keep the self-contained link and `.ampula` file as valid full-fidelity transports. Never fall back to provider-ID-only sharing.
 
 ### Duplicate save
 
-The implementation should avoid creating accidental duplicate local records for the same received Ámpula. Exact deduplication policy may use Ámpula identity/content identity, but must not mutate the original received object.
+Deduplicate local saved records without mutating the original received object.
