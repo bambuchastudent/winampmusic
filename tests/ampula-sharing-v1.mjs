@@ -46,7 +46,9 @@ assert.ok(ampula.tracks[1].observations.some((obs) => obs.service === 'apple-mus
 const encoded = await api.encode(ampula);
 assert.match(encoded, /^[gj]\./);
 const decoded = await api.decode(encoded);
-assert.deepEqual(decoded.tracks.map((track) => [track.title, track.artists[0]]), [
+// Values created inside JSDOM have a different realm/prototype. Normalize through JSON before strict comparison.
+const normalizedTrackNames = JSON.parse(JSON.stringify(decoded.tracks.map((track) => [track.title, track.artists[0]])));
+assert.deepEqual(normalizedTrackNames, [
   ['Teardrop', 'Massive Attack'],
   ['Roads', 'Portishead'],
 ]);
