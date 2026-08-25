@@ -4,21 +4,20 @@ const source = fs.readFileSync(new URL('./fast-actions-v143.js', import.meta.url
 
 const required = [
   "shareButton.textContent = 'Share / QR'",
-  "url.searchParams.set('p', ids.join('.'))",
-  "if (!dialog.open) dialog.showModal()",
   "shareButton.textContent = 'Preparing…'",
   "shareButton.disabled = false",
-  "shareButton.textContent = 'Share / QR'",
-  "loadScript('./qr-share-v1.js?v=158', 'qr-share')",
+  "loadScript('./compact-share.js?v=160', 'compact-share')",
+  "window.winampMusicCompactShare?.share",
+  "loadScript('./qr-share-v1.js?v=160', 'qr-share')",
+  "params.has('a')",
   "load timed out",
 ];
 
 for (const needle of required) {
-  if (!source.includes(needle)) throw new Error(`Missing share contract: ${needle}`);
+  if (!source.includes(needle)) throw new Error(`Missing Ámpula share contract: ${needle}`);
 }
 
-if (source.includes("await loadScript('./compact-share.js?v=143'")) {
-  throw new Error('Sender flow must not wait on compact-share before opening the share dialog');
-}
+if (source.includes("searchParams.set('p'")) throw new Error('Legacy provider-ID share fallback must not return');
+if (source.includes('pastepile')) throw new Error('Fast sender must not require a remote paste service');
 
-console.log('share non-blocking v1.5.8 contract ok');
+console.log('lazy Ámpula v1 share contract ok');
