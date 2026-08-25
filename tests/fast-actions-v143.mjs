@@ -5,6 +5,10 @@ import { JSDOM } from 'jsdom';
 const code = fs.readFileSync('fast-actions-v143.js', 'utf8');
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
+assert.ok(!code.includes("searchParams.set('p'"), 'legacy provider-id fallback must not return');
+assert.match(code, /loadScript\('\.\/compact-share\.js\?v=160', 'compact-share'\)/);
+assert.match(code, /winampMusicCompactShare\?\.share/);
+assert.match(code, /params\.has\('a'\)/);
 
 const dom = new JSDOM(`<!doctype html><body>
   <div id="status">READY</div>
@@ -15,13 +19,7 @@ const dom = new JSDOM(`<!doctype html><body>
   pretendToBeVisual: true,
 });
 const { window } = dom;
-// jsdom does not implement <dialog>.showModal/close; shim them so the share flow can be exercised.
-const dialogProto = window.HTMLDialogElement?.prototype;
-if (dialogProto && typeof dialogProto.showModal !== 'function') {
-  dialogProto.showModal = function showModal() { this.setAttribute('open', ''); };
-  dialogProto.close = function close() { this.removeAttribute('open'); };
-}
-window.localStorage.setItem('winampmusic.library.v1', JSON.stringify([{ id: 'abcdefghijk' }]));
+window.localStorage.setItem('winampmusic.library.v1', JSON.stringify([{ id: 'abcdefghijk', title: 'Track', artist: 'Artist' }]));
 window.eval(code);
 
 const share = window.document.getElementById('sharePlaylistButton');
@@ -29,30 +27,18 @@ const clear = window.document.getElementById('clearPlaylistButton');
 assert.ok(share, 'Share / QR button must be installed');
 assert.ok(clear, 'Clear button must be installed');
 assert.equal(share.textContent, 'Share / QR');
-assert.equal(window.document.querySelector('script[data-fast-module="compact-share"]'), null, 'share code must not load at startup');
-assert.equal(window.document.querySelector('script[data-fast-module="qr-share"]'), null, 'QR code must not load at startup');
+assert.equal(window.document.querySelector('script[data-fast-module="compact-share"]'), null, 'share code must remain lazy at startup');
 
-// Sender flow is non-blocking (v1.5.8): the share dialog opens from a locally built fallback link,
-// so compact-share must stay unloaded and only QR rendering is lazy-loaded.
-// Must run while the library still has tracks.
 share.click();
 await new Promise((resolve) => setTimeout(resolve, 0));
-assert.ok(window.document.getElementById('winampShareDialog'), 'Share must open the quick share dialog');
-assert.ok(
-  window.document.querySelector('script[data-fast-module="qr-share"]'),
-  'Share must lazy-load the QR module',
-);
-assert.equal(
-  window.document.querySelector('script[data-fast-module="compact-share"]'),
-  null,
-  'sender flow must not wait on compact share',
-);
+assert.ok(window.document.querySelector('script[data-fast-module="compact-share"]'), 'sender must lazy-load the full Ámpula module');
+assert.equal(window.document.getElementById('winampShareDialog'), null, 'fast actions must not create a provider-ID fallback dialog itself');
 
 clear.click();
-assert.ok(window.localStorage.getItem('winampmusic.library.v1'), 'first clear tap must not delete playlist');
+assert.ok(window.localStorage.getItem('winampmusic.library.v1'));
 assert.equal(clear.textContent, 'Confirm clear');
 clear.click();
-assert.equal(window.localStorage.getItem('winampmusic.library.v1'), null, 'second clear tap must delete playlist');
+assert.equal(window.localStorage.getItem('winampmusic.library.v1'), null);
 
-console.log('v1.4.3 fast actions test passed');
+console.log('fast actions Ámpula v1 contract passed');
 process.exit(0);
