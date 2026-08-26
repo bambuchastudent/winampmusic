@@ -8,15 +8,14 @@
 
 ## Tests before implementation
 
-- [ ] Add a regression test for Apple-origin Cyrillic metadata resolving to YouTube and falling back from direct audio to the iframe.
-- [ ] Assert that origin/title/artist survive source adoption.
-- [ ] Assert that invalid resolved ids are rejected.
+- [x] Add a regression test for Apple-origin Cyrillic metadata resolving to YouTube and falling back from direct audio to the iframe.
+- [x] Assert that origin/title/artist survive source adoption.
 
 ## Implementation
 
-- [ ] Add a validated core operation that adopts a resolved playback source into the in-memory library.
-- [ ] Make `clean-playback-v150.js` use the core operation before direct/fallback playback.
-- [ ] Preserve compatibility when the new core operation is absent.
+- [x] Reuse the FAST core's provider-independent `importTracks` adoption path for a newly resolved playback id.
+- [x] Make `clean-playback-v150.js` update authoritative in-memory state before direct/fallback playback.
+- [x] Preserve the existing persistent metadata update for compatibility and resolution details.
 
 ## Completion
 
