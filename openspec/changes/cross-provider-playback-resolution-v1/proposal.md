@@ -12,8 +12,8 @@ Make a successful receiver-side resolution authoritative for the working player 
 
 ## Scope
 
-- Add one core operation for adopting a validated resolved YouTube playback handle into the in-memory working library.
-- Make direct Apple-origin playback use that operation instead of mutating a separate `localStorage` snapshot.
+- Reuse the FAST core's existing provider-independent `importTracks` adoption path when direct Apple-origin playback resolves a YouTube representation.
+- Stop relying on a separate `localStorage` mutation as the only state update.
 - If direct Piped audio is unavailable after resolution, fall back to the YouTube iframe with the already-resolved id.
 - Keep title, artist, Apple origin URL, storefront evidence, Apple track id and badges intact.
 - Add a regression test using Cyrillic metadata matching the reported failure shape.
@@ -24,6 +24,7 @@ Make a successful receiver-side resolution authoritative for the working player 
 - Requiring Apple Music, YouTube, Piped, Invidious or any centralized backend as format identity.
 - Treating a catalog/import match as proof that audio has started.
 - Replacing the existing strict matcher or changing its confidence rules.
+- Adding another core mutation API when the existing recording-adoption contract is sufficient.
 
 ## Success criteria
 
