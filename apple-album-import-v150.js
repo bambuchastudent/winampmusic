@@ -104,12 +104,32 @@
     }
   }
 
+  function albumEntry(appleTrack, album, parsed, match) {
+    const videoId = clean(match?.id);
+    const resolved = VIDEO_ID_RE.test(videoId);
+    const now = new Date().toISOString();
+    return {
+      ...(resolved ? { id: videoId } : {}),
+      title: appleTrack.title,
+      artist: appleTrack.artist,
+      thumbnail: appleTrack.artwork || (resolved ? clean(match?.thumbnail) : ''),
+      duration: appleTrack.durationMs > 0 ? Math.round(appleTrack.durationMs / 1000) : Number(match?.duration || 0),
+      playlist: album.name,
+      badges: ['Apple Music', 'Album', resolved ? 'Strict match' : 'Unresolved'],
+      sourceUrl: parsed.href,
+      appleTrackId: appleTrack.appleTrackId,
+      appleTrackUrl: appleTrack.appleUrl,
+      importedAt: now,
+      ...(resolved ? { strictMatchedAt: now } : {}),
+    };
+  }
+
   async function resolveTracks(album, parsed, signal, onProgress) {
     const finder = window.winampMusicAppleImport?.findYouTubeMatch;
-    if (typeof finder !== 'function') throw new Error('Strict Apple matcher is not ready');
     const results = new Array(album.tracks.length).fill(null);
     let cursor = 0;
     let completed = 0;
+    let matched = 0;
     const workers = Math.min(4, album.tracks.length);
 
     await Promise.all(Array.from({ length: workers }, async () => {
@@ -118,35 +138,24 @@
         cursor += 1;
         if (index >= album.tracks.length) return;
         const appleTrack = album.tracks[index];
+        let match = null;
         try {
-          const match = await finder({
-            title: appleTrack.title,
-            artist: appleTrack.artist,
-            durationMs: appleTrack.durationMs,
-          }, signal);
-          const videoId = clean(match?.id);
-          if (VIDEO_ID_RE.test(videoId)) {
-            results[index] = {
-              id: videoId,
+          if (typeof finder === 'function') {
+            match = await finder({
               title: appleTrack.title,
               artist: appleTrack.artist,
-              thumbnail: appleTrack.artwork || clean(match?.thumbnail),
-              duration: appleTrack.durationMs > 0 ? Math.round(appleTrack.durationMs / 1000) : Number(match?.duration || 0),
-              playlist: album.name,
-              badges: ['Apple Music', 'Album', 'Strict match'],
-              sourceUrl: parsed.href,
-              appleTrackId: appleTrack.appleTrackId,
-              appleTrackUrl: appleTrack.appleUrl,
-              importedAt: new Date().toISOString(),
-              strictMatchedAt: new Date().toISOString(),
-            };
+              durationMs: appleTrack.durationMs,
+            }, signal);
           }
         } catch (error) {
           if (error?.name === 'AbortError') throw error;
           console.warn('[AmpMusic] Apple album track unresolved', appleTrack.title, error);
         } finally {
+          const entry = albumEntry(appleTrack, album, parsed, match);
+          results[index] = entry;
+          if (entry.id) matched += 1;
           completed += 1;
-          onProgress?.({ completed, total: album.tracks.length, matched: results.filter(Boolean).length });
+          onProgress?.({ completed, total: album.tracks.length, matched });
         }
       }
     }));
@@ -169,20 +178,23 @@
       const tracks = await resolveTracks(album, parsed, controller.signal, ({ completed, total, matched }) => {
         options.onStatus?.({ phase: 'matching', message: `Matching ${completed}/${total} · ${matched} found`, completed, total, matched });
       });
-      if (!tracks.length) throw new Error('No album tracks could be safely matched');
 
       const result = window.importTracks?.(tracks) || { added: 0 };
-      const firstIndex = libraryIndex(tracks[0].id);
+      const matched = tracks.filter((track) => track.id).length;
+      const playable = tracks.find((track) => track.id);
+      const firstIndex = playable ? libraryIndex(playable.id) : -1;
       if (options.input) options.input.value = '';
       if (options.play !== false && firstIndex >= 0) {
         if (typeof window.ampMusicPlayDirectIndex === 'function') void window.ampMusicPlayDirectIndex(firstIndex);
         else window.playIndex?.(firstIndex);
       }
+      const unresolved = tracks.length - matched;
       options.onStatus?.({
         phase: 'done',
-        message: `${album.tracks.length} tracks · ${tracks.length} matched · ${result.added || 0} new`,
+        message: [`${album.tracks.length} tracks`, `${matched} matched`, unresolved ? `${unresolved} unresolved` : '', `${result.added || 0} new`].filter(Boolean).join(' · '),
         total: album.tracks.length,
-        matched: tracks.length,
+        matched,
+        unresolved,
         added: result.added || 0,
       });
       return { handled: true, album, tracks, added: result.added || 0 };

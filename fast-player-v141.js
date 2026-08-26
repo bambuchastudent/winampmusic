@@ -26,6 +26,13 @@
 
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
+  const localRecordingId = (title, artist) => {
+    const text = `${title}\u0000${artist}`.toLowerCase();
+    let a = 0x811c9dc5; let b = 0x1b873593;
+    for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; }
+    return `U-${a.toString(36).padStart(7, '0')}${(b % 46656).toString(36).padStart(3, '0')}`;
+  };
+
   function videoIdFromValue(raw) {
     const value = clean(raw);
     if (VIDEO_ID_RE.test(value)) return value;
@@ -52,12 +59,7 @@
       return value.filter((track) => track && clean(track.id)).map((track) => {
         const rawId = clean(track.id);
         const normalizedId = videoIdFromValue(rawId) || rawId;
-        return {
-          ...track,
-          id: normalizedId,
-          title: clean(track.title) || `YouTube ${normalizedId}`,
-          artist: clean(track.artist) || 'YouTube',
-        };
+        return { ...track, id: normalizedId, title: clean(track.title), artist: clean(track.artist) };
       });
     } catch { return []; }
   };
@@ -77,6 +79,10 @@
   const repairAttempts = new Set();
 
   const setStatus = (text) => { ui.status.textContent = text; };
+  const isResolved = (track) => VIDEO_ID_RE.test(clean(track?.id));
+  const recordingId = (track) => (clean(track?.title) ? localRecordingId(clean(track.title), clean(track.artist)) : '');
+  const shownTitle = (track) => clean(track?.title) || 'Unknown track';
+  const shownArtist = (track) => clean(track?.artist) || 'Unknown artist';
   const saveLibrary = () => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(library)); } catch {}
   };
@@ -109,8 +115,8 @@
       ui.artist.textContent = library.length ? 'Tap a track or ▶' : 'Your saved library is empty';
       return;
     }
-    ui.title.textContent = track.title;
-    ui.artist.textContent = track.artist;
+    ui.title.textContent = shownTitle(track);
+    ui.artist.textContent = shownArtist(track);
     saveCurrent();
     highlightCurrent();
   }
@@ -118,17 +124,17 @@
   function makeRow(index) {
     const track = library[index];
     const row = document.createElement('li');
-    row.className = `track${index === currentIndex ? ' active' : ''}`;
+    row.className = `track${index === currentIndex ? ' active' : ''}${isResolved(track) ? '' : ' unresolved'}`;
     row.dataset.index = String(index);
     const number = document.createElement('span');
     number.className = 'track-index';
     number.textContent = String(index + 1).padStart(2, '0');
     const main = document.createElement('button');
     main.type = 'button'; main.className = 'track-main'; main.dataset.index = String(index);
-    main.setAttribute('aria-label', `Play ${track.title}`);
+    main.setAttribute('aria-label', `Play ${shownTitle(track)}`);
     main.style.cssText = 'display:block;width:100%;border:0;background:transparent;color:inherit;text-align:left;padding:6px 0;cursor:pointer;touch-action:manipulation';
-    const title = document.createElement('div'); title.className = 'track-title'; title.textContent = track.title;
-    const artist = document.createElement('div'); artist.className = 'track-artist'; artist.textContent = track.artist;
+    const title = document.createElement('div'); title.className = 'track-title'; title.textContent = shownTitle(track);
+    const artist = document.createElement('div'); artist.className = 'track-artist'; artist.textContent = shownArtist(track);
     main.append(title, artist);
     const marker = document.createElement('span'); marker.className = 'track-play'; marker.textContent = index === currentIndex && playing ? '⏸' : '▶';
     row.append(number, main, marker);
@@ -275,7 +281,7 @@
       const safeId = videoIdFromValue(track.id);
       if (!safeId) {
         const repaired = await repairCurrentTrack();
-        if (!repaired) { ui.play.textContent = '▶'; setStatus('TRACK SOURCE INVALID · RE-IMPORT'); }
+        if (!repaired) { ui.play.textContent = '▶'; setStatus(clean(track.id).startsWith('U-') ? 'NO SOURCE FOUND · RESOLVE LATER' : 'TRACK SOURCE INVALID · RE-IMPORT'); }
         return;
       }
       if (safeId !== track.id) { track.id = safeId; saveLibrary(); renderLibrary(filtered); }
@@ -309,14 +315,21 @@
 
   function importTracks(items) {
     const incoming = Array.isArray(items) ? items : [];
-    let added = 0;
+    let added = 0; let adopted = 0;
     for (const item of incoming) {
-      const id = videoIdFromValue(item?.id);
-      if (!id || library.some((track) => track.id === id)) continue;
-      library.push({ ...item, id, title: clean(item.title) || `YouTube ${id}`, artist: clean(item.artist) || 'YouTube' });
-      added += 1;
+      const playable = videoIdFromValue(item?.id);
+      const title = clean(item?.title); const artist = clean(item?.artist);
+      if (!playable && !title) continue;
+      const localId = title ? localRecordingId(title, artist) : '';
+      const id = playable || localId;
+      const known = library.findIndex((track) => track.id === id || (localId && recordingId(track) === localId));
+      if (known >= 0) {
+        if (playable && !isResolved(library[known])) { library[known].id = playable; adopted += 1; }
+        continue;
+      }
+      library.push({ ...item, id, title, artist }); added += 1;
     }
-    if (added) { saveLibrary(); filtered = library.map((_, index) => index); renderLibrary(filtered); }
+    if (added || adopted) { saveLibrary(); filtered = library.map((_, index) => index); renderLibrary(filtered); }
     return { added, total: library.length };
   }
 
@@ -356,6 +369,8 @@
   window.renderLibrary = () => renderLibrary(filtered);
   window.winampMusicLoadYouTubeApi = loadYouTubeApi;
   window.ampMusicVideoIdFromValue = videoIdFromValue;
+  window.ampMusicIsResolved = isResolved;
+  window.ampMusicRecordingId = localRecordingId;
 
   updateNowPlaying(); renderLibrary(); setStatus('READY · FAST');
   scheduleIdle(() => ensurePlayer().catch(() => {}), 1500);

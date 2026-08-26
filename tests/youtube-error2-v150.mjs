@@ -60,8 +60,13 @@ let saved = JSON.parse(window.localStorage.getItem('winampmusic.library.v1'));
 assert.equal(saved[0].id, 'dQw4w9WgXcQ', 'repaired ID should persist');
 assert.equal(window.document.getElementById('status').textContent, 'PLAYING');
 
-const rejected = window.importTracks([{ id: 'not-11', title: 'Bad', artist: 'Bad' }]);
-assert.equal(rejected.added, 0, 'new malformed IDs must be rejected');
+const kept = window.importTracks([{ id: 'not-11', title: 'Bad', artist: 'Bad' }]);
+assert.equal(kept.added, 1, 'a malformed provider ID must discard the ID, not the recording');
+saved = JSON.parse(window.localStorage.getItem('winampmusic.library.v1'));
+assert.notEqual(saved.at(-1).id, 'not-11', 'a malformed provider ID must never be stored');
+assert.ok(!/^[A-Za-z0-9_-]{11}$/.test(saved.at(-1).id), 'an unresolved track must not hold a provider-shaped ID');
+assert.equal(saved.at(-1).title, 'Bad', 'the recording metadata must survive');
+assert.ok(!loaded.includes(saved.at(-1).id), 'an unresolved ID must never reach provider playback');
 const normalized = window.importTracks([{ id: 'https://youtu.be/9bZkp7q19f0', title: 'Gangnam Style', artist: 'PSY' }]);
 assert.equal(normalized.added, 1, 'legacy URL-shaped ID should normalize to a video ID');
 saved = JSON.parse(window.localStorage.getItem('winampmusic.library.v1'));

@@ -134,6 +134,9 @@ h2 { margin-bottom: 0; font-size: 18px; }
 }
 .track:first-child { border-top: 0; }
 .track.active { background: rgba(240,201,77,.08); }
+.track.unresolved .track-title, .track.unresolved .track-artist { opacity: .62; }
+.track.unresolved .track-index::after { content: "·"; color: var(--accent); margin-left: 2px; }
+.track.unresolved .track-play { opacity: .5; }
 .track-index { color: var(--muted); font: 11px "SFMono-Regular", Consolas, monospace; text-align: right; }
 .track-main { min-width: 0; }
 .track-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }

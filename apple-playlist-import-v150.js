@@ -155,9 +155,7 @@
     });
     if (!response.ok) throw new Error(`Apple playlist reader HTTP ${response.status}`);
     const markdown = await response.text();
-    const playlist = parsePlaylistMarkdown(markdown, parsed);
-    if (!playlist.tracks.length) throw new Error('Apple playlist contained no readable tracks');
-    return playlist;
+    return parsePlaylistMarkdown(markdown, parsed);
   }
 
   function libraryIndex(videoId) {
@@ -169,13 +167,32 @@
     }
   }
 
+  function playlistEntry(appleTrack, playlist, parsed, match) {
+    const videoId = clean(match?.id);
+    const resolved = VIDEO_ID_RE.test(videoId);
+    return {
+      ...(resolved ? { id: videoId } : {}),
+      title: appleTrack.title,
+      artist: appleTrack.artist,
+      album: appleTrack.album,
+      thumbnail: resolved ? clean(match?.thumbnail) : '',
+      duration: appleTrack.durationMs > 0 ? Math.round(appleTrack.durationMs / 1000) : Number(match?.duration || 0),
+      playlist: playlist.name,
+      badges: ['Apple Music', 'Playlist', resolved ? 'YouTube match' : 'Unresolved'],
+      sourceUrl: parsed.href,
+      appleTrackId: appleTrack.appleTrackId,
+      appleTrackUrl: appleTrack.appleUrl,
+      importedAt: new Date().toISOString(),
+    };
+  }
+
   async function resolveTracks(playlist, parsed, signal, onProgress) {
     const finder = window.winampMusicAppleImport?.findYouTubeMatch;
-    if (typeof finder !== 'function') throw new Error('Apple Music matcher is not ready');
     const results = new Array(playlist.tracks.length).fill(null);
     const matchCache = new Map();
     let cursor = 0;
     let completed = 0;
+    let matched = 0;
     const workers = Math.min(4, playlist.tracks.length);
 
     await Promise.all(Array.from({ length: workers }, async () => {
@@ -184,47 +201,44 @@
         cursor += 1;
         if (index >= playlist.tracks.length) return;
         const appleTrack = playlist.tracks[index];
+        let match = null;
         try {
-          const cacheKey = `${clean(appleTrack.title).toLowerCase()}\u0000${clean(appleTrack.artist).toLowerCase()}`;
-          let matchPromise = matchCache.get(cacheKey);
-          if (!matchPromise) {
-            matchPromise = Promise.resolve(finder({
-              title: appleTrack.title,
-              artist: appleTrack.artist,
-              album: appleTrack.album,
-              durationMs: appleTrack.durationMs,
-            }, signal));
-            matchCache.set(cacheKey, matchPromise);
-          }
-          const match = await matchPromise;
-          const videoId = clean(match?.id);
-          if (VIDEO_ID_RE.test(videoId)) {
-            results[index] = {
-              id: videoId,
-              title: appleTrack.title,
-              artist: appleTrack.artist,
-              thumbnail: clean(match?.thumbnail),
-              duration: appleTrack.durationMs > 0 ? Math.round(appleTrack.durationMs / 1000) : Number(match?.duration || 0),
-              playlist: playlist.name,
-              badges: ['Apple Music', 'Playlist', 'YouTube match'],
-              sourceUrl: parsed.href,
-              appleTrackId: appleTrack.appleTrackId,
-              appleTrackUrl: appleTrack.appleUrl,
-              importedAt: new Date().toISOString(),
-            };
+          if (typeof finder === 'function') {
+            const cacheKey = `${clean(appleTrack.title).toLowerCase()}\u0000${clean(appleTrack.artist).toLowerCase()}`;
+            let matchPromise = matchCache.get(cacheKey);
+            if (!matchPromise) {
+              matchPromise = Promise.resolve(finder({
+                title: appleTrack.title,
+                artist: appleTrack.artist,
+                album: appleTrack.album,
+                durationMs: appleTrack.durationMs,
+              }, signal));
+              matchCache.set(cacheKey, matchPromise);
+            }
+            match = await matchPromise;
           }
         } catch (error) {
           if (error?.name === 'AbortError') throw error;
           console.warn('[AmpMusic] Apple playlist track unresolved', appleTrack.title, error);
         } finally {
+          const entry = playlistEntry(appleTrack, playlist, parsed, match);
+          results[index] = entry;
+          if (entry.id) matched += 1;
           completed += 1;
-          onProgress?.({ completed, total: playlist.tracks.length, matched: results.filter(Boolean).length });
+          onProgress?.({ completed, total: playlist.tracks.length, matched });
         }
       }
     }));
 
     return results.filter(Boolean);
   }
+
+  const doneMessage = (total, matched, unresolved, added) => [
+    `${total} tracks`,
+    `${matched} matched`,
+    unresolved ? `${unresolved} unresolved` : '',
+    `${added} new`,
+  ].filter(Boolean).join(' · ');
 
   async function importPlaylistUrl(value, options = {}) {
     const parsed = parsePlaylistUrl(value);
@@ -237,21 +251,28 @@
     try {
       options.onStatus?.({ phase: 'reading', message: 'Reading Apple Music playlist…' });
       const playlist = await fetchPublicPlaylist(parsed, controller.signal);
+      if (!playlist.tracks.length) {
+        if (options.input) options.input.value = '';
+        options.onStatus?.({ phase: 'empty', message: 'This Apple Music playlist has no readable tracks', total: 0, matched: 0, unresolved: 0, added: 0 });
+        return { handled: true, empty: true, playlist, tracks: [], added: 0 };
+      }
       options.onStatus?.({ phase: 'matching', message: `Matching 0/${playlist.tracks.length} tracks…`, total: playlist.tracks.length });
       const tracks = await resolveTracks(playlist, parsed, controller.signal, ({ completed, total, matched }) => {
         options.onStatus?.({ phase: 'matching', message: `Matching ${completed}/${total} · ${matched} found`, completed, total, matched });
       });
-      if (!tracks.length) throw new Error('No playlist tracks could be matched on YouTube');
 
       const result = window.importTracks?.(tracks) || { added: 0 };
-      const firstIndex = libraryIndex(tracks[0].id);
+      const matched = tracks.filter((track) => track.id).length;
+      const playable = tracks.find((track) => track.id);
+      const firstIndex = playable ? libraryIndex(playable.id) : -1;
       if (options.input) options.input.value = '';
       if (options.play !== false && firstIndex >= 0) window.playIndex?.(firstIndex);
       options.onStatus?.({
         phase: 'done',
-        message: `${playlist.tracks.length} tracks · ${tracks.length} matched · ${result.added || 0} new`,
+        message: doneMessage(playlist.tracks.length, matched, tracks.length - matched, result.added || 0),
         total: playlist.tracks.length,
-        matched: tracks.length,
+        matched,
+        unresolved: tracks.length - matched,
         added: result.added || 0,
       });
       return { handled: true, playlist, tracks, added: result.added || 0 };
