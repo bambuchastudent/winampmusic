@@ -20,7 +20,7 @@ The relay is therefore transport convenience, not musical state or source of tru
 3. Provide `RATE_SALT` to Wrangler as a Worker secret; never render it into a file or Pages artifact.
 4. Capture and normalize Wrangler's deployment URL.
 5. Generate `ampula-short-link-config.js` containing only that public HTTPS relay origin.
-6. Health-check `/healthz` when a relay URL was produced.
+6. Health-check `/healthz` when a relay URL was produced; reset the browser config to inert if health fails.
 7. Upload the site to Pages.
 
 Relay deployment is explicitly optional. A failed optional deploy must not prevent the existing Pages application from being published; in that case the generated runtime config leaves the relay disabled and the canonical share path remains active.
@@ -35,7 +35,7 @@ The Durable Object binding and its existing `v1` migration remain unchanged.
 
 A checked-in `ampula-short-link-config.js` is inert by default. Production CI overwrites that file in the deployment workspace after the optional Worker deploy. It is not committed back to git.
 
-`index.html` loads the config before `fast-actions-v143.js`. The short-link adapter itself is still lazy-loaded by the existing share/receive flow, so no relay code enters the critical playback startup path.
+The config stays off the critical startup path. `fast-actions-v143.js` loads it immediately before it lazy-loads `ampula-short-link-v163.js` for either Share or `?al=` receive. This guarantees configuration is available before alias code executes without making short-link infrastructure part of normal playback startup.
 
 The generator accepts potentially messy Wrangler Action output and normalizes it to one HTTPS origin/base URL. If the value is empty, malformed, or non-HTTPS it emits the inert configuration instead.
 
@@ -46,7 +46,7 @@ Required GitHub secrets for relay deployment:
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 
-`RATE_SALT` is generated for the deployment job and uploaded as a Worker secret. It is not exposed to browser code. The Pages artifact contains only the public relay URL.
+`RATE_SALT` is generated for the deployment job and uploaded as a Worker secret. It is not exposed to browser code. The Worker fails closed for alias creation if the salt is unavailable. The Pages artifact contains only the public relay URL.
 
 The relay record format remains unchanged: opaque payload, creation time, expiry time. No account/session identity is introduced.
 
@@ -56,6 +56,7 @@ The relay record format remains unchanged: opaque payload, creation time, expiry
 - Invalid credentials / Cloudflare outage / first-account bootstrap missing: optional relay step fails; generated config disables relay; Pages deploy continues.
 - Wrangler produces an unusable deployment URL: config generator rejects it; canonical links remain primary fallback.
 - Health check fails: runtime config is reset to inert before Pages upload.
+- `RATE_SALT` is absent at runtime: alias creation fails closed with `503`; canonical link remains usable.
 - Runtime relay timeout or non-2xx: existing 2500 ms bounded adapter returns `null`; canonical URL stays copied.
 - Alias expires or relay disappears later: alias can fail, but `.ampula` and canonical `?a=` transports remain independent and valid.
 
