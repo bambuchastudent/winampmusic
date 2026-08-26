@@ -66,6 +66,7 @@ const legacyDom = new JSDOM(`<!doctype html><body>
   pretendToBeVisual: true,
 });
 legacyDom.window.eval(code);
+await new Promise((resolve) => setTimeout(resolve, 0));
 assert.ok(legacyDom.window.document.querySelector('script[data-fast-module="legacy-share"]'), 'historical p/s URLs must route to the lazy compatibility adapter');
 assert.equal(legacyDom.window.document.querySelector('script[data-fast-module="compact-share"]'), null, 'legacy provider-only URL must not be routed through canonical Ámpula receive');
 
