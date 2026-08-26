@@ -36,16 +36,6 @@ the artist MUST remain `t.A.T.u.`,
 the Apple origin metadata MUST remain present,
 and only mutable playback fields may change.
 
-## Requirement: Invalid resolver results are not adopted
-
-A resolver result that is not a valid YouTube video id MUST NOT replace the current playback handle.
-
-### Scenario: Invalid id
-
-Given an existing recording,
-when the adoption operation receives an invalid id,
-then it MUST return failure and MUST NOT mutate the stored or in-memory recording.
-
 ## Requirement: Playback status remains truthful
 
 Finding or adopting a candidate MUST NOT by itself claim that audio is playing. Existing playback events remain responsible for `PLAYING` status, and `NO PLAYABLE SOURCE` is only valid after usable playback routes have failed.
