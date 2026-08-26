@@ -37,13 +37,14 @@ jobs:
             origin-playback-v151.js \
             v059.js \
             compact-share.js \
-            share-ui-cleanup-v161.js \
+            share-ui-cleanup-v162.js \
             legacy-share-v1.js \
             qr-share-v1.js \
             sw.js \
             tests/repository-integrity-v1.mjs \
             tests/apple-full-resolution-v162.mjs \
             tests/legacy-share-recovery-v1.mjs \
+            tests/fast-actions-v143.mjs \
             tests/share-ui-cleanup-v1.mjs; do
             node --check "$file"
           done
