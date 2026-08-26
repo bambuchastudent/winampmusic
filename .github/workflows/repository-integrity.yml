@@ -20,6 +20,7 @@ jobs:
           for file in \
             fast-player-v141.js \
             fast-release-v150.js \
+            playback-continuity-v160.js \
             clean-playback-v150.js \
             apple-catalog-first-v150.js \
             apple-resolution-v162.js \
@@ -45,7 +46,8 @@ jobs:
             tests/apple-full-resolution-v162.mjs \
             tests/legacy-share-recovery-v1.mjs \
             tests/fast-actions-v143.mjs \
-            tests/share-ui-cleanup-v1.mjs; do
+            tests/share-ui-cleanup-v1.mjs \
+            tests/local-playback-continuity-v160.mjs; do
             node --check "$file"
           done
 
@@ -54,6 +56,9 @@ jobs:
 
       - name: Repository dependency integrity
         run: node tests/repository-integrity-v1.mjs
+
+      - name: Local playback continuity
+        run: node tests/local-playback-continuity-v160.mjs
 
       - name: Apple full-source resolution
         run: node tests/apple-full-resolution-v162.mjs
