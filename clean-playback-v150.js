@@ -246,6 +246,11 @@
     const id = parseVideoId(match?.id);
     if (!id) throw new Error('Strict Apple source unavailable');
 
+    // The FAST core owns an in-memory working library. Feed the resolved source
+    // through its existing provider-independent recording adoption path before
+    // any direct-audio fallback can call playIndex with stale state.
+    window.importTracks?.([{ id, title: clean(track?.title), artist: clean(track?.artist) }]);
+
     const library = readLibrary();
     if (library[index]) {
       library[index] = {
