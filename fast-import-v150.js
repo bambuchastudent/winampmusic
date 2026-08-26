@@ -7,6 +7,7 @@
   const input = document.getElementById('fastImportInput');
   const button = document.getElementById('fastImportButton');
   const hint = document.getElementById('fastImportHint');
+  const textImportToggle = document.getElementById('textImportToggle');
   if (!form || !input || !button) return;
 
   const clean = (value) => String(value || '').trim();
@@ -204,7 +205,32 @@
     input.value = ''; window.playIndex?.(index); void upgradeMetadata(id);
   });
 
-  input.addEventListener('paste', () => {
+  function multilinePaste(value) {
+    const text = String(value || '');
+    return text.split(/\r?\n/).filter((line) => line.trim()).length > 1 ? text : '';
+  }
+
+  async function openTextImport(text) {
+    try {
+      await loadScript('./telegram-text-import-v1.js?v=161', 'telegram-text-import');
+      const api = window.ampMusicTelegramText1;
+      if (!api) throw new Error('telegram text import unavailable');
+      if (text) api.openPanel(text); else api.togglePanel();
+    } catch (error) {
+      console.warn('[AmpMusic] text import unavailable', error);
+      if (hint) hint.textContent = 'Text import unavailable · links still work';
+    }
+  }
+
+  textImportToggle?.addEventListener('click', () => { void openTextImport(''); });
+
+  input.addEventListener('paste', (event) => {
+    const pasted = multilinePaste(event?.clipboardData?.getData?.('text'));
+    if (pasted) {
+      event.preventDefault();
+      void openTextImport(pasted);
+      return;
+    }
     setTimeout(() => {
       const apple = parseApple(input.value); const youtube = parseYouTube(input.value);
       if (apple?.type === 'track') hint.textContent = 'Apple Music track ready — tap Add & Play';
@@ -214,6 +240,6 @@
     }, 0);
   });
 
-  window.ampMusicImport150 = { parseVideoId, parseApple, parseYouTube, resolveYouTubePlaylist, upgradeMetadata };
+  window.ampMusicImport150 = { parseVideoId, parseApple, parseYouTube, resolveYouTubePlaylist, upgradeMetadata, openTextImport };
   console.info('[AmpMusic] fast import 1.5 ready');
 })();

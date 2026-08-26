@@ -10,6 +10,7 @@ const CORE = [
   './fast-player-v141.js',
   './fast-release-v150.js',
   './fast-import-v150.js',
+  './telegram-text-import-v1.js',
   './apple-music-import-v064.js',
   './apple-playlist-import-v150.js',
   './stable-v150.js',

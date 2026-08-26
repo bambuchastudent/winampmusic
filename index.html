@@ -25,6 +25,12 @@
     .fast-import{margin:0 0 8px;padding:12px;border:1px solid #343a46;border-radius:14px;background:linear-gradient(180deg,#22262d,#15181e)}
     .fast-import-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:8px}.fast-import-head strong{font-size:13px}.fast-import-hint{font-size:10px;color:#8f98a8;text-align:right}
     .fast-import-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.fast-import-form input{min-width:0;min-height:46px;border:1px solid #343a46;border-radius:9px;background:#101217;color:#fff;padding:0 12px;font-size:16px;outline:none}.fast-import-form button{min-width:110px;border:1px solid #c99c22;border-radius:9px;background:linear-gradient(#ffe680,#c9a630);color:#171717;font-weight:900;padding:0 14px}
+    .text-import-toggle{margin-top:8px;min-height:36px;border:1px solid #343a46;border-radius:9px;background:#191d24;color:#cfd6e2;font:800 11px/1 system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:0 12px;touch-action:manipulation}
+    .text-import-toggle[aria-expanded="true"]{border-color:#8f7724;background:#2f2a19;color:#f7d95d}
+    .text-import-panel{display:grid;gap:8px;margin-top:8px}.text-import-panel[hidden]{display:none!important}
+    .text-import-area{width:100%;box-sizing:border-box;min-height:112px;resize:vertical;border:1px solid #343a46;border-radius:9px;background:#101217;color:#fff;padding:10px 12px;font:400 14px/1.45 system-ui,sans-serif;outline:none}
+    .text-import-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.text-import-actions button{min-height:40px;min-width:120px;border:1px solid #c99c22;border-radius:9px;background:linear-gradient(#ffe680,#c9a630);color:#171717;font-weight:900;padding:0 14px;touch-action:manipulation}
+    .text-import-hint{flex:1 1 140px;font-size:10px;color:#8f98a8;text-align:right}
     .brand-lockup{display:flex;align-items:center;gap:11px;min-width:0}.brand-stack{display:grid;gap:2px}.brand-title-row{display:flex;align-items:center;gap:10px}.brand-bottle-link{display:block;width:64px;height:98px;flex:0 0 auto;border-radius:18px;text-decoration:none;outline:none}.brand-bottle-link:focus-visible{box-shadow:0 0 0 2px #f0c94d}.brand-bottle-link .bottle15{transition:transform .15s ease,filter .15s ease}.brand-bottle-link:hover .bottle15{transform:translateY(-1px);filter:drop-shadow(0 12px 22px rgba(0,0,0,.45))}
     .bottle15{width:64px;height:98px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35));pointer-events:none;user-select:none}
     .bottle15-cap{position:absolute;top:0;width:30px;height:12px;border-radius:6px 6px 3px 3px;background:linear-gradient(#fafafa,#9299a4);border:1px solid #dfe4e8}
@@ -73,6 +79,14 @@
         <input id="fastImportInput" type="search" inputmode="search" autocomplete="off" placeholder="Song, artist, or YouTube / Apple Music link…" aria-label="Search music or paste a YouTube or Apple Music link" />
         <button id="fastImportButton" type="submit">Search</button>
       </form>
+      <button id="textImportToggle" type="button" class="text-import-toggle" aria-expanded="false" aria-controls="textImportPanel">Paste a list</button>
+      <div id="textImportPanel" class="text-import-panel" hidden>
+        <textarea id="textImportInput" class="text-import-area" rows="5" spellcheck="false" autocomplete="off" placeholder="Massive Attack — Teardrop&#10;The xx - Intro" aria-label="Paste lines like Artist — Title"></textarea>
+        <div class="text-import-actions">
+          <button id="textImportButton" type="button">Import lines</button>
+          <span id="textImportHint" class="text-import-hint">One line per track · Artist — Title</span>
+        </div>
+      </div>
     </section>
 
     <section class="player" aria-label="Player">
