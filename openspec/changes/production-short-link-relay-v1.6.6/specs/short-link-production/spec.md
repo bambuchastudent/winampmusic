@@ -44,7 +44,7 @@ The browser runtime configuration MUST contain only the public HTTPS relay base 
 
 ## Requirement: rate-limit salt is secret
 
-`RATE_SALT` MUST NOT be committed as a usable value in Worker variables and MUST be supplied as private deployment state.
+`RATE_SALT` MUST NOT be committed as a usable value in Worker variables and MUST be supplied as private deployment state. Alias creation MUST fail closed when the salt is unavailable.
 
 ### Scenario: repository configuration is inspected
 
@@ -52,16 +52,30 @@ The browser runtime configuration MUST contain only the public HTTPS relay base 
 - THEN no placeholder or production rate-limit salt is stored in `[vars]`
 - AND the Worker still receives `RATE_SALT` through the deployment mechanism when relay deployment is enabled.
 
+### Scenario: salt is missing at runtime
+
+- GIVEN the relay Worker has no `RATE_SALT` secret
+- WHEN a client attempts to create an alias
+- THEN alias creation fails closed
+- AND the client can retain its canonical self-contained link.
+
 ## Requirement: client wiring is available before alias use
 
-The runtime relay configuration MUST load before the application can lazy-load and execute the short-link adapter.
+The runtime relay configuration MUST load before the application executes the short-link adapter, while remaining outside normal playback startup.
 
 ### Scenario: user shares music
 
 - GIVEN production CI generated a relay config
-- WHEN the application loads and the user activates Share
-- THEN the config has executed before `fast-actions-v143.js` can load `ampula-short-link-v163.js`
+- WHEN the user activates Share
+- THEN `fast-actions-v143.js` loads the config before it loads `ampula-short-link-v163.js`
 - AND the alias adapter can attempt short-link creation.
+
+### Scenario: user opens a short alias
+
+- GIVEN the URL contains `?al=`
+- WHEN the receive path starts
+- THEN the same runtime config loads before the short-link adapter
+- AND alias resolution can use the configured relay.
 
 ## Requirement: relay failure never replaces the canonical fallback
 
