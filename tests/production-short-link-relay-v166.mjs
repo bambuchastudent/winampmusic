@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import { normalizeRelayUrl, renderRelayConfig } from '../scripts/generate-short-link-config.mjs';
 
 const wrangler = fs.readFileSync('relay/short-link/wrangler.toml', 'utf8');
+const worker = fs.readFileSync('relay/short-link/worker.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/pages.yml', 'utf8');
-const index = fs.readFileSync('index.html', 'utf8');
+const actions = fs.readFileSync('fast-actions-v143.js', 'utf8');
 const defaultConfig = fs.readFileSync('ampula-short-link-config.js', 'utf8');
 const adapter = fs.readFileSync('ampula-short-link-v163.js', 'utf8');
 const cleanup = fs.readFileSync('share-ui-cleanup-v162.js', 'utf8');
@@ -14,6 +15,8 @@ assert.match(wrangler, /binding\s*=\s*"AMPULA_LINKS"/, 'relay must keep its KV b
 assert.doesNotMatch(wrangler, /REPLACE_WITH_KV_NAMESPACE_ID|replace-me/, 'deployable config must have no account placeholder values');
 assert.doesNotMatch(wrangler, /^RATE_SALT\s*=/m, 'RATE_SALT must not be a checked-in Worker var');
 assert.doesNotMatch(wrangler, /^id\s*=\s*"/m, 'KV id must be provisioned for the target account instead of committed');
+assert.match(worker, /if \(!env\?\.RATE_SALT\)/, 'alias creation must fail closed when the deployment salt is absent');
+assert.doesNotMatch(worker, /RATE_SALT \|\| 'ampula'/, 'worker must not fall back to a public fixed salt');
 
 assert.match(workflow, /CLOUDFLARE_API_TOKEN/, 'Pages delivery must support Cloudflare deployment credentials');
 assert.match(workflow, /CLOUDFLARE_ACCOUNT_ID/, 'Pages delivery must identify the Cloudflare account');
@@ -25,11 +28,12 @@ assert.match(workflow, /RATE_SALT/, 'deployment must supply the private rate-lim
 assert.match(workflow, /generate-short-link-config\.mjs/, 'Pages artifact must receive runtime relay configuration');
 assert.match(workflow, /healthz/, 'a produced relay URL must be health checked');
 
-const configPos = index.indexOf('./ampula-short-link-config.js');
-const actionsPos = index.indexOf('./fast-actions-v143.js');
-assert.ok(configPos >= 0, 'index must load the relay runtime config');
-assert.ok(actionsPos >= 0, 'index must load fast actions');
-assert.ok(configPos < actionsPos, 'relay config must execute before fast actions can lazy-load the adapter');
+const configPos = actions.indexOf("./ampula-short-link-config.js?v=166");
+const adapterPos = actions.indexOf("./ampula-short-link-v163.js?v=163");
+assert.ok(configPos >= 0, 'fast actions must lazy-load the relay runtime config');
+assert.ok(adapterPos >= 0, 'fast actions must retain the short-link adapter');
+assert.ok(configPos < adapterPos, 'relay config must be referenced before the short-link adapter');
+assert.match(actions, /short-link-config[\s\S]*ampula-short-link/, 'Share/receive loader must sequence config before alias code');
 assert.match(defaultConfig, /AMPULA_SHORT_LINK_RELAY/, 'checked-in config must define the runtime hook');
 assert.doesNotMatch(defaultConfig, /workers\.dev|pages\.dev/, 'checked-in default config must not bind the app to a deployment');
 
