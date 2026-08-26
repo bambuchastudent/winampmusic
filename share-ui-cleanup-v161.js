@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  if (window.__AMP_MUSIC_SHARE_UI_CLEANUP_161__) return;
-  window.__AMP_MUSIC_SHARE_UI_CLEANUP_161__ = true;
+  if (window.__AMP_MUSIC_SHARE_UI_CLEANUP_162__) return;
+  window.__AMP_MUSIC_SHARE_UI_CLEANUP_162__ = true;
 
   const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
 
@@ -65,12 +65,11 @@
     setText(dialog.querySelector('#ampulaAdd'), 'Add to library');
     dialog.querySelector('#ampulaFile')?.remove();
 
-    for (const node of dialog.querySelectorAll('div')) {
-      if (/Opening this Ámpula does not change Your library/i.test(clean(node.textContent))) {
-        setText(node, 'Opening this link does not change your library.');
-        break;
-      }
-    }
+    const legacyNote = Array.from(dialog.querySelectorAll('div')).find((node) => (
+      node.children.length === 0
+      && /Opening this Ámpula does not change Your library/i.test(clean(node.textContent))
+    ));
+    setText(legacyNote, 'Opening this link does not change your library.');
   }
 
   function patchSavedDialog(dialog) {
@@ -112,5 +111,5 @@
   });
   observer.observe(document.body, { childList: true, subtree: true });
 
-  console.info('[AMPULAMP] compact Share UI cleanup 1.6.1 ready');
+  console.info('[AMPULAMP] compact Share UI cleanup 1.6.2 ready');
 })();
