@@ -18,7 +18,7 @@ The canonical human-readable representation is a UTF-8 **`.ampula` JSON file**. 
 
 ## Current flow
 
-1. Search for music or paste a supported YouTube / Apple Music track, album, or playlist link.
+1. Search for music, paste a supported YouTube / Apple Music track, album, or playlist link, or paste a list of `Artist — Title` lines.
 2. Keep the working playback library locally in the browser.
 3. Press **Share** to turn the current ordered library into Ámpula Core v1.
 4. The app creates a **self-contained `?a=` link**. The musical metadata is inside the link; opening it does not require an Ámpula backend, hosted catalog, Pastepile, or short-link service.
@@ -86,6 +86,23 @@ The same rule now holds inside the working library. A track is identified by its
 
 Provider import adapters follow the same rule. Reading an Apple Music playlist or album and finding a playable source for its tracks are separate outcomes: every track the adapter could read is imported in the original order with its Apple title, artist and album, whether or not a playable source was found for it today. Playback starts on the first track that can actually be played, the completion status reports how many tracks are unresolved, and a playlist page that yields no readable tracks is reported as empty rather than as a failed import.
 
+## Text import
+
+The most common way a musical moment travels is a line of chat text, with no provider link at all. **Paste a list** in the music section opens a box for that text:
+
+```text
+Massive Attack — Teardrop
+The xx - Intro
+Portishead – Roads
+13:42 Dmitry: Артист — Название песни
+```
+
+Em dash, en dash and a spaced hyphen are all accepted as the separator, and an obvious Telegram `time`/`name:` prefix is removed. The parser is deliberately conservative: empty lines, links, ordinary sentences, and anything whose artist or title would end up empty are skipped rather than guessed at. A hyphen with no spaces around it stays part of the word, so `Jay-Z` is not read as a track. Pasting several lines into the single-line search field opens the same box instead of collapsing them into one query.
+
+Every recognised line becomes an ordinary unresolved recording: no provider lookup happens during the import, nothing is searched on the network, and playback does not start. A source is looked for later, only when the track is played. Identity and duplicate handling are the library's existing ones, so `13:42 Dmitry: Massive Attack — Teardrop`, `Massive Attack — Teardrop` and `massive attack —   teardrop` are one recording, and a text import never duplicates a recording that another adapter already made playable. The import reports what it did, for example `12 lines · 8 tracks · 6 new · 2 already saved`. One paste is limited to 300 recordings so a whole chat export cannot freeze the app; anything beyond that is reported and can be pasted as a second batch.
+
+The Telegram origin is kept as a local badge on the track. Pasted text is not a stable playable item reference, so it never becomes an Ámpula provider observation; a shared text-imported track carries its real title and artists and nothing else.
+
 ## Current player
 
 The current web implementation is mobile-first and currently has the strongest playback/import integrations for YouTube and Apple Music. Those integrations are adapters around Ámpula rather than the format itself.
@@ -93,6 +110,7 @@ The current web implementation is mobile-first and currently has the strongest p
 Included today:
 
 - text search and YouTube / Apple Music link import, including tracks with no currently playable source;
+- pasted `Artist — Title` text import from Telegram-like chat text;
 - local persistent working library;
 - provider-independent track identity, including visible unresolved tracks;
 - play/pause, previous, next, shuffle, seek, volume and Radio;
