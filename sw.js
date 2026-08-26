@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.5-stable';
-const CACHE = 'winampmusic-shell-v150-stable';
+const BUILD = 'ampmusic-v1.6.1-share-recovery';
+const CACHE = 'winampmusic-shell-v161-share-recovery';
 const CORE = [
   './',
   './index.html',
@@ -17,6 +17,8 @@ const CORE = [
   './fast-background-v150.js',
   './unified-entry-v152.js',
   './compact-share.js',
+  './share-ui-cleanup-v161.js',
+  './legacy-share-v1.js',
   './qr-share-v1.js',
 ];
 
