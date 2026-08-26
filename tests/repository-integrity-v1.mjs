@@ -13,7 +13,7 @@ const html = read('index.html');
 const sw = read('sw.js');
 const fastActions = read('fast-actions-v143.js');
 const compactShare = read('compact-share.js');
-const shareUi = read('share-ui-cleanup-v161.js');
+const shareUi = read('share-ui-cleanup-v162.js');
 const legacyShare = read('legacy-share-v1.js');
 const guard = read('import-playback-guard-v159.js');
 const visualizer = read('header-visualizer-v159.js');
@@ -53,7 +53,7 @@ for (const file of [
   'fast-player-v141.js','clean-playback-v150.js','apple-catalog-first-v150.js','apple-musickit-v150.js',
   'unified-entry-v152.js','import-playback-guard-v159.js','header-visualizer-v159.js','fast-actions-v143.js',
   'fast-import-v150.js','apple-music-import-v064.js','apple-playlist-import-v150.js','apple-album-import-v150.js',
-  'fast-background-v150.js','origin-playback-v151.js','v059.js','compact-share.js','share-ui-cleanup-v161.js',
+  'fast-background-v150.js','origin-playback-v151.js','v059.js','compact-share.js','share-ui-cleanup-v162.js',
   'legacy-share-v1.js','qr-share-v1.js',
 ]) assert.ok(exists(file), `Missing protected current script: ${file}`);
 
@@ -65,7 +65,7 @@ assert.match(html, /id="headerSpectrum"/);
 assert.match(visualizer, /MutationObserver/);
 
 // Canonical Ámpula sharing remains lazy and self-contained. Historical p/s links are receive-only compatibility.
-assert.match(fastActions, /loadScript\('\.\/share-ui-cleanup-v161\.js\?v=161', 'share-ui-cleanup'\)/);
+assert.match(fastActions, /loadScript\('\.\/share-ui-cleanup-v162\.js\?v=162', 'share-ui-cleanup'\)/);
 assert.match(fastActions, /loadScript\('\.\/compact-share\.js\?v=161', 'compact-share'\)/);
 assert.match(fastActions, /loadScript\('\.\/qr-share-v1\.js\?v=161', 'qr-share'\)/);
 assert.match(fastActions, /loadScript\('\.\/legacy-share-v1\.js\?v=161', 'legacy-share'\)/);
@@ -90,6 +90,8 @@ assert.doesNotMatch(compactShare, /parseCompactIds/);
 assert.match(shareUi, /Share music/);
 assert.match(shareUi, /winampShareFile/);
 assert.match(shareUi, /Add to library/);
+assert.match(shareUi, /findReceivedNotice/);
+assert.match(shareUi, /node\.children\.length !== 0/);
 assert.match(legacyShare, /LEGACY SHARE RESTORED/);
 assert.match(legacyShare, /parseLegacyIds/);
 
