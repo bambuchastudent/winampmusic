@@ -13,19 +13,22 @@ The representation MUST preserve track order and human-readable title/artist met
 **Given** the sender has 18 ordered tracks with title and artist metadata  
 **When** the sender shares them  
 **Then** the generated Ámpula MUST contain all 18 tracks in the same order  
-**And** the link MUST be decodable without querying a central Ámpula backend  
+**And** the self-contained link MUST be decodable without querying a central Ámpula backend  
 **And** provider identifiers MUST remain observations rather than musical identity.
 
-## Requirement: Legacy provider-ID sharing is removed
+## Requirement: Legacy provider-ID sharing is not Ámpula
 
-The system MUST NOT generate, consume, or fall back to legacy `?p=<id>.<id>...` or remote `?s=` playlist sharing as Ámpula.
+The system MUST NOT generate or fall back to legacy `?p=<id>.<id>...` or remote `?s=` playlist sharing as Ámpula.
+
+A separate receive-only compatibility adapter MAY recognize historical `?p=` or `?s=` links, but provider-ID-only payloads MUST NOT be represented, validated, or saved as Ámpula Core v1.
 
 ### Scenario: Old share link is opened
 
 **Given** a URL contains only legacy `?p=` or `?s=` sharing  
 **When** AMPULAMP opens the URL  
-**Then** it MUST NOT import those IDs into the local library  
-**And** it MUST report that legacy share format as unsupported.
+**Then** the canonical `?a=` receiver MUST NOT treat the legacy payload as Ámpula  
+**And** a receive-only compatibility adapter MAY recover the historical playlist into working state  
+**And** the UI MUST identify the operation as legacy recovery rather than a received Ámpula.
 
 ## Requirement: Receiving is non-destructive
 
@@ -69,7 +72,22 @@ The receiver MUST be able to persist the original received Core v1 object using 
 
 ## Requirement: URL, QR and `.ampula` represent the same Core object
 
-A compact link/QR and `.ampula` file MUST decode to equivalent ordered musical-moment semantics. Transport-specific encoding MUST NOT become musical identity.
+A compact self-contained link/QR and `.ampula` file MUST decode to equivalent ordered musical-moment semantics. Transport-specific encoding MUST NOT become musical identity.
+
+## Requirement: Optional short-link aliases remain transport-only
+
+A deployment MAY offer a short URL alias that dereferences to an Ámpula Core v1 payload.
+
+The short token MUST NOT become Ámpula identity, track identity, or the only full-fidelity representation of the musical moment. A self-contained URL or `.ampula` export MUST remain available independently of the alias service.
+
+### Scenario: Short alias resolves successfully
+
+**Given** a short alias service is available  
+**And** the alias points to a valid Core v1 object  
+**When** the receiver opens the alias  
+**Then** the resulting received Ámpula MUST have equivalent ordered musical-moment semantics  
+**And** local playback resolution MUST follow the same rules as a self-contained `?a=` link  
+**And** the alias token MUST NOT be persisted as musical identity.
 
 ## Requirement: Share/receive failures do not break the core player
 
