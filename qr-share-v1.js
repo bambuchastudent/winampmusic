@@ -56,9 +56,9 @@
     panel.className = 'winamp-playlist-qr';
     panel.hidden = true;
     panel.innerHTML = `
-      <div class="winamp-playlist-qr-title"><strong>Point the other phone here</strong><span>SCAN ÁMPULA</span></div>
-      <div id="winampPlaylistQrCode" class="winamp-playlist-qr-code" aria-label="Ámpula QR code"></div>
-      <p class="winamp-playlist-qr-note">Scan → the same self-contained Ámpula opens on the other device. Opening it does not modify that device's library.</p>`;
+      <div class="winamp-playlist-qr-title"><strong>Point the other phone here</strong><span>SCAN TO OPEN</span></div>
+      <div id="winampPlaylistQrCode" class="winamp-playlist-qr-code" aria-label="Share QR code"></div>
+      <p class="winamp-playlist-qr-note">Scan to open the same shared music on the other device.</p>`;
     const note = dialog.querySelector('#winampShareNote');
     const input = dialog.querySelector('#winampShareUrl');
     if (note) note.insertAdjacentElement('afterend', panel);
@@ -95,17 +95,17 @@
         correctLevel: QRCodeCtor.CorrectLevel.M,
       });
       host.dataset.ready = '1';
-      if (STATUS && /ÁMPULA|LINK (READY|COPIED)/i.test(STATUS.textContent || '')) STATUS.textContent = 'ÁMPULA QR READY';
+      if (STATUS && /SHARE|LINK (READY|COPIED)|ÁMPULA/i.test(STATUS.textContent || '')) STATUS.textContent = 'QR READY';
     } catch (error) {
-      console.warn('[AMPULAMP Ámpula QR]', error);
+      console.warn('[AMPULAMP QR]', error);
       host.replaceChildren();
       host.removeAttribute('style');
       host.dataset.ready = '0';
       const message = document.createElement('div');
       message.className = 'winamp-playlist-qr-error';
-      message.textContent = 'QR unavailable — use the Ámpula link or .ampula file.';
+      message.textContent = 'QR unavailable — use the share link.';
       host.appendChild(message);
-      if (STATUS) STATUS.textContent = 'QR UNAVAILABLE · ÁMPULA LINK READY';
+      if (STATUS) STATUS.textContent = 'QR UNAVAILABLE · SHARE LINK READY';
     }
   }
 
