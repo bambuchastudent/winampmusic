@@ -8,4 +8,4 @@
 - [x] Add a runtime regression test that models destructive `textContent` container replacement.
 - [x] Reconcile canonical sharing OpenSpec with receive-only legacy `?p=`/`?s=` compatibility.
 - [x] Document short-link aliases as optional transport-only infrastructure, not Core identity.
-- [ ] Run targeted and repository CI suites and fix regressions before merge.
+- [x] Run targeted and repository CI suites and fix regressions before merge.
