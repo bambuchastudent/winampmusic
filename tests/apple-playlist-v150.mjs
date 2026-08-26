@@ -180,15 +180,16 @@ const result = await api.importPlaylistUrl(targetUrl, {
 
 assert.equal(result.handled, true);
 assert.equal(result.playlist.tracks.length, 5);
-assert.equal(result.tracks.length, 4, 'one unresolved Apple track must not abort the playlist');
-assert.deepEqual(Array.from(imported, (track) => track.title), ['Intro', 'Infinity', 'Islands', 'Angels'], 'successful matches must keep Apple playlist order');
+assert.equal(result.tracks.length, 5, 'one unresolved Apple track must not remove it from the playlist');
+assert.deepEqual(Array.from(imported, (track) => track.title), ['Intro', 'Infinity', 'Crystalised', 'Islands', 'Angels'], 'every read track must keep Apple playlist order');
+assert.equal(imported[2].id, undefined, 'the unresolved track must carry no playback handle');
 assert.ok(Array.from(imported).every((track) => track.playlist === 'thexx'));
 assert.ok(Array.from(imported).every((track) => track.sourceUrl === targetUrl));
 assert.ok(Array.from(imported).every((track) => Array.from(track.badges).includes('Apple Music') && Array.from(track.badges).includes('Playlist')));
 assert.equal(playedIndex, 0, 'first resolved playlist track should start');
 assert.equal(input.value, '');
 assert.equal(fetchedUrl, `https://r.jina.ai/${targetUrl}`);
-assert.ok(statuses.some((text) => /5 tracks · 4 matched · 4 new/.test(text)));
+assert.ok(statuses.some((text) => /5 tracks · 4 matched · 1 unresolved · 5 new/.test(text)));
 assert.equal(matchCalls.length, 5);
 
 window.localStorage.removeItem('winampmusic.library.v1');

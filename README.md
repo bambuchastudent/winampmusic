@@ -81,14 +81,19 @@ Resolution happens on the receiver side and is separate from the received object
 
 A successful current match must not rewrite the original received evidence. An unresolved track remains part of the Ámpula and remains visible.
 
+The same rule now holds inside the working library. A track is identified by its human-readable title and artist; a provider ID is an optional playback handle. A track whose source cannot currently be resolved is still listed, counted, searchable and orderable, and is marked as unresolved. Playing it triggers a local title/artist search, and a found source is stored as local state on that track rather than as a second copy of the recording. Nothing writes a provider ID or a provider name into stored title/artist metadata.
+
+Provider import adapters follow the same rule. Reading an Apple Music playlist or album and finding a playable source for its tracks are separate outcomes: every track the adapter could read is imported in the original order with its Apple title, artist and album, whether or not a playable source was found for it today. Playback starts on the first track that can actually be played, the completion status reports how many tracks are unresolved, and a playlist page that yields no readable tracks is reported as empty rather than as a failed import.
+
 ## Current player
 
 The current web implementation is mobile-first and currently has the strongest playback/import integrations for YouTube and Apple Music. Those integrations are adapters around Ámpula rather than the format itself.
 
 Included today:
 
-- text search and YouTube / Apple Music link import;
+- text search and YouTube / Apple Music link import, including tracks with no currently playable source;
 - local persistent working library;
+- provider-independent track identity, including visible unresolved tracks;
 - play/pause, previous, next, shuffle, seek, volume and Radio;
 - playback-preserving background imports;
 - Media Session integration where supported;
