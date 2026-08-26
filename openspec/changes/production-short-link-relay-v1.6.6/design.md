@@ -46,17 +46,16 @@ Required GitHub secrets for relay deployment:
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 
-`RATE_SALT` is generated for the deployment job and uploaded as a Worker secret. It is not exposed to browser code. The Worker fails closed for alias creation if the salt is unavailable. The Pages artifact contains only the public relay URL.
+`RATE_SALT` is generated for the deployment job and uploaded as a Worker secret. It is not exposed to browser code. If secret delivery or Worker deployment fails, the optional deployment step is treated as unavailable and the Pages artifact stays on canonical sharing. The Pages artifact contains only the public relay URL.
 
 The relay record format remains unchanged: opaque payload, creation time, expiry time. No account/session identity is introduced.
 
 ## Failure modes
 
 - Missing Cloudflare credentials: relay stage skipped; generated config disables relay; Pages deploy continues.
-- Invalid credentials / Cloudflare outage / first-account bootstrap missing: optional relay step fails; generated config disables relay; Pages deploy continues.
+- Invalid credentials / Cloudflare outage / secret-delivery failure / first-account bootstrap missing: optional relay step fails; generated config disables relay; Pages deploy continues.
 - Wrangler produces an unusable deployment URL: config generator rejects it; canonical links remain primary fallback.
 - Health check fails: runtime config is reset to inert before Pages upload.
-- `RATE_SALT` is absent at runtime: alias creation fails closed with `503`; canonical link remains usable.
 - Runtime relay timeout or non-2xx: existing 2500 ms bounded adapter returns `null`; canonical URL stays copied.
 - Alias expires or relay disappears later: alias can fail, but `.ampula` and canonical `?a=` transports remain independent and valid.
 
