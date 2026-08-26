@@ -19,7 +19,7 @@
     const api = shareApi();
     const encoded = await api.encode(ampula);
     const url = new URL(location.href);
-    for (const key of ['a', 'p', 's', 'playlist']) url.searchParams.delete(key);
+    for (const key of ['a', 'al', 'p', 's', 'playlist']) url.searchParams.delete(key);
     url.searchParams.set('a', encoded);
     url.hash = '';
     history.pushState({}, '', url);

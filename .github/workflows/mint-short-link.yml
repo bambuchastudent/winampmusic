@@ -1,0 +1,53 @@
+name: Mint static short link
+
+# Maintainer tool for the `static` alias adapter.
+# It mints a public, permanent short link served by GitHub Pages and commits it.
+# No relay and no external infrastructure are involved.
+
+on:
+  workflow_dispatch:
+    inputs:
+      share_url:
+        description: 'Canonical Ámpula share URL containing ?a=<payload>'
+        required: true
+        type: string
+      token:
+        description: 'Optional custom token (base62, 3-32 chars). Random when empty.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  mint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Mint alias
+        env:
+          SHARE_URL: ${{ inputs.share_url }}
+          TOKEN: ${{ inputs.token }}
+        run: |
+          set -euo pipefail
+          if [ -n "$TOKEN" ]; then
+            node scripts/create-short-link.mjs --url "$SHARE_URL" --token "$TOKEN" | tee mint.log
+          else
+            node scripts/create-short-link.mjs --url "$SHARE_URL" | tee mint.log
+          fi
+          grep 'Short link:' mint.log >> "$GITHUB_STEP_SUMMARY"
+          rm mint.log
+
+      - name: Commit alias
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add a
+          git commit -m 'chore: mint static Ámpula short link'
+          git push

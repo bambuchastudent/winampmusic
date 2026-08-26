@@ -72,7 +72,17 @@
       if (typeof window.winampMusicCompactShare?.share !== 'function') throw new Error('Share module unavailable');
       const url = await window.winampMusicCompactShare.share();
       if (url) {
-        loadScript('./qr-share-v1.js?v=161', 'qr-share').catch((error) => console.warn('[AMPULAMP share] QR unavailable', error));
+        // Optional transport alias. The canonical link is already in the dialog; a slow or missing
+        // relay only costs link length. QR renders whichever link wins.
+        loadScript('./ampula-short-link-v163.js?v=163', 'ampula-short-link')
+          .then(() => window.ampulaShortLink?.apply?.(url))
+          .catch((error) => {
+            console.info('[AMPULAMP share] short link unavailable', error);
+            return null;
+          })
+          .then(() => {
+            loadScript('./qr-share-v1.js?v=161', 'qr-share').catch((error) => console.warn('[AMPULAMP share] QR unavailable', error));
+          });
       }
     } catch (error) {
       console.warn('[AMPULAMP share] failed', error);
@@ -110,7 +120,7 @@
     } catch {}
     try {
       const url = new URL(location.href);
-      for (const key of ['a', 'p', 's', 'playlist']) url.searchParams.delete(key);
+      for (const key of ['a', 'al', 'p', 's', 'playlist']) url.searchParams.delete(key);
       url.hash = '';
       history.replaceState({}, '', url);
     } catch {}
@@ -129,6 +139,18 @@
       } catch (error) {
         console.warn('[AMPULAMP] shared music receive failed', error);
         setStatus('SHARED MUSIC COULD NOT LOAD');
+      }
+    }, 0);
+  } else if (params.has('al')) {
+    setTimeout(async () => {
+      try {
+        await loadScript('./share-ui-cleanup-v162.js?v=162', 'share-ui-cleanup');
+        await loadScript('./compact-share.js?v=161', 'compact-share');
+        await loadScript('./ampula-short-link-v163.js?v=163', 'ampula-short-link');
+        await window.ampulaShortLink.receive();
+      } catch (error) {
+        console.warn('[AMPULAMP] short link receive failed', error);
+        setStatus('SHORT LINK COULD NOT LOAD');
       }
     }, 0);
   } else if (params.has('p') || params.has('s')) {

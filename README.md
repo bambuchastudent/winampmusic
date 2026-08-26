@@ -69,6 +69,33 @@ QR encodes that same link. If a payload is too large for a useful QR, the link a
 
 Historical `?p=` and `?s=` URLs exist only for backward compatibility with previously issued player links. They are provider-specific legacy playlist transports, not alternate Ámpula encodings, and current Share never creates them.
 
+### Short links (optional transport alias)
+
+A share link carries the whole musical moment, so it is long. A **short link** is an optional alias for that same link:
+
+```text
+https://bambuchastudent.github.io/winampmusic/a/Ab3Xk9   ->   .../?a=<payload>
+```
+
+An alias stores the **complete canonical payload**, not a reference to one. Opening it rebuilds the self-contained `?a=` URL in your own browser and continues into the normal shared-music view. So an alias is a shortcut, never a source of truth: if every alias disappears, no musical moment is lost.
+
+Rules that keep it that way:
+
+- the self-contained `?a=` link is created **first** and always stays valid;
+- if an alias cannot be created — not configured, offline, slow, rate limited, erroring — Share silently falls back to the long link and still succeeds;
+- a token is transport only: it is never saved to your library, never saved into an Ámpula, and never used as a playback source;
+- track resolution stays local;
+- public URL shorteners are refused as a backend.
+
+Two alias backends exist:
+
+| Backend | Creates links | Status |
+| --- | --- | --- |
+| `static` — files under `a/` served by GitHub Pages | maintainer, via `node scripts/create-short-link.mjs --url "<share link>"` | **works from this repository, no service required** |
+| `relay` — write-capable HTTP service | anyone, from the Share dialog | **not deployed**; reference implementation in [`relay/short-link/`](./relay/short-link/README.md) |
+
+Static aliases are public and permanent until removed by another commit, so they are meant for curated moments rather than private sharing. Anonymous short-link creation from the Share dialog stays off until a deployment sets `window.AMPULA_SHORT_LINK_RELAY` or `<meta name="ampula-short-link-relay">`; this repository sets neither and deploys no relay.
+
 ## Resolution
 
 Resolution happens on the receiver side and is separate from the received object. A client can use, in roughly this order:
@@ -117,6 +144,7 @@ Included today:
 - playback-preserving background imports;
 - Media Session integration where supported;
 - Ámpula v1 self-contained link sharing;
+- optional short-link aliases with automatic fallback to the self-contained link;
 - QR sharing inside the Share experience;
 - `.ampula` format encode/decode support;
 - non-destructive canonical shared-music context;
