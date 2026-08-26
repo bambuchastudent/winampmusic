@@ -1,4 +1,4 @@
-const BUILD = 'ampmusic-v1.6.1-share-recovery';
+const BUILD = 'ampmusic-v1.5-stable';
 const CACHE = 'winampmusic-shell-v161-share-recovery';
 const CORE = [
   './',
