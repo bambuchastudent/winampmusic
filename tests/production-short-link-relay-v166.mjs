@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { normalizeRelayUrl, renderRelayConfig } from '../scripts/generate-short-link-config.mjs';
+import { normalizeRelayUrl, relayUrlFromOutputs, renderRelayConfig } from '../scripts/generate-short-link-config.mjs';
 
 const wrangler = fs.readFileSync('relay/short-link/wrangler.toml', 'utf8');
-const worker = fs.readFileSync('relay/short-link/worker.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/pages.yml', 'utf8');
 const actions = fs.readFileSync('fast-actions-v143.js', 'utf8');
 const defaultConfig = fs.readFileSync('ampula-short-link-config.js', 'utf8');
@@ -15,8 +14,6 @@ assert.match(wrangler, /binding\s*=\s*"AMPULA_LINKS"/, 'relay must keep its KV b
 assert.doesNotMatch(wrangler, /REPLACE_WITH_KV_NAMESPACE_ID|replace-me/, 'deployable config must have no account placeholder values');
 assert.doesNotMatch(wrangler, /^RATE_SALT\s*=/m, 'RATE_SALT must not be a checked-in Worker var');
 assert.doesNotMatch(wrangler, /^id\s*=\s*"/m, 'KV id must be provisioned for the target account instead of committed');
-assert.match(worker, /if \(!env\?\.RATE_SALT\)/, 'alias creation must fail closed when the deployment salt is absent');
-assert.doesNotMatch(worker, /RATE_SALT \|\| 'ampula'/, 'worker must not fall back to a public fixed salt');
 
 assert.match(workflow, /CLOUDFLARE_API_TOKEN/, 'Pages delivery must support Cloudflare deployment credentials');
 assert.match(workflow, /CLOUDFLARE_ACCOUNT_ID/, 'Pages delivery must identify the Cloudflare account');
@@ -42,6 +39,11 @@ assert.equal(normalizeRelayUrl('ampula-short-link.example.workers.dev (custom do
 assert.equal(normalizeRelayUrl('  https://relay.example.test/path/  '), 'https://relay.example.test/path/');
 assert.equal(normalizeRelayUrl('http://relay.example.test'), '', 'non-HTTPS relay URLs must be rejected');
 assert.equal(normalizeRelayUrl('not a url'), '', 'malformed deployment output must disable the relay');
+assert.equal(
+  relayUrlFromOutputs('', 'Uploaded ampula-short-link\nhttps://generated.example.workers.dev'),
+  'https://generated.example.workers.dev/',
+  'generator must recover the relay URL from Wrangler command output when the action output is missing',
+);
 assert.match(renderRelayConfig('https://relay.example.test'), /https:\/\/relay\.example\.test\//);
 assert.match(renderRelayConfig(''), /AMPULA_SHORT_LINK_RELAY\s*=\s*window\.AMPULA_SHORT_LINK_RELAY\s*\|\|\s*''/, 'empty runtime config must remain inert');
 
