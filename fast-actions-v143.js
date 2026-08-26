@@ -67,6 +67,7 @@
     shareButton.textContent = 'Preparing…';
     setStatus('PREPARING SHARE');
     try {
+      await loadScript('./share-ui-cleanup-v161.js?v=161', 'share-ui-cleanup');
       await loadScript('./compact-share.js?v=161', 'compact-share');
       if (typeof window.winampMusicCompactShare?.share !== 'function') throw new Error('Share module unavailable');
       const url = await window.winampMusicCompactShare.share();
@@ -121,11 +122,14 @@
 
   const params = new URLSearchParams(location.search);
   if (params.has('a')) {
-    setTimeout(() => {
-      loadScript('./compact-share.js?v=161', 'compact-share').catch((error) => {
+    setTimeout(async () => {
+      try {
+        await loadScript('./share-ui-cleanup-v161.js?v=161', 'share-ui-cleanup');
+        await loadScript('./compact-share.js?v=161', 'compact-share');
+      } catch (error) {
         console.warn('[AMPULAMP] shared music receive failed', error);
         setStatus('SHARED MUSIC COULD NOT LOAD');
-      });
+      }
     }, 0);
   } else if (params.has('p') || params.has('s')) {
     setTimeout(() => {
