@@ -72,9 +72,10 @@
       if (typeof window.winampMusicCompactShare?.share !== 'function') throw new Error('Share module unavailable');
       const url = await window.winampMusicCompactShare.share();
       if (url) {
-        // Optional transport alias. The canonical link is already in the dialog; a slow or missing
-        // relay only costs link length. QR renders whichever link wins.
-        loadScript('./ampula-short-link-v163.js?v=163', 'ampula-short-link')
+        // Optional transport alias. The canonical link is already available before any relay work.
+        // Load deployment routing only when Share needs it, then load the alias adapter itself.
+        loadScript('./ampula-short-link-config.js?v=166', 'short-link-config')
+          .then(() => loadScript('./ampula-short-link-v163.js?v=163', 'ampula-short-link'))
           .then(() => window.ampulaShortLink?.apply?.(url))
           .catch((error) => {
             console.info('[AMPULAMP share] short link unavailable', error);
@@ -146,6 +147,7 @@
       try {
         await loadScript('./share-ui-cleanup-v162.js?v=162', 'share-ui-cleanup');
         await loadScript('./compact-share.js?v=164', 'compact-share');
+        await loadScript('./ampula-short-link-config.js?v=166', 'short-link-config');
         await loadScript('./ampula-short-link-v163.js?v=163', 'ampula-short-link');
         await window.ampulaShortLink.receive();
       } catch (error) {
