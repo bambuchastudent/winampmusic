@@ -68,7 +68,7 @@
     setStatus('PREPARING SHARE');
     try {
       await loadScript('./share-ui-cleanup-v162.js?v=162', 'share-ui-cleanup');
-      await loadScript('./compact-share.js?v=161', 'compact-share');
+      await loadScript('./compact-share.js?v=164', 'compact-share');
       if (typeof window.winampMusicCompactShare?.share !== 'function') throw new Error('Share module unavailable');
       const url = await window.winampMusicCompactShare.share();
       if (url) {
@@ -135,7 +135,7 @@
     setTimeout(async () => {
       try {
         await loadScript('./share-ui-cleanup-v162.js?v=162', 'share-ui-cleanup');
-        await loadScript('./compact-share.js?v=161', 'compact-share');
+        await loadScript('./compact-share.js?v=164', 'compact-share');
       } catch (error) {
         console.warn('[AMPULAMP] shared music receive failed', error);
         setStatus('SHARED MUSIC COULD NOT LOAD');
@@ -145,7 +145,7 @@
     setTimeout(async () => {
       try {
         await loadScript('./share-ui-cleanup-v162.js?v=162', 'share-ui-cleanup');
-        await loadScript('./compact-share.js?v=161', 'compact-share');
+        await loadScript('./compact-share.js?v=164', 'compact-share');
         await loadScript('./ampula-short-link-v163.js?v=163', 'ampula-short-link');
         await window.ampulaShortLink.receive();
       } catch (error) {

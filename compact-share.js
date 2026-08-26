@@ -423,6 +423,38 @@
     return dialog;
   }
 
+  // Receiving is listen-first: the shared tracks are the primary surface, and everything that
+  // manages the received object lives behind one compact control.
+  // Spec: openspec/changes/received-share-listen-first-v1.6.4/specs/received-share-ux/spec.md
+  function setMoreMenu(dialog, open) {
+    const menu = dialog?.querySelector('#ampulaMoreMenu');
+    const control = dialog?.querySelector('#ampulaMore');
+    if (!menu) return;
+    menu.hidden = !open;
+    // `hidden` alone loses to an inline `display`, so the two are always set together.
+    menu.style.display = open ? 'grid' : 'none';
+    control?.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function setTrackState(index, state, note = '') {
+    const list = document.getElementById('ampulaReceivedList');
+    const row = list?.querySelector(`li[data-index="${index}"]`);
+    if (!row) return;
+    if (state === 'playing') {
+      for (const other of list.children) {
+        if (other !== row && other.dataset.state === 'playing') other.dataset.state = '';
+      }
+    }
+    row.dataset.state = state;
+    const button = row.querySelector('button');
+    if (button) button.style.borderColor = state === 'unresolved' ? '#6b4a2a' : state === 'playing' ? '#8f7724' : '#303640';
+    const noteNode = row.querySelector('[data-role="note"]');
+    if (!noteNode) return;
+    noteNode.textContent = note;
+    noteNode.hidden = !note;
+    noteNode.style.display = note ? 'block' : 'none';
+  }
+
   function ensureReceivedDialog() {
     let dialog = document.getElementById('ampulaReceivedDialog');
     if (dialog) return dialog;
@@ -432,27 +464,38 @@
     dialog.innerHTML = `
       <div style="padding:16px;display:grid;gap:12px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div><div style="font-size:10px;letter-spacing:.16em;color:#8f98a8;font-weight:800">RECEIVED ÁMPULA</div><strong id="ampulaReceivedTitle">Musical moment</strong><div id="ampulaReceivedMeta" style="margin-top:3px;color:#8f98a8;font-size:11px"></div></div>
+          <div><div style="font-size:10px;letter-spacing:.16em;color:#8f98a8;font-weight:800">SHARED MUSIC</div><strong id="ampulaReceivedTitle">Shared music</strong><div id="ampulaReceivedMeta" style="margin-top:3px;color:#8f98a8;font-size:11px"></div></div>
           <button id="ampulaReceivedClose" type="button" aria-label="Close" style="border:0;background:transparent;color:#8f98a8;font-size:18px">✕</button>
         </div>
         <div id="ampulaReceivedPlayer" style="display:none;aspect-ratio:16/9;background:#090b0e;border-radius:10px;overflow:hidden"></div>
-        <ol id="ampulaReceivedList" style="margin:0;padding:0;list-style:none;display:grid;gap:5px;max-height:46vh;overflow:auto"></ol>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button id="ampulaSave" type="button" style="min-height:40px;padding:0 14px;border:1px solid #8f7724;border-radius:8px;background:#d8b63f;color:#171717;font-weight:800">Save Ámpula</button>
-          <button id="ampulaAdd" type="button" style="min-height:40px;padding:0 14px;border:1px solid #4a515e;border-radius:8px;background:#242a32;color:#fff;font-weight:800">Add playable tracks</button>
-          <button id="ampulaFile" type="button" style="min-height:40px;padding:0 14px;border:1px solid #4a515e;border-radius:8px;background:#242a32;color:#fff;font-weight:800">.ampula file</button>
+        <ol id="ampulaReceivedList" style="margin:0;padding:0;list-style:none;display:grid;gap:5px;max-height:52vh;overflow:auto"></ol>
+        <div style="display:flex;justify-content:flex-end">
+          <button id="ampulaMore" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="ampulaMoreMenu" aria-label="More actions" title="More" style="min-height:34px;padding:0 13px;border:1px solid #343a46;border-radius:8px;background:transparent;color:#8f98a8;font-weight:800;letter-spacing:.1em">⋯</button>
         </div>
-        <div style="color:#8f98a8;font-size:11px;line-height:1.4">Opening this Ámpula does not change Your library. Playback matches are local and do not rewrite the received object.</div>
+        <div id="ampulaMoreMenu" hidden style="display:none;gap:10px;padding:11px;border:1px solid #303640;border-radius:10px;background:#1a1e25">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="ampulaSave" type="button" style="min-height:40px;padding:0 14px;border:1px solid #8f7724;border-radius:8px;background:#d8b63f;color:#171717;font-weight:800">Save</button>
+            <button id="ampulaAdd" type="button" style="min-height:40px;padding:0 14px;border:1px solid #4a515e;border-radius:8px;background:#242a32;color:#fff;font-weight:800">Add to library</button>
+            <button id="ampulaExport" type="button" style="min-height:40px;padding:0 14px;border:1px solid #4a515e;border-radius:8px;background:#242a32;color:#fff;font-weight:800">.ampula file</button>
+          </div>
+          <div id="ampulaReceivedNote" style="color:#8f98a8;font-size:11px;line-height:1.4">Opening this link does not change your library. Playback matches are local and do not rewrite the shared object.</div>
+        </div>
       </div>`;
     document.body.appendChild(dialog);
-    dialog.querySelector('#ampulaReceivedClose').addEventListener('click', () => dialog.close());
+    dialog.querySelector('#ampulaReceivedClose').addEventListener('click', () => {
+      setMoreMenu(dialog, false);
+      dialog.close();
+    });
+    dialog.querySelector('#ampulaMore').addEventListener('click', () => {
+      setMoreMenu(dialog, dialog.querySelector('#ampulaMoreMenu')?.hidden !== false);
+    });
     dialog.querySelector('#ampulaSave').addEventListener('click', () => {
       if (!receivedAmpula) return;
       saveAmpula(receivedAmpula);
       dialog.querySelector('#ampulaSave').textContent = 'Saved ✓';
       setStatus('ÁMPULA SAVED LOCALLY');
     });
-    dialog.querySelector('#ampulaFile').addEventListener('click', () => { if (receivedAmpula) downloadAmpula(receivedAmpula); });
+    dialog.querySelector('#ampulaExport').addEventListener('click', () => { if (receivedAmpula) downloadAmpula(receivedAmpula); });
     dialog.querySelector('#ampulaAdd').addEventListener('click', () => {
       if (!receivedAmpula || typeof window.importTracks !== 'function') return;
       const candidates = receivedAmpula.tracks.map(runtimeTrack).filter(Boolean);
@@ -465,13 +508,22 @@
   async function playReceivedTrack(index) {
     if (!receivedAmpula?.tracks?.[index]) return;
     const track = receivedAmpula.tracks[index];
+    const dialog = ensureReceivedDialog();
+    setTrackState(index, 'resolving', 'Finding a playable source…');
     setStatus(`RESOLVING ${clean(track.title).toUpperCase()}`);
-    const id = await findYouTube(track, index);
+    let id = '';
+    try {
+      id = await findYouTube(track, index);
+    } catch {
+      id = '';
+    }
     if (!id) {
-      setStatus('NO PLAYABLE SOURCE RESOLVED');
+      // The failure belongs to this track. The Ámpula, its other tracks and anything already
+      // playing stay exactly as they were.
+      setTrackState(index, 'unresolved', 'No playable source found right now. The track stays in this Ámpula.');
+      setStatus('NO PLAYABLE SOURCE FOR THIS TRACK');
       return;
     }
-    const dialog = ensureReceivedDialog();
     const host = dialog.querySelector('#ampulaReceivedPlayer');
     host.style.display = '';
     host.replaceChildren();
@@ -482,25 +534,29 @@
     iframe.allowFullscreen = true;
     iframe.style.cssText = 'width:100%;height:100%;border:0';
     host.appendChild(iframe);
-    setStatus('PLAYING RECEIVED ÁMPULA');
+    setTrackState(index, 'playing', '');
+    setStatus('PLAYING SHARED MUSIC');
   }
 
   function renderReceived(ampula) {
     receivedAmpula = validateAmpula(ampula);
     resolvedIds.clear();
     const dialog = ensureReceivedDialog();
-    dialog.querySelector('#ampulaReceivedTitle').textContent = receivedAmpula.moment?.title || 'Musical moment';
+    dialog.querySelector('#ampulaReceivedTitle').textContent = receivedAmpula.moment?.title || 'Shared music';
     dialog.querySelector('#ampulaReceivedMeta').textContent = `${receivedAmpula.tracks.length} tracks${receivedAmpula.capturedAt ? ` · ${new Date(receivedAmpula.capturedAt).toLocaleString()}` : ''}`;
-    dialog.querySelector('#ampulaSave').textContent = 'Save Ámpula';
+    dialog.querySelector('#ampulaSave').textContent = 'Save';
+    setMoreMenu(dialog, false);
     dialog.querySelector('#ampulaReceivedPlayer').replaceChildren();
     dialog.querySelector('#ampulaReceivedPlayer').style.display = 'none';
     const list = dialog.querySelector('#ampulaReceivedList');
     list.replaceChildren();
     receivedAmpula.tracks.forEach((track, index) => {
       const item = document.createElement('li');
+      item.dataset.index = String(index);
+      item.dataset.state = '';
       const button = document.createElement('button');
       button.type = 'button';
-      button.style.cssText = 'width:100%;display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:center;text-align:left;border:1px solid #303640;border-radius:8px;background:#20242b;color:#fff;padding:8px;cursor:pointer';
+      button.style.cssText = 'width:100%;display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:center;text-align:left;border:1px solid #303640;border-radius:8px;background:#20242b;color:#fff;padding:10px 8px;cursor:pointer';
       const number = document.createElement('span');
       number.textContent = String(index + 1).padStart(2, '0');
       number.style.cssText = 'color:#8f98a8;font:11px monospace';
@@ -511,14 +567,18 @@
       const artist = document.createElement('span');
       artist.textContent = (track.artists || []).map(clean).filter(Boolean).join(', ');
       artist.style.cssText = 'display:block;color:#9ca5b4;font-size:11px;margin-top:2px';
-      text.append(title, artist);
+      const note = document.createElement('span');
+      note.dataset.role = 'note';
+      note.hidden = true;
+      note.style.cssText = 'display:none;color:#e2b955;font-size:11px;margin-top:3px';
+      text.append(title, artist, note);
       button.append(number, text);
       button.addEventListener('click', () => void playReceivedTrack(index));
       item.appendChild(button);
       list.appendChild(item);
     });
     if (!dialog.open) dialog.showModal();
-    setStatus(`RECEIVED ÁMPULA · ${receivedAmpula.tracks.length} TRACKS`);
+    setStatus(`SHARED MUSIC · ${receivedAmpula.tracks.length} TRACKS`);
     return dialog;
   }
 
