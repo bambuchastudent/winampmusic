@@ -1,6 +1,6 @@
 # Ámpula short-link relay
 
-> **Status: production-delivery integrated.**
+> **Status: NOT DEPLOYED by default; production-delivery integrated.**
 > The Pages workflow deploys this Worker when `CLOUDFLARE_API_TOKEN` and
 > `CLOUDFLARE_ACCOUNT_ID` are configured in the repository. If the credentials
 > are absent, invalid, or Cloudflare is unavailable, AMPULAMP publishes normally
