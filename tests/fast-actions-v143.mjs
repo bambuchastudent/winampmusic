@@ -7,7 +7,7 @@ assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
 assert.ok(!code.includes("searchParams.set('p'"), 'legacy provider-id fallback must never be generated');
 assert.match(code, /loadScript\('\.\/share-ui-cleanup-v162\.js\?v=162', 'share-ui-cleanup'\)/);
-assert.match(code, /loadScript\('\.\/compact-share\.js\?v=161', 'compact-share'\)/);
+assert.match(code, /loadScript\('\.\/compact-share\.js\?v=164', 'compact-share'\)/);
 assert.match(code, /loadScript\('\.\/legacy-share-v1\.js\?v=161', 'legacy-share'\)/);
 assert.match(code, /winampMusicCompactShare\?\.share/);
 assert.match(code, /params\.has\('a'\)/);

@@ -67,7 +67,7 @@ assert.match(visualizer, /MutationObserver/);
 
 // Canonical Ámpula sharing remains lazy and self-contained. Historical p/s links are receive-only compatibility.
 assert.match(fastActions, /loadScript\('\.\/share-ui-cleanup-v162\.js\?v=162', 'share-ui-cleanup'\)/);
-assert.match(fastActions, /loadScript\('\.\/compact-share\.js\?v=161', 'compact-share'\)/);
+assert.match(fastActions, /loadScript\('\.\/compact-share\.js\?v=164', 'compact-share'\)/);
 assert.match(fastActions, /loadScript\('\.\/qr-share-v1\.js\?v=161', 'qr-share'\)/);
 assert.match(fastActions, /loadScript\('\.\/legacy-share-v1\.js\?v=161', 'legacy-share'\)/);
 assert.match(fastActions, /params\.has\('a'\)/);

@@ -1,5 +1,5 @@
 const BUILD = 'ampmusic-v1.5-stable';
-const CACHE = 'winampmusic-shell-v163-short-links';
+const CACHE = 'winampmusic-shell-v164-listen-first';
 const CORE = [
   './',
   './index.html',
