@@ -100,14 +100,44 @@
     });
   } catch {}
 
+  function forceAppleResolution() {
+    const resolver = window.ampMusicAppleResolution162;
+    if (!resolver?.patchAll) return;
+    // Older adapters mark the API object itself and can run their load callback
+    // after the v1.6.2 resolver. Clear only our marker, then re-apply the final
+    // adapter after all load-event microtasks have settled.
+    for (const api of [window.winampMusicAppleImport, window.ampMusicAppleAlbum150, window.ampMusicApplePlaylist150]) {
+      try { if (api) delete api.__ampFullResolver162; } catch {}
+    }
+    resolver.patchAll();
+  }
+
+  function scheduleAppleResolution() {
+    setTimeout(forceAppleResolution, 0);
+    setTimeout(forceAppleResolution, 60);
+  }
+
   function loadAppleResolution() {
     if (document.querySelector('script[data-amp-apple-resolution-162]')) return;
     const script = document.createElement('script');
     script.src = './apple-resolution-v162.js?v=162';
     script.async = true;
     script.setAttribute('data-amp-apple-resolution-162', '1');
+    script.addEventListener('load', scheduleAppleResolution, { once: true });
     document.head.appendChild(script);
   }
+
+  const appleAdapterObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes || []) {
+        if (node?.tagName !== 'SCRIPT') continue;
+        if (/apple-(?:music-import-v064|album-import-v150|playlist-import-v150)\.js/i.test(node.src || '')) {
+          node.addEventListener('load', scheduleAppleResolution, { once: true });
+        }
+      }
+    }
+  });
+  if (document.head) appleAdapterObserver.observe(document.head, { childList: true });
 
   function loadBackground() {
     if (document.querySelector('script[data-amp-background-150]')) return;
@@ -122,6 +152,6 @@
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 });
   else setTimeout(loadBackground, 900);
 
-  window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback };
+  window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
   console.info('[AmpMusic] release 1.5.0 adapter ready');
 })();
