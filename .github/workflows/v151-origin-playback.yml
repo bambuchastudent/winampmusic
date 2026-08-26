@@ -5,9 +5,12 @@ on:
     branches: [develop]
     paths:
       - 'origin-playback-v151.js'
+      - 'clean-playback-v150.js'
       - 'stable-v150.js'
       - 'tests/apple-origin-playback-v151.mjs'
+      - 'tests/cross-provider-playback-resolution-v1.mjs'
       - 'openspec/changes/apple-origin-vs-playback-v1.5/**'
+      - 'openspec/changes/cross-provider-playback-resolution-v1/**'
       - '.github/workflows/v151-origin-playback.yml'
 
 permissions:
@@ -28,15 +31,23 @@ jobs:
           test -s openspec/changes/apple-origin-vs-playback-v1.5/design.md
           test -s openspec/changes/apple-origin-vs-playback-v1.5/tasks.md
           test -s openspec/changes/apple-origin-vs-playback-v1.5/specs/apple-origin-playback/spec.md
+          test -s openspec/changes/cross-provider-playback-resolution-v1/proposal.md
+          test -s openspec/changes/cross-provider-playback-resolution-v1/design.md
+          test -s openspec/changes/cross-provider-playback-resolution-v1/tasks.md
+          test -s openspec/changes/cross-provider-playback-resolution-v1/specs/playback-resolution/spec.md
 
       - name: Syntax check
         run: |
           node --check origin-playback-v151.js
+          node --check clean-playback-v150.js
           node --check stable-v150.js
           node --check tests/apple-origin-playback-v151.mjs
+          node --check tests/cross-provider-playback-resolution-v1.mjs
 
       - name: Install test runtime
         run: npm install --no-save jsdom@26
 
       - name: Functional — Apple origin is not playback
-        run: node tests/apple-origin-playback-v151.mjs
+        run: |
+          node tests/apple-origin-playback-v151.mjs
+          node tests/cross-provider-playback-resolution-v1.mjs
