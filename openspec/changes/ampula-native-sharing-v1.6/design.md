@@ -53,11 +53,14 @@ Transports may include:
 
 - a self-contained URL;
 - QR representing that URL;
-- a `.ampula` JSON file.
+- a `.ampula` JSON file;
+- an optional short-link alias that dereferences to the same Core object.
 
 Transport is not the domain model. Current AMPULAMP web transport uses `?a=<compact-payload>` and decodes back to Core v1 before presenting the moment.
 
-The old `?p=<provider-id>...` and remote `?s=` contracts are not Ámpula v1 and are not fallback transports.
+A future short-link service is allowed only as a transport alias. Its token is not an Ámpula ID, and the service must not become the sole full-fidelity copy of the musical moment. Self-contained URL and `.ampula` export remain independent escape hatches.
+
+The old `?p=<provider-id>...` and remote `?s=` contracts are not Ámpula v1 and are not fallback transports for new sharing.
 
 ## Receive flow
 
@@ -69,6 +72,8 @@ The old `?p=<provider-id>...` and remote `?s=` contracts are not Ámpula v1 and 
 6. Allow explicit `Save Ámpula`.
 7. Allow separate explicit `Add playable tracks`.
 
+A separate lazy compatibility adapter may recognize historical `?p=` or `?s=` URLs. That adapter is outside the canonical Ámpula decoder and may recover the historical working playlist, but it must never promote provider-ID-only data to Core v1.
+
 ## Save semantics
 
 Saving is intentionally not equivalent to importing tracks. It preserves the received Core v1 object and stores a local saved timestamp outside musical identity.
@@ -77,9 +82,10 @@ A later resolver may choose different playable providers without rewriting the o
 
 ## Compatibility
 
-- Do not generate `?p=` links.
-- Do not parse `?p=` or `?s=` as Ámpula.
-- Do not silently import provider-ID-only payloads.
+- Do not generate `?p=` or `?s=` links.
+- Do not parse `?p=` or `?s=` inside the canonical Ámpula decoder.
+- A separate receive-only compatibility adapter may recover historical `?p=` or `?s=` links.
+- Never represent or save provider-ID-only legacy payloads as Ámpula Core v1.
 - Existing local library storage remains intact.
 
 ## Critical-path constraints
@@ -103,6 +109,10 @@ Keep the full Ámpula visible with preserved metadata. Mark unresolved tracks un
 ### QR unavailable or too large
 
 Keep the self-contained link and `.ampula` file as valid full-fidelity transports. Never fall back to provider-ID-only sharing.
+
+### Short-link service unavailable
+
+Keep self-contained link/file export usable. Failure of an optional alias service must not redefine or corrupt the Ámpula object.
 
 ### Duplicate save
 

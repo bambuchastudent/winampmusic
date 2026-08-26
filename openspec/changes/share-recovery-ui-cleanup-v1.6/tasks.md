@@ -7,4 +7,4 @@
 - [x] Make Clear remove share transports from the current URL before reload.
 - [x] Simplify library header, Share dialog, and QR copy so transport/format jargon is not primary UI.
 - [x] Update README sharing flow and compatibility notes.
-- [ ] Run the behavioral suite and fix regressions before merge.
+- [x] Run the behavioral suite and fix regressions before merge.

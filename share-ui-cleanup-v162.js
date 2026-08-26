@@ -33,15 +33,15 @@
       setText(note, value);
     };
     rewriteNote();
-    if (note && note.dataset.shareUiCleanup161 !== '1') {
-      note.dataset.shareUiCleanup161 = '1';
+    if (note && note.dataset.shareUiCleanup162 !== '1') {
+      note.dataset.shareUiCleanup162 = '1';
       new MutationObserver(rewriteNote).observe(note, { childList: true, characterData: true, subtree: true });
     }
 
     const oldSystem = dialog.querySelector('#winampShareSystem');
-    if (oldSystem && oldSystem.dataset.shareUiCleanup161 !== '1') {
+    if (oldSystem && oldSystem.dataset.shareUiCleanup162 !== '1') {
       const system = oldSystem.cloneNode(true);
-      system.dataset.shareUiCleanup161 = '1';
+      system.dataset.shareUiCleanup162 = '1';
       system.textContent = 'Share';
       system.hidden = !navigator.share;
       oldSystem.replaceWith(system);
@@ -56,6 +56,15 @@
     }
   }
 
+  function findReceivedNotice(dialog) {
+    if (!dialog) return null;
+    for (const node of dialog.querySelectorAll('div')) {
+      if (node.children.length !== 0) continue;
+      if (/Opening this Ámpula does not change Your library/i.test(clean(node.textContent))) return node;
+    }
+    return null;
+  }
+
   function patchReceivedDialog(dialog) {
     if (!dialog) return;
     const title = dialog.querySelector('#ampulaReceivedTitle');
@@ -65,11 +74,8 @@
     setText(dialog.querySelector('#ampulaAdd'), 'Add to library');
     dialog.querySelector('#ampulaFile')?.remove();
 
-    const legacyNote = Array.from(dialog.querySelectorAll('div')).find((node) => (
-      node.children.length === 0
-      && /Opening this Ámpula does not change Your library/i.test(clean(node.textContent))
-    ));
-    setText(legacyNote, 'Opening this link does not change your library.');
+    const notice = findReceivedNotice(dialog);
+    setText(notice, 'Opening this link does not change your library.');
   }
 
   function patchSavedDialog(dialog) {
