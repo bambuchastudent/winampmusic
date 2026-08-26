@@ -13,6 +13,8 @@ const html = read('index.html');
 const sw = read('sw.js');
 const fastActions = read('fast-actions-v143.js');
 const compactShare = read('compact-share.js');
+const shareUi = read('share-ui-cleanup-v161.js');
+const legacyShare = read('legacy-share-v1.js');
 const guard = read('import-playback-guard-v159.js');
 const visualizer = read('header-visualizer-v159.js');
 
@@ -51,7 +53,8 @@ for (const file of [
   'fast-player-v141.js','clean-playback-v150.js','apple-catalog-first-v150.js','apple-musickit-v150.js',
   'unified-entry-v152.js','import-playback-guard-v159.js','header-visualizer-v159.js','fast-actions-v143.js',
   'fast-import-v150.js','apple-music-import-v064.js','apple-playlist-import-v150.js','apple-album-import-v150.js',
-  'fast-background-v150.js','origin-playback-v151.js','v059.js','compact-share.js','qr-share-v1.js',
+  'fast-background-v150.js','origin-playback-v151.js','v059.js','compact-share.js','share-ui-cleanup-v161.js',
+  'legacy-share-v1.js','qr-share-v1.js',
 ]) assert.ok(exists(file), `Missing protected current script: ${file}`);
 
 assert.match(guard, /isPlaybackActive/);
@@ -61,12 +64,19 @@ assert.match(html, /<h1>Ámpula MP<\/h1>/);
 assert.match(html, /id="headerSpectrum"/);
 assert.match(visualizer, /MutationObserver/);
 
-// Ámpula sharing is lazy, self-contained, provider-independent and non-destructive on open.
-assert.match(fastActions, /loadScript\('\.\/compact-share\.js\?v=160', 'compact-share'\)/);
-assert.match(fastActions, /loadScript\('\.\/qr-share-v1\.js\?v=160', 'qr-share'\)/);
+// Canonical Ámpula sharing remains lazy and self-contained. Historical p/s links are receive-only compatibility.
+assert.match(fastActions, /loadScript\('\.\/share-ui-cleanup-v161\.js\?v=161', 'share-ui-cleanup'\)/);
+assert.match(fastActions, /loadScript\('\.\/compact-share\.js\?v=161', 'compact-share'\)/);
+assert.match(fastActions, /loadScript\('\.\/qr-share-v1\.js\?v=161', 'qr-share'\)/);
+assert.match(fastActions, /loadScript\('\.\/legacy-share-v1\.js\?v=161', 'legacy-share'\)/);
 assert.match(fastActions, /params\.has\('a'\)/);
+assert.match(fastActions, /params\.has\('p'\).*params\.has\('s'\)/s);
 assert.doesNotMatch(fastActions, /searchParams\.set\('p'/);
+assert.doesNotMatch(fastActions, /searchParams\.set\('s'/);
+assert.doesNotMatch(legacyShare, /searchParams\.set\('p'/);
+assert.doesNotMatch(legacyShare, /searchParams\.set\('s'/);
 assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*compact-share\.js/);
+assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*legacy-share-v1\.js/);
 assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*qr-share-v1\.js/);
 assert.match(compactShare, /const AMPULA_PARAM = 'a'/);
 assert.match(compactShare, /format: 'ampula'/);
@@ -74,10 +84,14 @@ assert.match(compactShare, /version: '1'/);
 assert.match(compactShare, /function encodeAmpula/);
 assert.match(compactShare, /function decodeAmpula/);
 assert.match(compactShare, /function renderReceived/);
-assert.match(compactShare, /Opening this Ámpula does not change Your library/);
 assert.match(compactShare, /SAVED_AMPULAS_KEY/);
 assert.doesNotMatch(compactShare, /pastepile/i);
 assert.doesNotMatch(compactShare, /parseCompactIds/);
+assert.match(shareUi, /Share music/);
+assert.match(shareUi, /winampShareFile/);
+assert.match(shareUi, /Add to library/);
+assert.match(legacyShare, /LEGACY SHARE RESTORED/);
+assert.match(legacyShare, /parseLegacyIds/);
 
 const compatibilitySource = [read('fast-player-v141.js'), fastActions, read('fast-background-v150.js'), read('origin-playback-v151.js')].join('\n');
 for (const key of ['winampmusic.library.v1','winampmusic.fast.current.v1','winampmusic.player.v1','winampmusic.background.v1']) {
@@ -92,4 +106,4 @@ const removalLedger = 'tests/repository-removed-files-v1.json';
 const removedFiles = JSON.parse(read(removalLedger));
 for (const removed of removedFiles) assert.ok(!exists(removed), `Removed file still exists: ${removed}`);
 
-console.log(`Repository integrity OK: ${startupScripts.length} startup scripts, ${visited.size} runtime JS nodes, ${runtimeAssets.size} local runtime assets, Ámpula v1 sharing guarded`);
+console.log(`Repository integrity OK: ${startupScripts.length} startup scripts, ${visited.size} runtime JS nodes, ${runtimeAssets.size} local runtime assets, canonical sharing + legacy recovery guarded`);
