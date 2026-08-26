@@ -149,7 +149,17 @@
     document.head.appendChild(script);
   }
 
+  function loadPlaybackContinuity() {
+    if (document.querySelector('script[data-amp-playback-continuity-160]')) return;
+    const script = document.createElement('script');
+    script.src = './playback-continuity-v160.js?v=160';
+    script.async = true;
+    script.setAttribute('data-amp-playback-continuity-160', '1');
+    document.head.appendChild(script);
+  }
+
   loadAppleResolution();
+  setTimeout(loadPlaybackContinuity, 0);
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 });
   else setTimeout(loadBackground, 900);
 
