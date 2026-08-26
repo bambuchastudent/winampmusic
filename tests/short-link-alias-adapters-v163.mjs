@@ -5,7 +5,7 @@ import path from 'node:path';
 import { TextDecoder, TextEncoder } from 'node:util';
 import { JSDOM } from 'jsdom';
 
-import worker, { LIMITS, isValidPayload, mintToken } from '../relay/short-link/worker.js';
+import worker, { LIMITS, ShortLinkRateLimiter, appOrigin, isValidPayload, mintToken } from '../relay/short-link/worker.js';
 import {
   PAYLOAD_RE,
   aliasRecord,
@@ -14,9 +14,12 @@ import {
   writeAlias,
 } from '../scripts/create-short-link.mjs';
 
-const APP_ORIGIN = 'https://example.test/winampmusic/';
+// The app is served from a path; a browser Origin never carries one.
+const APP_URL = 'https://example.test/winampmusic/';
+const BROWSER_ORIGIN = 'https://example.test';
 const workerSource = fs.readFileSync('relay/short-link/worker.js', 'utf8');
 const relayReadme = fs.readFileSync('relay/short-link/README.md', 'utf8');
+const wranglerConfig = fs.readFileSync('relay/short-link/wrangler.toml', 'utf8');
 
 // ---------------------------------------------------------------------------------------------
 // A canonical payload produced by the real encoder, so the alias contract is tested against
@@ -24,7 +27,7 @@ const relayReadme = fs.readFileSync('relay/short-link/README.md', 'utf8');
 // ---------------------------------------------------------------------------------------------
 const dom = new JSDOM('<!doctype html><body><div id="status">READY</div></body>', {
   runScripts: 'outside-only',
-  url: APP_ORIGIN,
+  url: APP_URL,
   pretendToBeVisual: true,
 });
 const { window } = dom;
@@ -47,15 +50,15 @@ const sourceAmpula = window.winampMusicCompactShare.toAmpula([
   { id: 'lmnopqrstuv', title: 'Roads', artist: 'Portishead' },
 ]);
 const payload = await window.winampMusicCompactShare.encode(sourceAmpula);
-const shareUrl = `${APP_ORIGIN}?a=${payload}`;
+const shareUrl = `${APP_URL}?a=${payload}`;
 assert.match(payload, PAYLOAD_RE, 'the encoder must produce a recognised compact transport string');
 
 // =============================================================================================
 // static adapter — GitHub Pages, no service required
 // =============================================================================================
 assert.equal(payloadFromShareUrl(shareUrl), payload, 'the static adapter must copy the canonical payload verbatim');
-assert.throws(() => payloadFromShareUrl(`${APP_ORIGIN}?a=nope`), /compact Ámpula transport/);
-assert.throws(() => payloadFromShareUrl(APP_ORIGIN), /no \?a= payload/);
+assert.throws(() => payloadFromShareUrl(`${APP_URL}?a=nope`), /compact Ámpula transport/);
+assert.throws(() => payloadFromShareUrl(APP_URL), /no \?a= payload/);
 
 const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ampula-alias-'));
 const written = writeAlias({ payload, token: 'Ab3Xk9', outDir });
@@ -89,22 +92,71 @@ assert.match(fs.readFileSync('robots.txt', 'utf8'), /Disallow:\s*\/winampmusic\/
 // =============================================================================================
 // relay adapter — executable API contract
 // =============================================================================================
-function fakeKv() {
+/**
+ * Durable Object namespace stub. Requests to one object are serialised, which is
+ * the property the production limiter relies on.
+ */
+function fakeDurableObjects(ClassRef) {
+  const instances = new Map();
+  const gates = new Map();
+  return {
+    idFromName: (name) => ({ name }),
+    get(id) {
+      const name = String(id?.name ?? id);
+      if (!instances.has(name)) {
+        const storage = new Map();
+        instances.set(name, new ClassRef({
+          storage: {
+            async get(key) { return storage.get(key); },
+            async put(key, value) { storage.set(key, value); },
+            async deleteAll() { storage.clear(); },
+            async setAlarm() {},
+          },
+        }));
+      }
+      const instance = instances.get(name);
+      return {
+        fetch(request) {
+          const previous = gates.get(name) || Promise.resolve();
+          const next = previous.then(() => instance.fetch(request));
+          gates.set(name, next.then(() => {}, () => {}));
+          return next;
+        },
+      };
+    },
+  };
+}
+
+/**
+ * Models Cloudflare KV: every operation yields to the event loop, so concurrent
+ * read-modify-write sequences interleave and do not see each other's writes.
+ * This is what makes a KV counter unusable as a rate limiter.
+ */
+function eventuallyConsistentKv() {
   const store = new Map();
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
   return {
     store,
     async get(key) {
+      await settle();
       const entry = store.get(key);
       if (!entry) return null;
       if (entry.expiry && entry.expiry <= Date.now()) { store.delete(key); return null; }
       return entry.value;
     },
     async put(key, value, options = {}) {
+      await settle();
       store.set(key, { value, expiry: options.expirationTtl ? Date.now() + options.expirationTtl * 1000 : 0 });
     },
   };
 }
-const env = () => ({ APP_ORIGIN, RATE_SALT: 'test', AMPULA_LINKS: fakeKv() });
+
+const env = () => ({
+  APP_URL,
+  RATE_SALT: 'test',
+  AMPULA_LINKS: eventuallyConsistentKv(),
+  RATE_LIMITER: fakeDurableObjects(ShortLinkRateLimiter),
+});
 const post = (body, e, headers = {}) => worker.fetch(new Request('https://relay.test/a', {
   method: 'POST',
   headers: { 'content-type': 'application/json', 'cf-connecting-ip': '203.0.113.9', ...headers },
@@ -149,7 +201,7 @@ assert.deepEqual(
 
 const redirect = await worker.fetch(new Request(`https://relay.test/a/${createdBody.token}`), live);
 assert.equal(redirect.status, 302, 'a browser hit must redirect');
-assert.equal(redirect.headers.get('location'), `${APP_ORIGIN}?a=${payload}`, 'the relay must redirect to the app, not render its own UI');
+assert.equal(redirect.headers.get('location'), `${APP_URL}?a=${payload}`, 'the relay must redirect to the app, not render its own UI');
 
 assert.equal((await worker.fetch(new Request('https://relay.test/a/ZZZnotreal?format=json'), live)).status, 404);
 assert.equal((await worker.fetch(new Request('https://relay.test/a/bad%20token?format=json'), live)).status, 400);
@@ -168,20 +220,129 @@ assert.equal((await post({ v: 2, payload }, env())).status, 400);
 assert.equal((await post({ v: 1, payload: 'plain-text-playlist' }, env())).status, 400);
 assert.equal((await post({ v: 1, payload: `j.${'A'.repeat(LIMITS.maxPayloadBytes + 1)}` }, env())).status, 413);
 
-// Declared creation rate limit is enforced.
+// ---------------------------------------------------------------------------------------------
+// Rate limiting must hold under concurrency, not only when requests arrive one at a time.
+// ---------------------------------------------------------------------------------------------
+const burstSize = LIMITS.createsPerHour + 12;
+const burst = env();
+const burstResults = await Promise.all(
+  Array.from({ length: burstSize }, () => post({ v: 1, payload }, burst)),
+);
+const burstAccepted = burstResults.filter((r) => r.status === 201).length;
+const burstRefused = burstResults.filter((r) => r.status === 429).length;
+assert.equal(burstAccepted, LIMITS.createsPerHour, 'a concurrent burst must not exceed the declared limit');
+assert.equal(burstRefused, burstSize - LIMITS.createsPerHour, 'every excess concurrent request must be refused with 429');
+
+/**
+ * Control: the same concurrent burst against the naive KV counter this relay used
+ * to ship. If this ever stops over-admitting, the burst assertion above has become
+ * meaningless and the whole check must be re-examined.
+ */
+async function naiveKvLimiterAdmissions(attempts) {
+  const kv = eventuallyConsistentKv();
+  const verdicts = await Promise.all(Array.from({ length: attempts }, async () => {
+    const used = Number(await kv.get('rl:bucket')) || 0;
+    if (used >= LIMITS.createsPerHour) return false;
+    await kv.put('rl:bucket', String(used + 1), { expirationTtl: LIMITS.windowSeconds });
+    return true;
+  }));
+  return verdicts.filter(Boolean).length;
+}
+const naiveAdmitted = await naiveKvLimiterAdmissions(burstSize);
+assert.ok(
+  naiveAdmitted > LIMITS.createsPerHour,
+  `the concurrency check must be able to fail: a naive KV counter admitted ${naiveAdmitted} of ${burstSize}`,
+);
+
+// Sequential enforcement still holds, and independent clients are not coupled.
 const limited = env();
 for (let i = 0; i < LIMITS.createsPerHour; i += 1) {
   assert.equal((await post({ v: 1, payload }, limited)).status, 201, `create ${i + 1} must succeed`);
 }
 assert.equal((await post({ v: 1, payload }, limited)).status, 429, 'creation beyond the declared rate must be refused');
+assert.equal(
+  (await post({ v: 1, payload }, limited, { 'cf-connecting-ip': '198.51.100.4' })).status,
+  201,
+  'one exhausted client must not rate limit another',
+);
 
-// A different client bucket is unaffected by another client's rate limit.
-assert.equal((await post({ v: 1, payload }, limited, { 'cf-connecting-ip': '198.51.100.4' })).status, 201);
+// The limiter fails closed: unavailable must never mean unlimited.
+const noLimiter = env();
+delete noLimiter.RATE_LIMITER;
+assert.equal((await post({ v: 1, payload }, noLimiter)).status, 503, 'an unbound rate limiter must refuse creation');
 
-// CORS must allow the app origin.
-const preflight = await worker.fetch(new Request('https://relay.test/a', { method: 'OPTIONS' }), env());
+const brokenLimiter = env();
+brokenLimiter.RATE_LIMITER = {
+  idFromName: (name) => ({ name }),
+  get: () => ({ fetch: () => { throw new Error('durable object unavailable'); } }),
+};
+assert.equal((await post({ v: 1, payload }, brokenLimiter)).status, 503, 'a failing rate limiter must refuse creation');
+
+const noStorage = env();
+delete noStorage.AMPULA_LINKS;
+assert.equal((await post({ v: 1, payload }, noStorage)).status, 503, 'missing payload storage must refuse creation');
+
+// The limiter is isolated from Ámpula storage: it never receives a payload.
+const isolation = env();
+await post({ v: 1, payload }, isolation);
+for (const [, value] of isolation.AMPULA_LINKS.store) {
+  assert.ok(!String(value.value).includes('rl:'), 'a rate-limit counter must not live in Ámpula storage');
+}
+assert.ok(
+  ![...isolation.AMPULA_LINKS.store.keys()].some((key) => key.startsWith('rl:')),
+  'Ámpula storage must contain no rate-limit keys',
+);
+assert.ok(!/AMPULA_LINKS/.test(String(ShortLinkRateLimiter)), 'the limiter must not reference payload storage');
+
+// ---------------------------------------------------------------------------------------------
+// CORS: a browser Origin has no path, so the allow-origin header must not have one either.
+// ---------------------------------------------------------------------------------------------
+assert.equal(appOrigin({ APP_URL }), BROWSER_ORIGIN, 'the CORS origin must be derived from the app URL');
+assert.equal(appOrigin({ APP_URL: 'not a url' }), '');
+assert.equal(appOrigin({}), '');
+
+const corsEnv = env();
+const preflight = await worker.fetch(new Request('https://relay.test/a', {
+  method: 'OPTIONS',
+  headers: { origin: BROWSER_ORIGIN },
+}), corsEnv);
 assert.equal(preflight.status, 204);
-assert.equal(preflight.headers.get('access-control-allow-origin'), APP_ORIGIN);
+assert.equal(
+  preflight.headers.get('access-control-allow-origin'),
+  BROWSER_ORIGIN,
+  'the preflight allow-origin must be exactly the browser origin',
+);
+
+const corsCreate = await post({ v: 1, payload }, corsEnv, { origin: BROWSER_ORIGIN });
+assert.equal(corsCreate.status, 201);
+assert.equal(corsCreate.headers.get('access-control-allow-origin'), BROWSER_ORIGIN);
+const corsToken = (await corsCreate.json()).token;
+
+const corsResolve = await worker.fetch(
+  new Request(`https://relay.test/a/${corsToken}?format=json`, { headers: { origin: BROWSER_ORIGIN } }),
+  corsEnv,
+);
+assert.equal(corsResolve.headers.get('access-control-allow-origin'), BROWSER_ORIGIN);
+
+for (const response of [preflight, corsCreate, corsResolve]) {
+  const header = response.headers.get('access-control-allow-origin');
+  assert.ok(!header.includes('/winampmusic'), 'allow-origin must not carry the application path');
+  assert.equal(header, new URL(header).origin, 'allow-origin must be a bare origin');
+}
+
+// The redirect target, unlike the CORS header, must keep the full application path.
+const corsRedirect = await worker.fetch(new Request(`https://relay.test/a/${corsToken}`), corsEnv);
+assert.equal(corsRedirect.status, 302);
+assert.equal(
+  corsRedirect.headers.get('location'),
+  `${APP_URL}?a=${payload}`,
+  'the redirect must point at the app path, not merely at its origin',
+);
+
+assert.match(wranglerConfig, /APP_URL\s*=/, 'the deployment config must define APP_URL');
+assert.doesNotMatch(wranglerConfig, /APP_ORIGIN\s*=/, 'APP_ORIGIN was renamed and must not linger');
+assert.match(wranglerConfig, /class_name\s*=\s*"ShortLinkRateLimiter"/, 'the limiter must be a bound Durable Object');
+assert.match(relayReadme, /Durable Object/, 'the relay README must document the limiter primitive');
 
 // =============================================================================================
 // Every alias committed to this repository must be a valid, self-sufficient Ámpula.

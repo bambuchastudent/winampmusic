@@ -40,7 +40,9 @@
 ## Relay
 
 - [x] Add a deployable Cloudflare Worker under `relay/short-link/`.
-- [x] Add `wrangler.toml` with the KV binding and `APP_ORIGIN` placeholder.
+- [x] Add `wrangler.toml` with the KV binding, the Durable Object binding and an `APP_URL` placeholder.
+- [x] Derive `Access-Control-Allow-Origin` from `new URL(APP_URL).origin` so the header carries no path.
+- [x] Enforce the creation rate limit with an atomic Durable Object, failing closed when it is unavailable.
 - [x] Document the API contract, limits, failure modes, privacy and expiration in the relay README.
 - [x] State explicitly that no production relay is deployed by this change.
 
@@ -49,4 +51,6 @@
 - [x] Document short links, the fallback and the "no relay configured" default in `README.md`.
 - [x] Extend `tests/repository-integrity-v1.mjs` with alias-module guards.
 - [x] Add `verify-short-link-optional-v163.mjs` static contract.
+- [x] Cover CORS with a regression test using an app URL with a path and a bare browser origin.
+- [x] Cover the rate limit with a concurrent burst, plus a control proving a naive KV counter fails it.
 - [ ] Confirm the GitHub Pages verification run is green on the merged `develop` head.

@@ -14,6 +14,7 @@ export const LIMITS = Object.freeze({
   maxPayloadBytes: 64 * 1024,
   tokenLength: 9, // 62^9 ≈ 2^53.6, above the required 48 bits of entropy
   createsPerHour: 30,
+  windowSeconds: 3600,
   retentionDays: 180,
 });
 
@@ -28,8 +29,24 @@ function json(body, status, extraHeaders) {
   });
 }
 
+/**
+ * `APP_URL` is a full URL including the application path, because the relay
+ * redirects browsers to the app itself. A browser `Origin` header, however, is
+ * only scheme + host + port and never carries a path, so the CORS header must
+ * be derived from `APP_URL` rather than echoing it.
+ */
+export function appOrigin(env) {
+  const raw = String(env?.APP_URL || '');
+  if (!raw) return '';
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return '';
+  }
+}
+
 function corsHeaders(env) {
-  const origin = String(env?.APP_ORIGIN || '');
+  const origin = appOrigin(env);
   return {
     'access-control-allow-origin': origin || '*',
     'access-control-allow-methods': 'GET,POST,OPTIONS',
@@ -53,29 +70,89 @@ export function isValidPayload(value) {
 }
 
 function appUrlFor(env, payload) {
-  const base = String(env?.APP_ORIGIN || '');
-  if (!base) return '';
-  const url = new URL(base);
-  url.searchParams.set('a', payload);
-  return url.toString();
+  const raw = String(env?.APP_URL || '');
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    url.searchParams.set('a', payload);
+    return url.toString();
+  } catch {
+    return '';
+  }
 }
 
 async function clientBucket(request, env) {
   const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
   const salted = new TextEncoder().encode(`${env?.RATE_SALT || 'ampula'}:${ip}`);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', salted));
-  // Truncated, salted and never persisted alongside a payload: it only keys an
-  // ephemeral counter that expires within the rate-limit window.
-  return Array.from(digest.slice(0, 4), (b) => b.toString(16).padStart(2, '0')).join('');
+  // Salted with a deployment secret, so a bucket name is not reversible to an
+  // address. It only names a counter and is never stored beside a payload.
+  return Array.from(digest.slice(0, 16), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function rateLimited(request, env) {
-  if (!env?.AMPULA_LINKS) return false;
-  const key = `rl:${await clientBucket(request, env)}`;
-  const used = Number(await env.AMPULA_LINKS.get(key)) || 0;
-  if (used >= LIMITS.createsPerHour) return true;
-  await env.AMPULA_LINKS.put(key, String(used + 1), { expirationTtl: 3600 });
-  return false;
+/**
+ * Durable Object rate limiter.
+ *
+ * Cloudflare KV is eventually consistent and has no compare-and-set, so a
+ * `get(counter) -> put(counter + 1)` pair cannot enforce a limit: concurrent
+ * requests all read the same stale value and all pass. A Durable Object
+ * serialises requests per object, which makes this read-modify-write atomic.
+ *
+ * It holds a counter and nothing else. It never sees a payload.
+ */
+export class ShortLinkRateLimiter {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    const params = new URL(request.url).searchParams;
+    const limit = Number(params.get('limit')) || LIMITS.createsPerHour;
+    const windowSeconds = Number(params.get('windowSeconds')) || LIMITS.windowSeconds;
+    const now = Date.now();
+
+    const current = await this.state.storage.get('window');
+    let count = 0;
+    let resetAt = now + windowSeconds * 1000;
+    if (current && Number(current.resetAt) > now) {
+      count = Number(current.count) || 0;
+      resetAt = Number(current.resetAt);
+    }
+
+    if (count >= limit) return json({ allowed: false, remaining: 0, resetAt }, 200);
+
+    await this.state.storage.put('window', { count: count + 1, resetAt });
+    // Self-cleaning: the counter is dropped when the window closes.
+    await this.state.storage.setAlarm?.(resetAt);
+    return json({ allowed: true, remaining: limit - count - 1, resetAt }, 200);
+  }
+
+  async alarm() {
+    await this.state.storage.deleteAll();
+  }
+}
+
+/**
+ * Fails closed. A missing or broken limiter must never silently become
+ * unlimited creation. The client treats any non-2xx as "alias unavailable" and
+ * keeps the canonical self-contained link, so failing closed costs link length
+ * and nothing else.
+ */
+async function reserveCreateSlot(request, env) {
+  const namespace = env?.RATE_LIMITER;
+  if (!namespace) return { ok: false, status: 503, error: 'rate_limiter_unavailable' };
+  try {
+    const bucket = await clientBucket(request, env);
+    const stub = namespace.get(namespace.idFromName(bucket));
+    const url = `https://ampula-rate-limiter.invalid/reserve?limit=${LIMITS.createsPerHour}&windowSeconds=${LIMITS.windowSeconds}`;
+    const response = await stub.fetch(new Request(url, { method: 'POST' }));
+    if (!response?.ok) return { ok: false, status: 503, error: 'rate_limiter_unavailable' };
+    const verdict = await response.json();
+    if (verdict?.allowed === true) return { ok: true };
+    return { ok: false, status: 429, error: 'rate_limited' };
+  } catch {
+    return { ok: false, status: 503, error: 'rate_limiter_unavailable' };
+  }
 }
 
 async function handleCreate(request, env) {
@@ -94,9 +171,12 @@ async function handleCreate(request, env) {
   if (!isValidPayload(body.payload)) {
     return json({ error: 'invalid_payload' }, 400, corsHeaders(env));
   }
-  if (await rateLimited(request, env)) {
-    return json({ error: 'rate_limited' }, 429, corsHeaders(env));
+  if (!env?.AMPULA_LINKS) {
+    return json({ error: 'storage_unavailable' }, 503, corsHeaders(env));
   }
+
+  const slot = await reserveCreateSlot(request, env);
+  if (!slot.ok) return json({ error: slot.error }, slot.status, corsHeaders(env));
 
   const now = Date.now();
   const ttlSeconds = LIMITS.retentionDays * 24 * 60 * 60;
@@ -151,7 +231,7 @@ async function handleResolve(request, env, token, wantsJson) {
   }
 
   const target = appUrlFor(env, record.payload);
-  if (!target) return json({ error: 'app_origin_unset' }, 500, corsHeaders(env));
+  if (!target) return json({ error: 'app_url_unset' }, 500, corsHeaders(env));
   return new Response(null, { status: 302, headers: { location: target, 'cache-control': 'no-store' } });
 }
 

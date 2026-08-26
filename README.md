@@ -94,7 +94,9 @@ Two alias backends exist:
 | `static` — files under `a/` served by GitHub Pages | maintainer, via `node scripts/create-short-link.mjs --url "<share link>"` | **works from this repository, no service required** |
 | `relay` — write-capable HTTP service | anyone, from the Share dialog | **not deployed**; reference implementation in [`relay/short-link/`](./relay/short-link/README.md) |
 
-Static aliases are public and permanent until removed by another commit, so they are meant for curated moments rather than private sharing. Anonymous short-link creation from the Share dialog stays off until a deployment sets `window.AMPULA_SHORT_LINK_RELAY` or `<meta name="ampula-short-link-relay">`; this repository sets neither and deploys no relay.
+Static aliases are public and permanent until removed by another commit, so they are meant for curated moments rather than private sharing.
+
+**What happens in the deployed player today:** no write relay is deployed or configured, so a normal Share tap always produces the canonical long `?a=` link. Committed static aliases such as `a/tatu200` resolve normally. Anonymous short-link creation from the Share dialog becomes live only once a relay is actually deployed **and** the player is pointed at it via `window.AMPULA_SHORT_LINK_RELAY` or `<meta name="ampula-short-link-relay">`. This repository sets neither.
 
 ## Resolution
 
@@ -144,7 +146,7 @@ Included today:
 - playback-preserving background imports;
 - Media Session integration where supported;
 - Ámpula v1 self-contained link sharing;
-- optional short-link aliases with automatic fallback to the self-contained link;
+- optional short-link aliases with automatic fallback to the self-contained link (no write relay is deployed, so Share currently always produces the self-contained link);
 - QR sharing inside the Share experience;
 - `.ampula` format encode/decode support;
 - non-destructive canonical shared-music context;

@@ -89,7 +89,7 @@ POST /a
         "expiresAt": "<ISO-8601>" }
 
 GET /a/<token>
-  302 Location: <APP_ORIGIN>?a=<payload>
+  302 Location: <APP_URL>?a=<payload>
 
 GET /a/<token>?format=json
   200 { "v": 1, "payload": "<encoding>.<base64url>", "expiresAt": "<ISO-8601>" }
@@ -99,10 +99,15 @@ GET /healthz
 ```
 
 Error responses MUST use `400` (malformed request), `404` (unknown token), `410` (expired token),
-`413` (payload too large), `429` (rate limited) and `5xx` (relay fault). Every error response MUST be
-safe for a client to treat as "alias unavailable".
+`413` (payload too large), `429` (rate limited), `503` (storage or limiter unavailable) and `5xx`
+(relay fault). Every error response MUST be safe for a client to treat as "alias unavailable".
 
 CORS MUST allow the app origin for `POST /a` and `GET /a/<token>?format=json`.
+
+The relay's browser redirect target is a full application URL including its path, while a browser
+`Origin` header is only scheme, host and port. `Access-Control-Allow-Origin` MUST therefore be an
+origin with no path, derived from the configured application URL. A relay MUST NOT emit a configured
+application URL containing a path as `Access-Control-Allow-Origin`.
 
 ### Scenario: Round trip
 
@@ -110,11 +115,20 @@ CORS MUST allow the app origin for `POST /a` and `GET /a/<token>?format=json`.
 **When** it then requests the returned token as JSON
 **Then** the returned payload MUST be byte-identical to the posted payload.
 
+### Scenario: CORS header carries an origin, not an application URL
+
+**Given** the relay is configured with the application URL `https://example.test/winampmusic/`
+**And** a browser sends requests with `Origin: https://example.test`
+**When** the relay responds to a preflight or a cross-origin request
+**Then** `Access-Control-Allow-Origin` MUST be exactly `https://example.test`
+**And** it MUST NOT contain a path
+**And** the browser redirect target MUST still be `https://example.test/winampmusic/?a=<payload>`.
+
 ### Scenario: Redirect target is the app, not the relay
 
 **Given** a browser opens `GET /a/<token>` without `format=json`
 **When** the token exists
-**Then** the relay MUST redirect to the configured app origin with `?a=<payload>`
+**Then** the relay MUST redirect to the configured application URL with `?a=<payload>`
 **And** the relay MUST NOT render its own player, catalog or track listing.
 
 ## Requirement: Declared limits
@@ -135,6 +149,37 @@ publish it; the documentation MUST disclose that such tokens are guessable.
 **When** the client attempts registration
 **Then** the backend MUST reject it
 **And** sharing MUST continue with the self-contained link.
+
+## Requirement: The creation rate limit is atomically enforced
+
+The creation rate limit MUST be enforced with a primitive that is atomic under concurrency.
+
+A relay MUST NOT implement it as a read-modify-write over an eventually consistent store without
+compare-and-set, because concurrent requests then read the same stale counter and all pass.
+
+The limit MUST hold when requests arrive concurrently, not only when they arrive one at a time.
+
+The limiter MUST be isolated from Ámpula payload storage and MUST NOT have access to a payload.
+
+### Scenario: Concurrent creation attempts
+
+**Given** a client bucket with a declared limit of N registrations per window
+**When** more than N registration requests are made concurrently rather than sequentially
+**Then** at most N MUST be accepted
+**And** every further request MUST be refused with `429`.
+
+### Scenario: Rate limiter is unavailable
+
+**Given** the rate limiter is not configured, or fails
+**When** a client attempts registration
+**Then** the relay MUST refuse the registration with `503` rather than accept it unlimited
+**And** the client MUST fall back to the self-contained link.
+
+### Scenario: Independent clients are not coupled
+
+**Given** one client bucket has reached its limit
+**When** a different client bucket registers a payload
+**Then** that registration MUST be accepted.
 
 ## Requirement: Durability is explicitly weak
 
@@ -159,6 +204,9 @@ timestamps.
 
 A backend MUST NOT store user identity, account data, device identifiers, request logs tied to a
 payload, playback events, or derived musical metadata.
+
+A rate-limit counter MUST NOT be stored beside a payload, MUST be named by a value that is not
+reversible to a client address, and MUST be discarded when its window closes.
 
 ### Scenario: Record shape
 

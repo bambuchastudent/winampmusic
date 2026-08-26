@@ -83,8 +83,20 @@ they are curated (pinned, demo, press) moments, not private user sharing. `robot
 
 For anonymous end-user creation a deployment may configure a relay implementing the v1 contract in
 `specs/short-link-alias/spec.md`. `relay/short-link/` contains a reference Cloudflare Worker plus
-`wrangler.toml`: a single stateless handler over a KV namespace with native TTL, chosen because it is
-the smallest realistic write endpoint with no server to operate.
+`wrangler.toml`: a stateless handler over a KV namespace with native TTL for payloads, and a Durable
+Object for rate limiting.
+
+Two details that are easy to get wrong, and are pinned by test:
+
+- **CORS.** `APP_URL` is a full URL with a path (`https://…/winampmusic/`) because it is the browser
+  redirect target. A browser `Origin` header is only scheme + host + port. The worker therefore emits
+  `new URL(APP_URL).origin`; emitting `APP_URL` verbatim would produce an allow-origin header with a
+  path, which no browser can ever match.
+- **Rate limiting.** KV is eventually consistent and has no compare-and-set, so
+  `get(counter) -> put(counter + 1)` cannot enforce a limit — concurrent requests all read the same
+  stale value and all pass. A Durable Object serialises requests per object, making the
+  read-modify-write atomic. It holds a counter only and never sees a payload, and it **fails closed**:
+  an unbound or erroring limiter yields `503`, never unlimited creation.
 
 **It is not deployed by this change.** `relay/short-link/README.md` lists the required steps.
 
@@ -177,6 +189,7 @@ The FAST invariant holds:
 | Backend offline / DNS / TLS failure | Bounded fetch rejects, long link retained, no user-facing error. |
 | Backend slow | `AbortController` fires at 2500 ms, long link retained. |
 | Backend 4xx/5xx, malformed body, bad token | Treated as unavailable, long link retained. |
+| Relay rate limiter unbound or erroring | Relay returns `503`; long link retained. Creation is never silently unlimited. |
 | Payload above the limit | Alias skipped locally before any request. |
 | `?al=` token unknown/expired (404/410) | Non-destructive `SHORT LINK EXPIRED OR UNAVAILABLE`; library untouched; player usable. |
 | `?al=` backend unreachable | Same non-destructive status; the sender's long link and `.ampula` remain valid. |
@@ -198,6 +211,10 @@ Neither adapter stores a user identifier, account, device id, playback telemetry
 are random and never derived from payload content. Read requests never extend retention. A backend
 may drop any token at any time; by the §2 invariant that never loses a musical moment.
 
+The relay's rate-limit counter lives in a separate Durable Object, named by a hash of the client
+address salted with a deployment secret, so the name is not reversible to an address. It is never
+stored beside a payload and is discarded when its window closes.
+
 The client never sends a backend anything that is not already inside the shareable link itself.
 
 ## 12. Adversarial notes kept on record
@@ -208,3 +225,10 @@ The client never sends a backend anything that is not already inside the shareab
 - *"You committed share payloads into git forever."* Accepted and bounded: curated use only,
   documented as public and permanent, excluded from indexing.
 - *"The relay could become mandatory."* Structurally prevented by §2 and enforced by test.
+- *"A `MUST enforce` rate limit built on eventually consistent KV is a lie."* Correct, and it was the
+  first implementation. Replaced by a Durable Object; the spec now names atomicity as the
+  requirement, and the test suite exercises concurrent bursts and asserts the naive KV counter fails
+  the same check.
+- *"Sequential tests over a fake in-memory map prove nothing about concurrency."* Correct. The suite
+  now includes an eventually-consistent KV model and runs the limiter check against a concurrent
+  burst, with a control assertion that the naive implementation would fail it.

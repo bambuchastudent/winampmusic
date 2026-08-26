@@ -41,7 +41,7 @@ POST /a
         "expiresAt": "<ISO-8601>" }
 
 GET /a/<token>
-  302 Location: <APP_ORIGIN>?a=<payload>
+  302 Location: <APP_URL>?a=<payload>
 
 GET /a/<token>?format=json
   200 { "v": 1, "payload": "<encoding>.<base64url>", "expiresAt": "<ISO-8601>" }
@@ -49,6 +49,8 @@ GET /a/<token>?format=json
 GET /healthz
   200 { "ok": true, "v": 1 }
 ```
+
+CORS: `Access-Control-Allow-Origin` is `new URL(APP_URL).origin` — an origin with no path.
 
 ### Errors
 
@@ -59,6 +61,7 @@ GET /healthz
 | `410` | expired token |
 | `413` | payload above the size limit |
 | `429` | rate limited |
+| `503` | storage or rate limiter unavailable (creation fails closed) |
 | `5xx` | relay fault |
 
 Every error is safe for a client to treat as "alias unavailable": the client falls back to the
@@ -66,12 +69,25 @@ self-contained `?a=` link.
 
 ## Limits
 
-| Limit | Value |
-| --- | --- |
-| Maximum payload | 64 KB |
-| Token entropy | 9 base62 characters ≈ 53.6 bits (spec floor: 48 bits) |
-| Creation rate | 30 per hour per client bucket |
-| Retention | 180 days, not extended by reads |
+| Limit | Value | Enforcement |
+| --- | --- | --- |
+| Maximum payload | 64 KB | request validation |
+| Token entropy | 9 base62 characters ≈ 53.6 bits (spec floor: 48 bits) | `crypto.getRandomValues` |
+| Creation rate | 30 per hour per client bucket | Durable Object, atomic |
+| Retention | 180 days, not extended by reads | KV `expirationTtl` |
+
+### Why the rate limiter is a Durable Object
+
+Cloudflare KV is eventually consistent and has no compare-and-set. A
+`get(counter) -> put(counter + 1)` pair therefore cannot enforce a limit: concurrent requests all
+read the same stale value and all pass. A Durable Object serialises requests per object, which makes
+the read-modify-write atomic.
+
+The limiter **fails closed**. If `RATE_LIMITER` is unbound or the Durable Object errors, `POST /a`
+returns `503` rather than allowing unlimited creation. The client treats any non-2xx as "alias
+unavailable" and keeps the canonical link, so failing closed costs link length and nothing else.
+
+The limiter is isolated from Ámpula storage: it holds a counter and never sees a payload.
 
 ## Failure modes
 
@@ -81,6 +97,7 @@ self-contained `?a=` link.
 | Offline / DNS / TLS failure | Bounded fetch rejects; canonical link retained; no user-facing error. |
 | Slow | `AbortController` fires at 2500 ms; canonical link retained. |
 | 4xx / 5xx / malformed body | Treated as unavailable; canonical link retained. |
+| Rate limiter unbound or erroring | `503`; canonical link retained. Creation is never silently unlimited. |
 | Token unknown or expired on receive | Non-destructive status; local library untouched; player usable. |
 
 ## Privacy
@@ -88,8 +105,9 @@ self-contained `?a=` link.
 Stored per record: `payload`, `createdAt`, `expiresAt`. Nothing else.
 
 - No accounts, no cookies, no analytics, no referrer capture, no playback telemetry.
-- Rate limiting uses an ephemeral counter keyed by a salted, truncated hash of the client IP. The
-  counter expires within the rate-limit window and is never stored alongside a payload.
+- Rate limiting uses a counter in a Durable Object named by a hash of the client IP salted with a
+  deployment secret, so the bucket name is not reversible to an address. The counter is dropped when
+  the window closes and is never stored beside a payload.
 - The payload is opaque to the relay but readable by its operator. The client never sends the relay
   anything that is not already inside the shareable link itself.
 - Treat a deployed relay as a public host for the links people choose to shorten.
@@ -109,13 +127,17 @@ Explicitly weak, by design.
 npm install -g wrangler
 cd relay/short-link
 
-# 1. Create the KV namespace and paste the printed id into wrangler.toml
+# 1. Create the KV namespace for payloads and paste the printed id into wrangler.toml
 wrangler kv namespace create AMPULA_LINKS
 
-# 2. Set APP_ORIGIN to the deployed player and RATE_SALT to a private value
+# 2. Set APP_URL to the full deployed player URL (including its path) and set a
+#    private RATE_SALT
 #    (edit wrangler.toml, or use `wrangler secret put RATE_SALT`)
 
-# 3. Deploy
+# 3. Deploy. This also creates the ShortLinkRateLimiter Durable Object via the
+#    `v1` migration in wrangler.toml. Durable Objects must be available on the
+#    Cloudflare account/plan being used, otherwise deployment fails and no short
+#    link creation will work.
 wrangler deploy
 
 # 4. Verify
@@ -135,7 +157,14 @@ or statically in `index.html`:
 ```
 
 Until one of those is present, `ampula-short-link-v163.js` reports no write backend and makes no
-network request.
+network request, and every Share tap produces the canonical long `?a=` link.
+
+### CORS note
+
+`APP_URL` is a full URL with a path (`https://…/winampmusic/`) because it is the browser redirect
+target. A browser `Origin` header is only scheme + host + port. The worker therefore derives
+`Access-Control-Allow-Origin` as `new URL(APP_URL).origin` — emitting `APP_URL` verbatim would
+produce a header with a path, which no browser will ever match.
 
 ## Non-goals
 
