@@ -6,52 +6,41 @@
 
 Provider adapters and playback bridges may discover a better playback representation, but they must hand that result back to the core instead of independently replacing `winampmusic.library.v1`.
 
-## New core operation
+## Existing authoritative adoption path
 
-Expose a small runtime API:
+The core already exposes `window.importTracks`. Its provider-independent dedupe key is the recording identity derived from title + artist. When the same recording exists unresolved and a later import supplies a valid YouTube id, `importTracks` adopts that id into the existing in-memory recording instead of creating a duplicate.
 
-```js
-window.ampMusicAdoptPlaybackSource(index, patch)
-```
+That is exactly the state transition needed here, so this change deliberately reuses it rather than adding a second mutation API.
 
-The operation:
-
-1. validates `patch.id` with the existing YouTube id parser;
-2. rejects an invalid index or invalid id;
-3. updates only mutable playback fields on the existing in-memory recording;
-4. preserves recording identity and provenance (`title`, `artist`, Apple URLs/ids, badges and other imported evidence);
-5. saves the authoritative array, re-renders the library and refreshes now-playing when necessary;
-6. returns the validated id on success and an empty string on failure.
-
-The first patch fields are `id`, optional `thumbnail`, and optional resolution timestamp. Provider-specific provenance is deliberately not accepted as a replacement identity.
+`clean-playback-v150.js` must call `window.importTracks` with the resolved id and the recording's existing title/artist before it updates auxiliary persistent metadata. Because the known-recording path only adopts the playback id, the original title, artist, Apple URLs/ids, storefront evidence and badges remain intact.
 
 ## Direct playback flow
 
 For an Apple-origin track:
 
 1. the existing strict matcher resolves the recording evidence to a YouTube candidate;
-2. `clean-playback-v150.js` immediately calls `ampMusicAdoptPlaybackSource`;
-3. direct Piped audio is attempted for that resolved YouTube id;
-4. if direct audio works, playback continues as today;
-5. if direct audio fails, `window.playIndex(index)` sees the same resolved id in the FAST in-memory library and uses the YouTube iframe directly.
+2. `clean-playback-v150.js` immediately feeds that candidate back through `window.importTracks` using the existing recording identity;
+3. the FAST in-memory library and persistence now agree on the resolved playback id;
+4. direct Piped audio is attempted for that YouTube id;
+5. if direct audio works, playback continues as today;
+6. if direct audio fails, `window.playIndex(index)` sees the already-resolved id in the FAST in-memory library and uses the YouTube iframe directly.
 
 This makes the source chosen for playback independent of the source that created the recording while retaining Apple as origin evidence.
 
-## Compatibility fallback
+## Compatibility
 
-If the core adoption API is unavailable (for example, a partially cached old shell with a newer deferred script), `clean-playback-v150.js` keeps a defensive localStorage update. Normal current-version execution must use the authoritative API.
+If `window.importTracks` is unavailable in a partially loaded shell, the existing defensive `localStorage` update remains. Normal current-version execution has `importTracks` because the FAST core loads synchronously before deferred playback adapters.
 
 ## Failure modes
 
 - Strict matcher finds no acceptable recording: no source is adopted; existing unresolved behavior remains.
-- Resolved id fails validation: no mutation occurs.
 - Direct Piped endpoint is unavailable: iframe fallback uses the adopted id.
 - YouTube iframe also cannot play the candidate: existing player error/recovery behavior applies; the track remains visible and Apple provenance remains intact.
-- localStorage write fails: the in-memory player still owns the adopted id for the current page, matching existing best-effort persistence semantics.
+- localStorage write fails: existing best-effort persistence semantics apply.
 
 ## Critical path and performance
 
-The core addition is a small mutation helper and replaces no startup network work. No provider API is added to the synchronous path. The change must remain within the existing FAST source budget.
+No new synchronous core code or startup network work is added. The fix is confined to the deferred playback bridge and reuses the core's existing recording adoption semantics.
 
 ## Why not make Apple the playback source
 
