@@ -5,6 +5,7 @@ const read = (file) => fs.readFileSync(new URL(`./${file}`, import.meta.url), 'u
 const index = read('index.html');
 const actions = read('fast-actions-v143.js');
 const shortLink = read('ampula-short-link-v163.js');
+const shortLinkConfig = read('ampula-short-link-config.js');
 const compactShare = read('compact-share.js');
 const fileOpen = read('ampula-file-open-v1.js');
 const sw = read('sw.js');
@@ -14,12 +15,25 @@ const fail = (message) => { throw new Error(message); };
 
 // The alias is optional and lazy: nothing about it may enter the startup critical path.
 if (index.includes('ampula-short-link')) fail('Short-link support must not be a startup script');
-if (index.includes('AMPULA_SHORT_LINK_RELAY')) fail('This repository must not configure a write relay');
+if (index.includes('AMPULA_SHORT_LINK_RELAY')) fail('Relay routing must stay outside the startup document');
+if (!actions.includes("loadScript('./ampula-short-link-config.js?v=166', 'short-link-config')")) {
+  fail('Share/receive must lazily load production relay routing');
+}
 if (!actions.includes("loadScript('./ampula-short-link-v163.js?v=163', 'ampula-short-link')")) {
   fail('Share must lazily load the alias module');
 }
+if (actions.indexOf("'short-link-config'") > actions.indexOf("'ampula-short-link'")) {
+  fail('Relay runtime config must be referenced before the alias adapter');
+}
+if (!/AMPULA_SHORT_LINK_RELAY\s*=\s*window\.AMPULA_SHORT_LINK_RELAY\s*\|\|\s*''/.test(shortLinkConfig)) {
+  fail('Checked-in relay runtime config must be inert by default');
+}
+if (/workers\.dev|pages\.dev/i.test(shortLinkConfig)) {
+  fail('Checked-in relay runtime config must not bind a deployment');
+}
 if (!actions.includes("params.has('al')")) fail('The alias receive path must be wired');
 if (!actions.includes("loadScript('./qr-share-v1.js?v=161', 'qr-share')")) fail('QR must still be loaded from the Share flow');
+if (!sw.includes('./ampula-short-link-config.js')) fail('The relay runtime config must be precached with the shell');
 if (!sw.includes('./ampula-short-link-v163.js')) fail('The alias module must be precached with the shell');
 
 // The canonical link must exist before, and survive, any alias attempt.
@@ -53,8 +67,13 @@ for (const host of ['bit.ly', 'tinyurl.com', 't.co', 'is.gd', 'goo.gl', 'ow.ly']
 }
 if (!shortLink.includes('BLOCKED_HOSTS')) fail('Alias client must refuse public shorteners as a configured backend');
 
-// Deployment status must be stated, not implied.
-if (!/not deployed/i.test(readme)) fail('README must state that no production relay is deployed');
+// Production delivery may enable the first-party relay, but it must remain explicitly optional.
+if (!/CLOUDFLARE_API_TOKEN/.test(readme) || !/CLOUDFLARE_ACCOUNT_ID/.test(readme)) {
+  fail('README must document the explicit production relay gate');
+}
+if (!/missing or broken relay credentials do not block/i.test(readme)) {
+  fail('README must state that relay deployment cannot block canonical sharing or Pages delivery');
+}
 if (!/create-short-link/.test(readme)) fail('README must document the alias path that works without a relay');
 
-console.log('short-link alias stays optional, lazy, first-party and honest about deployment');
+console.log('short-link alias stays optional, lazy, first-party and failure-safe with production relay wiring');

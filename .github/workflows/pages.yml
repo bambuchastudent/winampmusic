@@ -61,6 +61,60 @@ jobs:
           APPLE_MUSIC_ORIGIN: https://bambuchastudent.github.io
         run: node scripts/generate-apple-music-config.mjs apple-music-config.js
 
+      - name: Detect optional Cloudflare relay credentials
+        id: relay_gate
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "$CF_API_TOKEN" ] && [ -n "$CF_ACCOUNT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            rate_salt="$(openssl rand -hex 32)"
+            echo "::add-mask::$rate_salt"
+            echo "RATE_SALT=$rate_salt" >> "$GITHUB_ENV"
+            echo "Cloudflare credentials present; short-link relay deployment enabled."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare credentials absent; canonical Ámpula links remain active."
+          fi
+
+      - name: Deploy optional Ámpula short-link relay
+        id: relay_deploy
+        if: steps.relay_gate.outputs.enabled == 'true'
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: relay/short-link
+          wranglerVersion: "4.102.0"
+          command: deploy
+          secrets: |
+            RATE_SALT
+        env:
+          RATE_SALT: ${{ env.RATE_SALT }}
+
+      - name: Generate short-link runtime config
+        id: relay_config
+        env:
+          RELAY_DEPLOYMENT_URL: ${{ steps.relay_deploy.outputs.deployment-url }}
+          RELAY_COMMAND_OUTPUT: ${{ steps.relay_deploy.outputs.command-output }}
+        run: node scripts/generate-short-link-config.mjs ampula-short-link-config.js
+
+      - name: Verify optional short-link relay
+        if: steps.relay_config.outputs.relay_url != ''
+        env:
+          RELAY_URL: ${{ steps.relay_config.outputs.relay_url }}
+        run: |
+          set -u
+          if curl --fail --silent --show-error --retry 4 --retry-delay 2 "${RELAY_URL}healthz" >/dev/null; then
+            echo "Ámpula short-link relay is healthy: $RELAY_URL"
+          else
+            echo "::warning::Short-link relay health check failed; publishing with canonical share fallback."
+            RELAY_DEPLOYMENT_URL='' RELAY_COMMAND_OUTPUT='' node scripts/generate-short-link-config.mjs ampula-short-link-config.js
+          fi
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:

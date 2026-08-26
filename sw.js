@@ -19,6 +19,7 @@ const CORE = [
   './unified-entry-v152.js',
   './compact-share.js',
   './share-ui-cleanup-v162.js',
+  './ampula-short-link-config.js',
   './ampula-short-link-v163.js',
   './legacy-share-v1.js',
   './qr-share-v1.js',

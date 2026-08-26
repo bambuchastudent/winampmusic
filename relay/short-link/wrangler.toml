@@ -1,11 +1,12 @@
 # Ámpula short-link relay — Cloudflare Worker configuration.
 #
-# STATUS: NOT DEPLOYED. See README.md.
-# `APP_URL` and `kv_namespaces.id` are placeholders and must be set by an operator.
+# Account-specific resource identifiers and private salts deliberately do not
+# live in this file. Wrangler v4 provisions the KV binding for the target
+# account, while RATE_SALT is supplied as a Worker secret by production CI.
 
 name = "ampula-short-link"
 main = "worker.js"
-compatibility_date = "2025-01-01"
+compatibility_date = "2026-08-26"
 
 [vars]
 # Full application URL, including the path. Used as the browser redirect target.
@@ -13,14 +14,10 @@ compatibility_date = "2025-01-01"
 # because a browser Origin never carries a path.
 APP_URL = "https://bambuchastudent.github.io/winampmusic/"
 
-# Salt for the rate-limit bucket name. Override per deployment,
-# preferably via: wrangler secret put RATE_SALT
-RATE_SALT = "replace-me"
-
-# Ámpula payload storage. Create with: wrangler kv namespace create AMPULA_LINKS
+# Ámpula payload storage. Wrangler >= 4.45 automatically provisions and links
+# this KV namespace when no account-specific id is present.
 [[kv_namespaces]]
 binding = "AMPULA_LINKS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
 # Rate limiting. A Durable Object is used instead of a KV counter because KV is
 # eventually consistent and has no compare-and-set, so it cannot enforce a limit
