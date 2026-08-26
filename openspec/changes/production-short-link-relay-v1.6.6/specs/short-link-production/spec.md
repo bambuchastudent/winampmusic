@@ -42,22 +42,22 @@ The browser runtime configuration MUST contain only the public HTTPS relay base 
 - WHEN runtime configuration is generated
 - THEN the resulting configuration leaves the relay disabled.
 
-## Requirement: rate-limit salt is secret
+## Requirement: rate-limit salt is deployment-private
 
-`RATE_SALT` MUST NOT be committed as a usable value in Worker variables and MUST be supplied as private deployment state. Alias creation MUST fail closed when the salt is unavailable.
+`RATE_SALT` MUST NOT be committed as a usable value in Worker variables and MUST be supplied as private deployment state whenever production relay deployment is attempted.
 
 ### Scenario: repository configuration is inspected
 
 - WHEN `relay/short-link/wrangler.toml` is read
 - THEN no placeholder or production rate-limit salt is stored in `[vars]`
-- AND the Worker still receives `RATE_SALT` through the deployment mechanism when relay deployment is enabled.
+- AND production delivery supplies `RATE_SALT` through the Worker secret mechanism.
 
-### Scenario: salt is missing at runtime
+### Scenario: secret delivery fails
 
-- GIVEN the relay Worker has no `RATE_SALT` secret
-- WHEN a client attempts to create an alias
-- THEN alias creation fails closed
-- AND the client can retain its canonical self-contained link.
+- GIVEN relay deployment cannot deliver its required private deployment state
+- WHEN the optional relay deployment does not complete successfully
+- THEN the Pages artifact leaves relay runtime configuration disabled
+- AND canonical sharing remains available.
 
 ## Requirement: client wiring is available before alias use
 
