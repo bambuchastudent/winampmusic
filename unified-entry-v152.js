@@ -60,8 +60,9 @@
     document.querySelector('.fast-note')?.remove();
     const share = $('sharePlaylistButton');
     if (!share) return;
-    if (clean(share.textContent) === 'Gift / QR') share.textContent = 'Share / QR';
-    share.setAttribute('aria-label', 'Share playlist by link or QR code');
+    const text = clean(share.textContent);
+    if (text === 'Gift / QR' || text === 'Share / QR') share.textContent = 'Share';
+    share.setAttribute('aria-label', 'Share current music');
   }
 
   function waitForSearchUi(timeoutMs = 4500) {
