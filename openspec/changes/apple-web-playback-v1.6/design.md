@@ -1,39 +1,43 @@
-# Design — Apple web playback fallback v1.6
+# Design — Apple-origin full playback resolution v1.6
 
-## Architecture
+## Source model
 
-Apple provider identity and playback handles remain separate:
+Apple catalog metadata and current playback are separate concerns.
 
-- `appleTrackId` / `appleTrackUrl` are Apple provider observations and browser-handoff data.
-- generic `id` is populated only when a resolver has produced a real playable handle understood by the current runtime (currently a real YouTube video ID for this path).
-- title/artist remain the recording identity used by the working library and Ámpula resolver.
+- `appleTrackId` and `appleTrackUrl` are provider evidence.
+- `title` + `artist` identify the recording for the local/provider-independent library model.
+- generic `id` is a current playback handle only when it is a real YouTube video ID.
+- no Apple catalog ID is encoded into an 11-character generic ID.
+
+## Import resolution
+
+`apple-resolution-v162.js` is a provider adapter layered after the existing Apple readers. It patches the final track/album/playlist import functions and uses the existing strict matcher to resolve each Apple recording by title, artist, album, and duration.
+
+Album and playlist resolution is concurrent with a small worker pool. Every readable Apple recording remains in its original order whether resolution succeeds or fails. Progress and completion messages count only real full playback handles as playable.
 
 ## Playback order
 
-For an Apple-origin track:
+1. If MusicKit is configured and authorization succeeds, Apple-native playback remains preferred.
+2. Otherwise the resolved YouTube handle is attempted through the existing direct-audio path.
+3. If direct/proxy audio fails but the track already has a real YouTube handle, the pre-MusicKit YouTube iframe player is invoked directly.
+4. If no full source can be resolved, the track remains unresolved; a 90-second Apple preview is not substituted as successful playback.
 
-1. If MusicKit is configured, try MusicKit in-player playback.
-2. If a real YouTube resolver handle already exists, use the existing in-player direct/YouTube path.
-3. On an explicit user Play/track click, if Apple has an exact web URL, hand off to `music.apple.com` in the browser.
-4. If none of those paths is available, keep the track unresolved and visible.
+The iframe fallback is installed from `fast-release-v150.js` before the Apple playback adapters capture `ampMusicPlayDirectIndex`, so it can bypass the later Apple wrapper recursion safely.
 
-Automatic import/play requests do not perform browser handoff because popup/navigation behavior must require an explicit user gesture.
+## Legacy migration
 
-## UI semantics
+Older catalog-first builds stored deterministic synthetic IDs derived from `appleTrackId`. The new resolver recognizes the exact old deterministic value, rewrites it to the same provider-independent `U-...` recording ID used by the core library, marks it unresolved, persists the migration, and reloads once so the already-created core runtime rereads the corrected library.
 
-`matched` is reserved for a resolver result that the runtime can actually attempt to play in-player. Reading Apple catalog metadata is reported separately and never increments `matched` by itself.
+Only exact deterministic legacy IDs are migrated; arbitrary 11-character IDs are never rewritten.
 
-## Compatibility
+## Critical-path constraints
 
-Existing stored Apple entries with synthetic `Axxxxxxxxxx` IDs are normalized at playback/import boundaries by recognizing Apple-origin metadata and refusing to treat synthetic Apple IDs as YouTube IDs. Newly imported Apple catalog entries no longer generate those IDs.
+The synchronous fast player remains unchanged. `fast-release-v150.js` loads the new resolver asynchronously. Normal YouTube startup and controls remain available if the resolver module fails to load.
 
 ## Failure modes
 
-- Popup blocked: show a concise `OPEN APPLE MUSIC`/browser-handoff status and keep the track in the library.
-- Missing `appleTrackUrl`: continue to resolver fallback and unresolved state.
-- MusicKit unavailable: do not label the Apple track unplayable before considering browser handoff.
-- Browser Apple page itself cannot play due region/account/subscription: that remains an Apple-side playback outcome; AMPULAMP preserves the source URL and metadata.
-
-## Critical-path constraint
-
-No Apple browser-handoff module is added to synchronous startup. The change stays inside already-loaded Apple playback/import adapters.
+- Strict resolver unavailable: preserve Apple metadata and mark unresolved.
+- Some album tracks resolve: import all tracks, play the first real full source, and report the unresolved count.
+- Direct audio proxy unavailable: fall back to the YouTube iframe for a verified real handle.
+- MusicKit secrets absent: do not claim Apple-native playback; use resolved full fallback sources.
+- MusicKit authorization denied: existing fallback behavior remains available.
