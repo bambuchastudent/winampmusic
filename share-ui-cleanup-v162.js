@@ -77,7 +77,7 @@
 
   function leaveReceivedView(dialog) {
     try { if (dialog?.open) dialog.close(); } catch {}
-    if (dialog) dialog.style.display = 'none';
+    if (dialog?.style) dialog.style.display = 'none';
     restoreLocalLibrary();
     try {
       const url = new URL(location.href);
@@ -96,7 +96,7 @@
     hideLocalLibrary();
 
     dialog.dataset.dialogless165 = '1';
-    dialog.style.cssText = [
+    if (dialog.style) dialog.style.cssText = [
       'position:static',
       'inset:auto',
       'display:block',
@@ -119,8 +119,8 @@
       const back = close.cloneNode(true);
       back.dataset.dialogless165 = '1';
       back.textContent = '← My library';
-      back.setAttribute('aria-label', 'Return to my library');
-      back.style.cssText = 'width:auto;min-width:0;padding:0 4px;font-size:11px;font-weight:800;white-space:nowrap';
+      back.setAttribute?.('aria-label', 'Return to my library');
+      if (back.style) back.style.cssText = 'width:auto;min-width:0;padding:0 4px;font-size:11px;font-weight:800;white-space:nowrap';
       close.replaceWith(back);
       back.addEventListener('click', () => leaveReceivedView(dialog));
     }
@@ -129,7 +129,7 @@
   function patchShareDialog(dialog) {
     if (!dialog) return;
     dialog.dataset.dialogless165 = '1';
-    dialog.style.display = 'none';
+    if (dialog.style) dialog.style.display = 'none';
     const heading = dialog.querySelector('#winampShareHeading');
     setEyebrow(heading, 'SHARE');
     setText(heading, 'Share music');
