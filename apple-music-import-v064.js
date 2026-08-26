@@ -267,8 +267,8 @@
   function persistAndPlay(match, metadata, parsed, shouldPlay = true) {
     const track = {
       id: match.id,
-      title: metadata.title || match.title || `YouTube ${match.id}`,
-      artist: metadata.artist || match.artist || 'YouTube',
+      title: metadata.title || match.title || '',
+      artist: metadata.artist || match.artist || '',
       thumbnail: metadata.artwork || match.thumbnail || `https://i.ytimg.com/vi/${match.id}/hqdefault.jpg`,
       duration: metadata.durationMs > 0 ? Math.round(metadata.durationMs / 1000) : Number(match.duration || 0),
       playlist: 'Apple Music import',

@@ -147,7 +147,7 @@
     try {
       const ids = await resolveYouTubePlaylist(youtube.playlistId);
       const importedAt = new Date().toISOString();
-      const result = window.importTracks?.(ids.map((id) => ({ id, title: `YouTube ${id}`, artist: 'YouTube', playlist: `YouTube playlist ${youtube.playlistId}`, importedAt, badges: ['YouTube', 'Playlist'] })));
+      const result = window.importTracks?.(ids.map((id) => ({ id, playlist: `YouTube playlist ${youtube.playlistId}`, importedAt, badges: ['YouTube', 'Playlist'] })));
       const firstIndex = libraryIndex(ids[0]);
       if (firstIndex < 0) { hint.textContent = 'Player is still starting — tap Add again'; return; }
       hint.textContent = `${ids.length} tracks · ${result?.added || 0} new · starting playlist`;
@@ -197,7 +197,7 @@
     if (youtube?.type === 'playlist') { await importYouTubePlaylist(youtube); return; }
     const id = youtube?.type === 'track' ? youtube.videoId : '';
     if (!id) { hint.textContent = 'Paste a YouTube or Apple Music track/playlist link'; input.focus(); return; }
-    const result = window.importTracks?.([{ id, title: `YouTube ${id}`, artist: 'YouTube', importedAt: new Date().toISOString(), badges: ['YouTube'] }]);
+    const result = window.importTracks?.([{ id, importedAt: new Date().toISOString(), badges: ['YouTube'] }]);
     const index = libraryIndex(id);
     if (index < 0) { hint.textContent = 'Player is still starting — tap Add again'; return; }
     hint.textContent = result?.added ? 'Added · starting track' : 'Already saved · starting track';
