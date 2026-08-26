@@ -33,6 +33,7 @@ if (/workers\.dev|pages\.dev/i.test(shortLinkConfig)) {
 }
 if (!actions.includes("params.has('al')")) fail('The alias receive path must be wired');
 if (!actions.includes("loadScript('./qr-share-v1.js?v=161', 'qr-share')")) fail('QR must still be loaded from the Share flow');
+if (!sw.includes('./ampula-short-link-config.js')) fail('The relay runtime config must be precached with the shell');
 if (!sw.includes('./ampula-short-link-v163.js')) fail('The alias module must be precached with the shell');
 
 // The canonical link must exist before, and survive, any alias attempt.
