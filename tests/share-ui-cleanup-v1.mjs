@@ -22,7 +22,9 @@ assert.match(actions, /share-ui-cleanup-v162\.js\?v=162/);
 
 assert.match(cleanup, /winampShareHeading/);
 assert.match(cleanup, /Share music/);
-assert.match(cleanup, /Listen to this playlist/);
+assert.match(cleanup, /HTMLDialogElement/);
+assert.match(cleanup, /SHORT LINK COPIED/);
+assert.match(cleanup, /makeReceivedInline/);
 assert.match(cleanup, /winampShareFile/);
 assert.match(cleanup, /\.remove\(\)/, 'format-specific share actions must be removed from rendered UI');
 assert.match(cleanup, /Add to library/);
@@ -163,5 +165,5 @@ assert.equal(dialog.querySelector('#ampulaSave'), save, 'Save button must remain
 assert.equal(dialog.querySelector('#ampulaAdd'), add, 'Add button must remain attached');
 assert.equal(dialog.querySelector('#ampulaFile'), null, 'format-specific file action should be removed without deleting siblings');
 
-console.log('compact library and non-destructive Share UI contract passed');
+console.log('compact library and dialogless non-destructive Share UI contract passed');
 process.exit(0);
