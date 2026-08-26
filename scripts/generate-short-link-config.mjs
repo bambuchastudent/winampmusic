@@ -22,6 +22,20 @@ export function normalizeRelayUrl(value) {
   }
 }
 
+export function relayUrlFromOutputs(deploymentUrl, commandOutput = '') {
+  const direct = normalizeRelayUrl(deploymentUrl);
+  if (direct) return direct;
+
+  // Keep this deliberately generic: Wrangler may print a workers.dev URL or a
+  // custom-domain URL. We validate every candidate with normalizeRelayUrl().
+  const candidates = String(commandOutput ?? '').match(/https:\/\/[^\s)]+/g) || [];
+  for (const candidate of candidates.reverse()) {
+    const relay = normalizeRelayUrl(candidate);
+    if (relay) return relay;
+  }
+  return '';
+}
+
 export function renderRelayConfig(value) {
   const relay = normalizeRelayUrl(value);
   const assignment = relay
@@ -39,8 +53,10 @@ function writeGithubOutput(relay) {
 
 function main() {
   const outputPath = process.argv[2] || 'ampula-short-link-config.js';
-  const raw = process.env.RELAY_DEPLOYMENT_URL || process.argv[3] || '';
-  const relay = normalizeRelayUrl(raw);
+  const relay = relayUrlFromOutputs(
+    process.env.RELAY_DEPLOYMENT_URL || process.argv[3] || '',
+    process.env.RELAY_COMMAND_OUTPUT || '',
+  );
 
   fs.writeFileSync(outputPath, renderRelayConfig(relay), 'utf8');
   writeGithubOutput(relay);
