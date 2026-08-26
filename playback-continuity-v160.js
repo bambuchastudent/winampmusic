@@ -95,7 +95,7 @@
     const positionMs = Math.max(0, parseTime(ui.elapsed?.textContent));
     const durationMs = Math.max(0, parseTime(ui.duration?.textContent));
     const status = clean(ui.status?.textContent).toUpperCase();
-    const playing = /(^| · )PLAYING($| · )|^PLAYING/.test(status);
+    const playing = /PLAYING/.test(status);
     const meaningfulState = playing || /PAUSED|READY/.test(status);
     const previous = readCheckpoint();
 
@@ -138,7 +138,6 @@
           ui.seek.value = String(Math.max(0, Math.min(1000, Math.round((targetMs / durationMs) * 1000))));
           ui.seek.dispatchEvent(new Event('change', { bubbles: true }));
           attempts += 1;
-          // Direct audio can report PLAYING just before metadata settles; retry a few times.
           if (attempts >= 3) break;
         }
       }
@@ -151,6 +150,11 @@
     }
   }
 
+  function startPendingResume(resume) {
+    if (!resume) return;
+    setTimeout(() => void seekWhenPlaybackStarts(resume), 0);
+  }
+
   function armResumeFromEvent(event) {
     if (!pendingResume) return;
     const target = event.target?.closest?.('button, .track-main');
@@ -158,22 +162,52 @@
 
     if (target.id === 'playButton') {
       const resume = pendingResume;
-      setTimeout(() => void seekWhenPlaybackStarts(resume), 0);
+      // FAST captured its numeric cursor before this lazy module loaded. Own the
+      // first resumed Play so stable identity, not that stale index, wins.
+      if (typeof window.playIndex === 'function') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        void window.playIndex(resume.index);
+      }
+      startPendingResume(resume);
       return;
     }
 
     if (target.classList?.contains('track-main')) {
       const index = Number(target.dataset.index);
-      if (index === pendingResume.index) {
-        const resume = pendingResume;
-        setTimeout(() => void seekWhenPlaybackStarts(resume), 0);
-      } else {
-        pendingResume = null;
-      }
+      if (index === pendingResume.index) startPendingResume(pendingResume);
+      else pendingResume = null;
       return;
     }
 
-    if (['prevButton', 'nextButton', 'shuffleButton', 'radioButton'].includes(target.id)) pendingResume = null;
+    if (target.id === 'prevButton' || target.id === 'nextButton') {
+      const resume = pendingResume;
+      const library = readLibrary();
+      if (library.length && typeof window.playIndex === 'function') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const delta = target.id === 'prevButton' ? -1 : 1;
+        void window.playIndex((resume.index + delta + library.length) % library.length);
+      }
+      pendingResume = null;
+      return;
+    }
+
+    if (target.id === 'shuffleButton') {
+      const resume = pendingResume;
+      const library = readLibrary();
+      if (library.length && typeof window.playIndex === 'function') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        let index = resume.index;
+        if (library.length > 1) while (index === resume.index) index = Math.floor(Math.random() * library.length);
+        void window.playIndex(index);
+      }
+      pendingResume = null;
+      return;
+    }
+
+    if (target.id === 'radioButton') pendingResume = null;
   }
 
   function restoreLibrary() {
@@ -189,7 +223,6 @@
 
     restoring = true;
     try {
-      // playback-continuity-boot-v160.js already moved the FAST numeric cursor to this stable identity.
       localStorage.setItem(CURRENT_KEY, String(index));
       paintPosition(checkpoint.positionMs, checkpoint.durationMs);
       pendingResume = {
