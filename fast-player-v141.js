@@ -80,6 +80,7 @@
 
   const setStatus = (text) => { ui.status.textContent = text; };
   const isResolved = (track) => VIDEO_ID_RE.test(clean(track?.id));
+  const recordingId = (track) => (clean(track?.title) ? localRecordingId(clean(track.title), clean(track.artist)) : '');
   const shownTitle = (track) => clean(track?.title) || 'Unknown track';
   const shownArtist = (track) => clean(track?.artist) || 'Unknown artist';
   const saveLibrary = () => {
@@ -321,9 +322,11 @@
       if (!playable && !title) continue;
       const localId = title ? localRecordingId(title, artist) : '';
       const id = playable || localId;
-      if (library.some((track) => track.id === id)) continue;
-      const pending = localId ? library.findIndex((track) => track.id === localId) : -1;
-      if (pending >= 0) { library[pending].id = id; adopted += 1; continue; }
+      const known = library.findIndex((track) => track.id === id || (localId && recordingId(track) === localId));
+      if (known >= 0) {
+        if (playable && !isResolved(library[known])) { library[known].id = playable; adopted += 1; }
+        continue;
+      }
       library.push({ ...item, id, title, artist }); added += 1;
     }
     if (added || adopted) { saveLibrary(); filtered = library.map((_, index) => index); renderLibrary(filtered); }

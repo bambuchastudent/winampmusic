@@ -106,12 +106,19 @@ function boot({ matcher = 'all', markdown = MARKDOWN, ok = true, adapters = [pla
   };
 
   if (matcher !== 'missing') {
+    const matchCalls = new Map();
     window.winampMusicAppleImport = {
       async findYouTubeMatch(meta) {
         if (matcher === 'none') return null;
         if (matcher === 'not-first' && meta.title === 'Intro') throw new Error('simulated unresolved track');
         if (matcher === 'all-but-one' && meta.title === 'Crystalised') throw new Error('simulated unresolved track');
         if (matcher === 'plain-all-but-one' && meta.title === 'Crystal Peak') throw new Error('simulated unresolved track');
+        if (matcher === 'drifting') {
+          const seen = (matchCalls.get(meta.title) || 0) + 1;
+          matchCalls.set(meta.title, seen);
+          const stable = MATCH_IDS[meta.title];
+          return { id: seen > 1 ? `z${stable.slice(1)}` : stable, title: meta.title, artist: meta.artist, duration: 120, thumbnail: '' };
+        }
         return { id: MATCH_IDS[meta.title], title: meta.title, artist: meta.artist, duration: 120, thumbnail: '' };
       },
     };
@@ -256,6 +263,32 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
   const first = saved().length;
   await importPlaylist({ play: false });
   assert.equal(saved().length, first, 're-importing the same playlist must not duplicate recordings');
+  dom.window.close();
+}
+
+// A matcher is not deterministic: the same recording can resolve to a different
+// playable id on a later run, and that must not become a second recording.
+{
+  const { dom, saved, importPlaylist } = boot({ matcher: 'drifting' });
+  await importPlaylist({ play: false });
+  const first = saved();
+  assert.equal(first.length, 5);
+  await importPlaylist({ play: false });
+  const second = saved();
+  assert.equal(second.length, 5, 'a drifting matcher must not duplicate recordings on re-import');
+  assert.deepEqual(second.map((track) => track.id), first.map((track) => track.id), 'the handle already in use must be kept');
+  dom.window.close();
+}
+
+{
+  const { dom, saved, importPlaylist } = boot({
+    matcher: 'drifting',
+    markdown: PLAIN_MARKDOWN,
+    adapters: [playlistAdapter, catalogAdapter],
+  });
+  await importPlaylist({ play: false });
+  await importPlaylist({ play: false });
+  assert.equal(saved().length, PLAIN_TITLES.length, 'the catalog-first path must not duplicate a recording that resolved to a different id');
   dom.window.close();
 }
 

@@ -78,6 +78,33 @@ function boot({ stored = [], search = null } = {}) {
   dom.window.close();
 }
 
+{
+  const { dom, window, saved } = boot();
+  window.importTracks([{ id: 'dQw4w9WgXcQ', title: 'Teardrop', artist: 'Massive Attack' }]);
+  const again = window.importTracks([{ id: 'aaaaaaaaaaa', title: 'Teardrop', artist: 'Massive Attack' }]);
+  const rows = saved();
+  assert.equal(again.added, 0, 'a second playback handle for a known recording is not a new recording');
+  assert.equal(rows.length, 1, 'the same recording must not be stored twice under two provider handles');
+  assert.equal(rows[0].id, 'dQw4w9WgXcQ', 'the handle already in use must be kept');
+  dom.window.close();
+}
+
+{
+  const { dom, window, saved } = boot();
+  window.importTracks([{ id: 'dQw4w9WgXcQ', title: 'Teardrop', artist: 'Massive Attack' }]);
+  window.importTracks([{ id: 'aaaaaaaaaaa', title: '  teardrop ', artist: 'MASSIVE ATTACK' }]);
+  assert.equal(saved().length, 1, 'recording identity must ignore capitalization and spacing');
+  dom.window.close();
+}
+
+{
+  const { dom, window, saved } = boot();
+  window.importTracks([{ id: 'dQw4w9WgXcQ', title: 'Teardrop', artist: 'Massive Attack' }]);
+  window.importTracks([{ id: 'aaaaaaaaaaa', title: 'Teardrop', artist: 'Newton Faulkner' }]);
+  assert.equal(saved().length, 2, 'a different artist is a different recording');
+  dom.window.close();
+}
+
 // Requirement: Stored identity is never manufactured from a provider handle
 {
   const { dom, window, saved } = boot();
@@ -188,6 +215,20 @@ function clean(value) { return String(value ?? '').replace(/\s+/g, ' ').trim(); 
   const again = window.importTracks([{ title: 'Teardrop', artist: 'Massive Attack' }]);
   assert.equal(again.added, 0, 'importing an identical unresolved recording must add nothing');
   assert.equal(saved().length, 1);
+  dom.window.close();
+}
+
+{
+  const { dom, window, saved } = boot({
+    stored: [{ id: 'dQw4w9WgXcQ', title: 'Teardrop', artist: 'Massive Attack' }],
+  });
+  window.importTracks([
+    { id: 'aaaaaaaaaaa', title: 'Teardrop', artist: 'Massive Attack' },
+    { id: 'bbbbbbbbbbb', title: 'Angels', artist: 'The xx' },
+  ]);
+  const rows = saved();
+  assert.equal(rows.length, 2, 'a re-import whose matcher returned a different id must not duplicate a recording');
+  assert.deepEqual(rows.map((track) => track.title), ['Teardrop', 'Angels']);
   dom.window.close();
 }
 

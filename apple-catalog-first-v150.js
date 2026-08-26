@@ -34,8 +34,15 @@
       const index = library.findIndex((item) => clean(item?.appleTrackId) === appleTrackId);
       if (index >= 0) return index;
     }
-    const id = clean(track?.id) || clean(window.ampMusicRecordingId?.(clean(track?.title), clean(track?.artist)));
-    return id ? library.findIndex((item) => clean(item?.id) === id) : -1;
+    const id = clean(track?.id);
+    if (id) {
+      const index = library.findIndex((item) => clean(item?.id) === id);
+      if (index >= 0) return index;
+    }
+    const recordingId = clean(window.ampMusicRecordingId?.(clean(track?.title), clean(track?.artist)));
+    if (!recordingId || !clean(track?.title)) return -1;
+    return library.findIndex((item) => clean(item?.title)
+      && clean(window.ampMusicRecordingId?.(clean(item.title), clean(item.artist))) === recordingId);
   }
 
   function importWithoutAppleDuplicates(tracks) {

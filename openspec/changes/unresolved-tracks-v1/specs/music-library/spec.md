@@ -21,6 +21,26 @@ The working library MUST treat human-readable `title` and `artist` as the identi
 **When** `importTracks([{ id: '', title: '', artist: '' }])` is called
 **Then** nothing MUST be added.
 
+### Scenario: Import the same recording with a different playback handle
+
+**Given** the library contains a playable track titled `Teardrop` by `Massive Attack`
+**When** the same title and artist are imported again carrying a different playable id
+**Then** nothing MUST be added
+**And** the library MUST still contain exactly one track for that recording
+**And** the handle already in use MUST be kept.
+
+### Scenario: Identity ignores capitalization and spacing
+
+**Given** the library contains a playable track titled `Teardrop` by `Massive Attack`
+**When** `  teardrop ` by `MASSIVE ATTACK` is imported with a different playable id
+**Then** nothing MUST be added.
+
+### Scenario: Two different recordings are not merged
+
+**Given** the library contains a playable track titled `Teardrop` by `Massive Attack`
+**When** a track titled `Teardrop` by `Newton Faulkner` is imported
+**Then** it MUST be added as a separate recording.
+
 ## Requirement: Stored identity is never manufactured from a provider handle
 
 No library write path MAY substitute a provider identifier, provider name, or any string derived from them for a missing `title` or `artist`. Missing metadata MUST be stored as missing.
@@ -112,6 +132,12 @@ When a playable handle is found for an existing unresolved recording, it MUST be
 **Given** the library contains an unresolved track for a recording
 **When** the identical recording is imported again with no id
 **Then** nothing MUST be added.
+
+### Scenario: Re-import a source whose matcher returns a different id
+
+**Given** a provider import produced a playable track for a recording
+**When** the same source is imported again and the matcher returns a different playable id for that recording
+**Then** the library MUST still contain exactly one track for that recording.
 
 ## Requirement: A malformed provider identifier is discarded, not the recording
 
