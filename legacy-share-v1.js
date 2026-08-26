@@ -120,6 +120,20 @@
     return out;
   }
 
+  async function hydrateMetadata(tracks) {
+    const upgrade = window.ampMusicImport150?.upgradeMetadata;
+    if (typeof upgrade !== 'function') return;
+    const ids = tracks.map((track) => clean(track?.id)).filter((id) => VIDEO_ID_RE.test(id));
+    let cursor = 0;
+    await Promise.all(Array.from({ length: Math.min(4, ids.length) }, async () => {
+      while (cursor < ids.length) {
+        const id = ids[cursor];
+        cursor += 1;
+        try { await upgrade(id); } catch {}
+      }
+    }));
+  }
+
   function applyBundle(bundle) {
     if (typeof window.importTracks !== 'function') return false;
     const tracks = normalizeLegacyTracks(bundle?.tracks);
@@ -129,6 +143,7 @@
     const requestedStart = clean(bundle?.startTrackId);
     const startId = VIDEO_ID_RE.test(requestedStart) ? requestedStart : tracks[0].id;
     applyStartTrack(startId);
+    void hydrateMetadata(tracks);
     setStatus(`LEGACY SHARE RESTORED · ${tracks.length} TRACKS`);
     if (typeof window.refreshWinampMetadata === 'function') setTimeout(() => window.refreshWinampMetadata(), 0);
     return Boolean(result || tracks.length);
