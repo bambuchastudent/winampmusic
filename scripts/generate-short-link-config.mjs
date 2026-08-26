@@ -8,7 +8,12 @@ export function normalizeRelayUrl(value) {
   // wrangler-action has historically returned values such as
   // `example.workers.dev (custom domain)`. Only the first token is the URL.
   raw = raw.split(/\s+/)[0];
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = `https://${raw}`;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
+    // A protocol-less deployment value is expected to be a hostname. Requiring
+    // a dot avoids treating arbitrary log words such as "Uploaded" as hosts.
+    if (!raw.includes('.')) return '';
+    raw = `https://${raw}`;
+  }
 
   try {
     const url = new URL(raw);
