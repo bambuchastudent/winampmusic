@@ -19,6 +19,6 @@
 
 ## Completion
 
-- [ ] Run the new targeted regression test in CI.
-- [ ] Keep existing FAST, Apple origin, unresolved-track, import and playback tests green.
-- [ ] Mark tasks complete after CI passes.
+- [x] Run the new targeted regression test in CI.
+- [x] Keep existing FAST, Apple origin, unresolved-track, import and playback gates green.
+- [x] Mark tasks complete after CI passes.
