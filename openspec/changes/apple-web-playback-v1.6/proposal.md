@@ -1,30 +1,37 @@
-# Apple web playback fallback v1.6
+# Apple-origin full playback resolution v1.6
 
 ## Problem
 
-Apple Music album imports can preserve correct catalog metadata while the deployed AMPULAMP site has no MusicKit developer credentials. The current catalog-first adapter creates an 11-character synthetic `id` for Apple catalog tracks. Generic playback code mistakes that value for a YouTube video ID, the import UI can report those tracks as `matched`, and playback ends in `NO PLAYABLE SOURCE` even though the original Apple Music track is playable in the user's browser.
+Apple Music imports preserve useful catalog metadata, but the deployed player has no MusicKit developer credentials. The catalog-first adapter also encoded Apple song IDs into synthetic 11-character values, which generic playback logic mistook for YouTube IDs. That produced false results such as `12 matched` followed by `NO PLAYABLE SOURCE`.
+
+Apple's public 90-second preview is not an acceptable normal playback result for AMPULAMP: the user wants the complete recording.
 
 ## Goal
 
-Treat Apple Music browser playback as a valid provider playback path without confusing Apple catalog identity with a YouTube playback handle.
+Make Apple Music imports resolve to honest, full-length playback sources while preserving Apple catalog evidence separately from the current playback handle.
 
 ## Scope
 
-- Apple album/playlist/track entries keep Apple catalog IDs in `appleTrackId`, not in the generic playable `id` field.
-- `matched` means a real playable resolver result, never merely the presence of Apple catalog metadata.
-- When MusicKit is not configured and an Apple track has an Apple Music URL, an explicit user Play action hands playback to that exact Apple Music web URL instead of reporting the track as unplayable.
-- Automatic import must not create popup windows; browser handoff happens only from an explicit user gesture.
-- Existing YouTube fallback resolution remains available when it succeeds.
+- Apple catalog IDs remain in `appleTrackId` / Apple observations and never become generic playable IDs.
+- A track is counted as playable/matched only when a real current playback source was resolved.
+- Apple track, album, and playlist imports attempt strict YouTube resolution for full-length fallback playback.
+- MusicKit remains the preferred Apple-native full playback path when a valid deployment configuration exists.
+- Without MusicKit credentials, a resolved YouTube source can play completely inside AMPULAMP.
+- If direct/proxy audio for a resolved YouTube source fails, the original YouTube iframe player remains a full-track fallback.
+- Previously stored synthetic Apple IDs are migrated to provider-independent local recording IDs before another resolution attempt.
+- Unresolved recordings remain in the library with their title, artist, order, and Apple evidence.
 
 ## Non-goals
 
-- Bypassing Apple authentication, DRM, subscription, or MusicKit requirements.
-- Controlling playback inside music.apple.com after browser handoff.
-- Treating provider IDs as canonical Ámpula identity.
+- Using 90-second Apple previews as normal playback.
+- Bypassing Apple authentication, DRM, subscriptions, or MusicKit requirements.
+- Hard-coding provider IDs for one particular album.
+- Treating YouTube or Apple identifiers as canonical Ámpula track identity.
 
 ## Success criteria
 
-1. Importing an Apple album with 12 readable catalog tracks and zero resolved YouTube sources reports 12 tracks, 0 matched, 12 Apple/web-capable tracks (or equivalent non-misleading wording), and does not create fake YouTube IDs.
-2. Pressing Play on such a track when MusicKit is unavailable opens the exact Apple Music track URL in the browser.
-3. Import-time autoplay does not trigger browser handoff/popups.
-4. A real resolved YouTube ID is still counted as matched and can play inside AMPULAMP.
+1. An Apple album with 12 readable tracks never reports `12 matched` merely because all 12 have Apple catalog IDs.
+2. Real YouTube resolver results are stored as playback handles and can play the complete recording in AMPULAMP.
+3. A direct-audio failure for an already resolved YouTube handle falls back to the YouTube iframe instead of ending at `NO PLAYABLE SOURCE`.
+4. Unresolved tracks are preserved without fabricated YouTube IDs.
+5. Existing libraries containing the old synthetic Apple IDs are migrated automatically.
