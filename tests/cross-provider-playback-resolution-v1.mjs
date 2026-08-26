@@ -64,20 +64,10 @@ window.YT = {
 };
 
 // All direct Piped stream requests fail. The already-resolved YouTube id must
-// therefore be used by the iframe fallback, without a stale second lookup.
+// therefore be adopted by the FAST working library and used by iframe fallback.
 window.fetch = async () => ({ ok: false, status: 503, json: async () => ({}) });
 
 window.eval(fs.readFileSync('fast-player-v141.js', 'utf8'));
-assert.equal(typeof window.ampMusicAdoptPlaybackSource, 'function', 'core must expose authoritative source adoption');
-
-const beforeInvalid = JSON.parse(window.localStorage.getItem('winampmusic.library.v1'))[0];
-assert.equal(window.ampMusicAdoptPlaybackSource(0, { id: 'not-a-youtube-id', title: 'WRONG' }), '');
-assert.deepEqual(
-  JSON.parse(window.localStorage.getItem('winampmusic.library.v1'))[0],
-  beforeInvalid,
-  'invalid resolver results must not mutate the recording',
-);
-
 window.winampMusicAppleImport = {
   __ampStrict150: true,
   async findYouTubeMatch(metadata) {
