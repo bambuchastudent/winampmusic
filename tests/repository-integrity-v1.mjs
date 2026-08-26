@@ -15,6 +15,7 @@ const fastActions = read('fast-actions-v143.js');
 const compactShare = read('compact-share.js');
 const shareUi = read('share-ui-cleanup-v162.js');
 const legacyShare = read('legacy-share-v1.js');
+const shortLink = read('ampula-short-link-v163.js');
 const guard = read('import-playback-guard-v159.js');
 const visualizer = read('header-visualizer-v159.js');
 
@@ -54,7 +55,7 @@ for (const file of [
   'unified-entry-v152.js','import-playback-guard-v159.js','header-visualizer-v159.js','fast-actions-v143.js',
   'fast-import-v150.js','apple-music-import-v064.js','apple-playlist-import-v150.js','apple-album-import-v150.js',
   'fast-background-v150.js','origin-playback-v151.js','v059.js','compact-share.js','share-ui-cleanup-v162.js',
-  'legacy-share-v1.js','qr-share-v1.js',
+  'legacy-share-v1.js','qr-share-v1.js','ampula-short-link-v163.js',
 ]) assert.ok(exists(file), `Missing protected current script: ${file}`);
 
 assert.match(guard, /isPlaybackActive/);
@@ -94,6 +95,25 @@ assert.match(shareUi, /findReceivedNotice/);
 assert.match(shareUi, /node\.children\.length !== 0/);
 assert.match(legacyShare, /LEGACY SHARE RESTORED/);
 assert.match(legacyShare, /parseLegacyIds/);
+
+// Short links are an optional transport alias: lazy, off the startup path, first-party only.
+assert.match(fastActions, /loadScript\('\.\/ampula-short-link-v163\.js\?v=163', 'ampula-short-link'\)/);
+assert.match(fastActions, /params\.has\('al'\)/);
+assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*ampula-short-link-v163\.js/);
+assert.doesNotMatch(html, /AMPULA_SHORT_LINK_RELAY/);
+assert.match(shortLink, /BLOCKED_HOSTS/);
+assert.match(shortLink, /AbortController/);
+assert.match(shortLink, /window\.ampulaShortLink = api/);
+assert.doesNotMatch(shortLink, /importTracks/);
+assert.doesNotMatch(shortLink, /winampmusic\.library\.v1/);
+for (const source of [compactShare, fastActions, read('ampula-file-open-v1.js')]) {
+  assert.match(source, /'al', 'p', 's', 'playlist'/, 'alias tokens must be stripped from rebuilt app URLs');
+}
+assert.ok(exists('relay/short-link/worker.js'), 'the deployable relay reference must be committed');
+assert.ok(exists('relay/short-link/wrangler.toml'), 'the relay deployment configuration must be committed');
+assert.ok(exists('scripts/create-short-link.mjs'), 'the relay-free static alias tool must be committed');
+assert.doesNotMatch(read('relay/short-link/README.md'), /production relay is (?:live|running|deployed)/i);
+assert.match(read('robots.txt'), /Disallow:\s*\/winampmusic\/a\//);
 
 const compatibilitySource = [read('fast-player-v141.js'), fastActions, read('fast-background-v150.js'), read('origin-playback-v151.js')].join('\n');
 for (const key of ['winampmusic.library.v1','winampmusic.fast.current.v1','winampmusic.player.v1','winampmusic.background.v1']) {

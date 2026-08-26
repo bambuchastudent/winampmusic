@@ -282,7 +282,7 @@
 
   function appUrl() {
     const url = new URL(location.href);
-    for (const key of [AMPULA_PARAM, 'p', 's', 'playlist']) url.searchParams.delete(key);
+    for (const key of [AMPULA_PARAM, 'al', 'p', 's', 'playlist']) url.searchParams.delete(key);
     url.hash = '';
     return url;
   }

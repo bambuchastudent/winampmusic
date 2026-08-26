@@ -1,0 +1,34 @@
+# Ámpula short-link relay — Cloudflare Worker configuration.
+#
+# STATUS: NOT DEPLOYED. See README.md.
+# `APP_URL` and `kv_namespaces.id` are placeholders and must be set by an operator.
+
+name = "ampula-short-link"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Full application URL, including the path. Used as the browser redirect target.
+# The CORS allow-origin header is derived from this as new URL(APP_URL).origin,
+# because a browser Origin never carries a path.
+APP_URL = "https://bambuchastudent.github.io/winampmusic/"
+
+# Salt for the rate-limit bucket name. Override per deployment,
+# preferably via: wrangler secret put RATE_SALT
+RATE_SALT = "replace-me"
+
+# Ámpula payload storage. Create with: wrangler kv namespace create AMPULA_LINKS
+[[kv_namespaces]]
+binding = "AMPULA_LINKS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Rate limiting. A Durable Object is used instead of a KV counter because KV is
+# eventually consistent and has no compare-and-set, so it cannot enforce a limit
+# under concurrency. The limiter holds a counter only and never sees a payload.
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "ShortLinkRateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ShortLinkRateLimiter"]
