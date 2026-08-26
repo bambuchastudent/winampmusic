@@ -29,6 +29,7 @@ jobs:
             header-visualizer-v159.js \
             fast-actions-v143.js \
             fast-import-v150.js \
+            telegram-text-import-v1.js \
             apple-music-import-v064.js \
             apple-playlist-import-v150.js \
             apple-album-import-v150.js \
@@ -84,3 +85,6 @@ jobs:
 
       - name: Current YouTube and Apple import routing
         run: node tests/fast-import-v142.mjs
+
+      - name: Telegram text import contract
+        run: node tests/telegram-text-import-v1.mjs
