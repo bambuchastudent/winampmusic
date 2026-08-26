@@ -6,7 +6,7 @@ const required = [
   "shareButton.textContent = 'Share'",
   "shareButton.textContent = 'Preparing…'",
   "shareButton.disabled = false",
-  "loadScript('./share-ui-cleanup-v161.js?v=161', 'share-ui-cleanup')",
+  "loadScript('./share-ui-cleanup-v162.js?v=162', 'share-ui-cleanup')",
   "loadScript('./compact-share.js?v=161', 'compact-share')",
   "window.winampMusicCompactShare?.share",
   "loadScript('./qr-share-v1.js?v=161', 'qr-share')",
