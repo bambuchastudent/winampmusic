@@ -6,6 +6,7 @@ const code = fs.readFileSync('fast-actions-v143.js', 'utf8');
 assert.ok(!code.includes('stopImmediatePropagation'));
 assert.ok(!code.includes("addEventListener('pointer"));
 assert.ok(!code.includes("searchParams.set('p'"), 'legacy provider-id fallback must never be generated');
+assert.match(code, /loadScript\('\.\/share-ui-cleanup-v161\.js\?v=161', 'share-ui-cleanup'\)/);
 assert.match(code, /loadScript\('\.\/compact-share\.js\?v=161', 'compact-share'\)/);
 assert.match(code, /loadScript\('\.\/legacy-share-v1\.js\?v=161', 'legacy-share'\)/);
 assert.match(code, /winampMusicCompactShare\?\.share/);
@@ -33,12 +34,18 @@ assert.ok(clear, 'Clear button must be installed');
 assert.equal(share.textContent, 'Share');
 assert.equal(window.document.getElementById('openAmpulaButton'), null);
 assert.equal(window.document.getElementById('openAmpulaInput'), null);
+assert.equal(window.document.querySelector('script[data-fast-module="share-ui-cleanup"]'), null, 'share UI cleanup must remain lazy at startup');
 assert.equal(window.document.querySelector('script[data-fast-module="compact-share"]'), null, 'share code must remain lazy at startup');
 assert.equal(window.document.querySelector('script[data-fast-module="legacy-share"]'), null, 'legacy compatibility code must remain lazy on normal startup');
 
 share.click();
 await new Promise((resolve) => setTimeout(resolve, 0));
-assert.ok(window.document.querySelector('script[data-fast-module="compact-share"]'), 'sender must lazy-load the canonical share module');
+const cleanupScript = window.document.querySelector('script[data-fast-module="share-ui-cleanup"]');
+assert.ok(cleanupScript, 'sender must lazy-load Share UI cleanup first');
+cleanupScript.dispatchEvent(new window.Event('load'));
+await new Promise((resolve) => setTimeout(resolve, 0));
+const compactScript = window.document.querySelector('script[data-fast-module="compact-share"]');
+assert.ok(compactScript, 'sender must lazy-load the canonical share module');
 assert.equal(window.document.getElementById('winampShareDialog'), null, 'fast actions must not create a provider-ID fallback dialog itself');
 
 window.history.replaceState({}, '', '/?p=abcdefghijk#k=legacy');
