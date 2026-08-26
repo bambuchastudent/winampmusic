@@ -9,9 +9,11 @@ const core = fs.readFileSync('fast-player-v141.js', 'utf8');
 assert.match(index, /<script src="\.\/fast-player-v141\.js\?v=150"><\/script>/, 'core must be the only synchronous runtime');
 assert.match(index, /fast-release-v150\.js\?v=150" defer/);
 assert.match(index, /fast-import-v150\.js\?v=150" defer/);
-assert.match(index, /fast-actions-v143\.js\?v=150" defer/);
+assert.match(index, /fast-actions-v143\.js\?v=161" defer/);
 assert.ok(!index.includes('compact-share.js'), 'share implementation must stay out of initial HTML');
 assert.ok(!index.includes('qr-share-v1.js'), 'QR implementation must stay out of initial HTML');
+assert.ok(!index.includes('legacy-share-v1.js'), 'legacy compatibility must stay out of initial HTML');
+assert.ok(!index.includes('share-ui-cleanup-v161.js'), 'Share UI patch must stay out of initial HTML');
 assert.ok(!index.includes('apple-music-import-v064.js'), 'Apple provider code must stay lazy');
 assert.ok(!index.includes('fast-background-v150.js'), 'background provider code must stay lazy');
 assert.ok(Buffer.byteLength(core, 'utf8') < 19000, 'synchronous core JS exceeded its source budget');
@@ -20,7 +22,7 @@ const stripped = index
   .replace('<script src="./fast-player-v141.js?v=150"></script>', '')
   .replace('<script src="./fast-release-v150.js?v=150" defer></script>', '')
   .replace('<script src="./fast-import-v150.js?v=150" defer></script>', '')
-  .replace('<script src="./fast-actions-v143.js?v=150" defer></script>', '');
+  .replace('<script src="./fast-actions-v143.js?v=161" defer></script>', '');
 const dom = new JSDOM(stripped, { runScripts: 'outside-only', url: 'https://example.test/winampmusic/', pretendToBeVisual: true });
 const { window } = dom;
 const idle = [];

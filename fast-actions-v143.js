@@ -36,7 +36,7 @@
 
   const style = document.createElement('style');
   style.id = 'fastPlaylistActions143Styles';
-  style.textContent = `.fast-playlist-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.fast-playlist-action{min-height:38px;padding:0 11px;border:1px solid #4a515e;border-radius:8px;background:#242a32;color:#fff;font-weight:800;font-size:12px;touch-action:manipulation}.fast-playlist-action.share{border-color:#8f7724;background:#d8b63f;color:#171717}.fast-playlist-action.clear{color:#ffb9b9}.fast-playlist-action.clear.armed{border-color:#9f4545;background:#472222;color:#fff}@media(max-width:520px){.library-header{align-items:flex-start}.fast-playlist-actions{width:100%;justify-content:flex-start}.fast-playlist-action{min-height:42px}}`;
+  style.textContent = `.fast-playlist-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.fast-playlist-action{min-height:38px;padding:0 11px;border:1px solid #4a515e;border-radius:8px;background:#242a32;color:#fff;font-weight:800;font-size:12px;touch-action:manipulation}.fast-playlist-action.share{border-color:#8f7724;background:#d8b63f;color:#171717}.fast-playlist-action.clear{color:#ffb9b9}.fast-playlist-action.clear.armed{border-color:#9f4545;background:#472222;color:#fff}@media(max-width:520px){.library-header{align-items:center}.fast-playlist-actions{justify-content:flex-start}.fast-playlist-action{min-height:42px}}`;
   document.head.appendChild(style);
 
   const actions = document.createElement('div');
@@ -46,30 +46,17 @@
   shareButton.id = 'sharePlaylistButton';
   shareButton.type = 'button';
   shareButton.className = 'fast-playlist-action share';
-  shareButton.textContent = 'Share / QR';
-  shareButton.setAttribute('aria-label', 'Share portable Ámpula by link, QR, or file');
-
-  const openButton = document.createElement('button');
-  openButton.id = 'openAmpulaButton';
-  openButton.type = 'button';
-  openButton.className = 'fast-playlist-action';
-  openButton.textContent = 'Open .ampula';
-  openButton.setAttribute('aria-label', 'Open a portable .ampula file');
-
-  const fileInput = document.createElement('input');
-  fileInput.id = 'openAmpulaInput';
-  fileInput.type = 'file';
-  fileInput.accept = '.ampula,application/vnd.ampula+json,application/json';
-  fileInput.hidden = true;
+  shareButton.textContent = 'Share';
+  shareButton.setAttribute('aria-label', 'Share current music');
 
   const clearButton = document.createElement('button');
   clearButton.id = 'clearPlaylistButton';
   clearButton.type = 'button';
   clearButton.className = 'fast-playlist-action clear';
   clearButton.textContent = 'Clear';
-  clearButton.setAttribute('aria-label', 'Clear playlist');
+  clearButton.setAttribute('aria-label', 'Clear saved music');
 
-  actions.append(shareButton, openButton, clearButton, fileInput);
+  actions.append(shareButton, clearButton);
   header.appendChild(actions);
 
   let shareBusy = false;
@@ -78,44 +65,22 @@
     shareBusy = true;
     shareButton.disabled = true;
     shareButton.textContent = 'Preparing…';
-    setStatus('PREPARING ÁMPULA');
+    setStatus('PREPARING SHARE');
     try {
-      await loadScript('./compact-share.js?v=160', 'compact-share');
-      if (typeof window.winampMusicCompactShare?.share !== 'function') throw new Error('Ámpula share module unavailable');
+      await loadScript('./share-ui-cleanup-v161.js?v=161', 'share-ui-cleanup');
+      await loadScript('./compact-share.js?v=161', 'compact-share');
+      if (typeof window.winampMusicCompactShare?.share !== 'function') throw new Error('Share module unavailable');
       const url = await window.winampMusicCompactShare.share();
       if (url) {
-        loadScript('./qr-share-v1.js?v=160', 'qr-share').catch((error) => console.warn('[AMPULAMP share] QR unavailable', error));
+        loadScript('./qr-share-v1.js?v=161', 'qr-share').catch((error) => console.warn('[AMPULAMP share] QR unavailable', error));
       }
     } catch (error) {
       console.warn('[AMPULAMP share] failed', error);
-      setStatus('ÁMPULA SHARE UNAVAILABLE · TRY AGAIN');
+      setStatus('SHARE UNAVAILABLE · TRY AGAIN');
     } finally {
       shareBusy = false;
       shareButton.disabled = false;
-      shareButton.textContent = 'Share / QR';
-    }
-  });
-
-  openButton.addEventListener('click', () => {
-    fileInput.value = '';
-    fileInput.click();
-  });
-
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
-    openButton.disabled = true;
-    setStatus('OPENING .AMPULA');
-    try {
-      await loadScript('./compact-share.js?v=160', 'compact-share');
-      await loadScript('./ampula-file-open-v1.js?v=160', 'ampula-file-open');
-      if (typeof window.ampulaFileOpen?.openFile !== 'function') throw new Error('.ampula opener unavailable');
-      await window.ampulaFileOpen.openFile(file);
-    } catch (error) {
-      console.warn('[AMPULAMP .ampula open]', error);
-      setStatus('INVALID OR UNSUPPORTED .AMPULA');
-    } finally {
-      openButton.disabled = false;
+      shareButton.textContent = 'Share';
     }
   });
 
@@ -143,23 +108,37 @@
       localStorage.removeItem(PLAYER_STATE_KEY);
       localStorage.removeItem(BACKGROUND_KEY);
     } catch {}
+    try {
+      const url = new URL(location.href);
+      for (const key of ['a', 'p', 's', 'playlist']) url.searchParams.delete(key);
+      url.hash = '';
+      history.replaceState({}, '', url);
+    } catch {}
     clearButton.disabled = true;
     clearButton.textContent = 'Cleared';
-    setStatus('PLAYLIST CLEARED');
+    setStatus('MUSIC CLEARED');
     setTimeout(() => location.reload(), 80);
   });
 
   const params = new URLSearchParams(location.search);
   if (params.has('a')) {
-    setTimeout(() => {
-      loadScript('./compact-share.js?v=160', 'compact-share').catch((error) => {
-        console.warn('[AMPULAMP] Ámpula receive failed', error);
-        setStatus('ÁMPULA COULD NOT LOAD');
-      });
+    setTimeout(async () => {
+      try {
+        await loadScript('./share-ui-cleanup-v161.js?v=161', 'share-ui-cleanup');
+        await loadScript('./compact-share.js?v=161', 'compact-share');
+      } catch (error) {
+        console.warn('[AMPULAMP] shared music receive failed', error);
+        setStatus('SHARED MUSIC COULD NOT LOAD');
+      }
     }, 0);
   } else if (params.has('p') || params.has('s')) {
-    setStatus('OLD PLAYLIST SHARE LINK UNSUPPORTED');
+    setTimeout(() => {
+      loadScript('./legacy-share-v1.js?v=161', 'legacy-share').catch((error) => {
+        console.warn('[AMPULAMP] legacy share receive failed', error);
+        setStatus('LEGACY SHARE COULD NOT LOAD');
+      });
+    }, 0);
   }
 
-  console.info('[AMPULAMP] fast actions with Ámpula v1 sharing ready');
+  console.info('[AMPULAMP] compact actions + legacy share compatibility ready');
 })();

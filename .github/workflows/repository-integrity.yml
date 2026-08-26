@@ -34,9 +34,13 @@ jobs:
             origin-playback-v151.js \
             v059.js \
             compact-share.js \
+            share-ui-cleanup-v161.js \
+            legacy-share-v1.js \
             qr-share-v1.js \
             sw.js \
-            tests/repository-integrity-v1.mjs; do
+            tests/repository-integrity-v1.mjs \
+            tests/legacy-share-recovery-v1.mjs \
+            tests/share-ui-cleanup-v1.mjs; do
             node --check "$file"
           done
 
@@ -46,11 +50,20 @@ jobs:
       - name: Repository dependency integrity
         run: node tests/repository-integrity-v1.mjs
 
+      - name: Share recovery and compact UI contracts
+        run: |
+          node tests/legacy-share-recovery-v1.mjs
+          node tests/fast-actions-v143.mjs
+          node tests/share-ui-cleanup-v1.mjs
+          node tests/ampula-sharing-v1.mjs
+
       - name: Now Playing and header contract
         run: node tests/now-playing-header-v159.mjs
 
       - name: Unified music entry contract
-        run: node tests/unified-music-entry.mjs
+        run: |
+          node tests/unified-music-entry.mjs
+          node tests/unified-entry-polish-v153.mjs
 
       - name: Non-blocking Share and QR contract
         run: node verify-share-nonblocking-v158.mjs

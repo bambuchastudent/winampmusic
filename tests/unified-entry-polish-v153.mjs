@@ -7,7 +7,8 @@ assert.match(js, /\.fast-note\{display:none!important\}/, 'provider implementati
 assert.match(js, /document\.querySelector\('\.fast-note'\)\?\.remove\(\)/, 'provider implementation note should be removed from DOM');
 assert.match(js, /\.bottle15\{[^}]*animation:none!important;[^}]*transition:none!important;[^}]*transform:none!important/, 'bottle logo must be visually stable');
 assert.match(js, /\.bottle15-label\{transform:none!important\}/, 'bottle label must not drift via transform');
-assert.match(js, /share\.textContent = 'Share \/ QR'/, 'playlist action should read Share / QR');
-assert.match(js, /Share playlist by link or QR code/, 'share action accessibility label should match the new copy');
+assert.match(js, /share\.textContent = 'Share'/, 'playlist action should read Share');
+assert.match(js, /Share current music/, 'share action accessibility label should stay transport-neutral');
+assert.ok(!js.includes("share.textContent = 'Share / QR'"));
 
 console.log('unified entry polish v1.5.3 contracts OK');
