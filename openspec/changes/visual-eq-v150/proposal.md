@@ -1,10 +1,10 @@
 # Proposal: visual equalizer for provider playback
 
 ## Problem
-ÁmpulaMP 1.5 no longer shows the Winamp-style equalizer. Earlier equalizer controls were visual/stateful only for YouTube iframe playback, but the current UI hides that capability entirely and gives no explanation of the provider limitation.
+ÁmpulaMP 1.5 no longer shows the equalizer. Its visual language is inspired by the classic Winamp player; earlier controls were visual/stateful only for YouTube iframe playback, but the current UI hides that capability entirely and gives no explanation of the provider limitation.
 
 ## Goal
-Restore a clearly discoverable, collapsible Winamp-style equalizer panel while being explicit when the active provider audio cannot be filtered by ÁmpulaMP.
+Restore a clearly discoverable, collapsible PRE + 10-band equalizer panel while being explicit when the active provider audio cannot be filtered by ÁmpulaMP.
 
 ## Scope
 - Add an EQ toggle to the player.

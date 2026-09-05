@@ -1,4 +1,4 @@
-# Tasks: Winamp Music v1.5.0
+# Tasks: ÁmpulaMP v1.5.0
 
 - [x] Define release scope and FAST ownership constraints.
 - [x] Define lazy background/media-session design.
@@ -7,7 +7,7 @@
 - [ ] Add lazy `fast-background-v150.js`.
 - [ ] Use 200x200 offscreen YouTube player geometry.
 - [ ] Bump canonical shell/runtime labels and asset query versions to 1.5.0.
-- [ ] Ensure copied/system/QR playlist shares all target Winamp Music URLs.
+- [ ] Ensure copied/system/QR playlist shares all target ÁmpulaMP URLs.
 - [ ] Add story/demo QR + readable site URL and use the same destination in the share payload.
 - [ ] Add background/media-session behavioral tests.
 - [ ] Add share-routing behavioral tests.

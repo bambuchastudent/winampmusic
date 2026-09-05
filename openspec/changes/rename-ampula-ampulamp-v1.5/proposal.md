@@ -2,7 +2,7 @@
 
 ## Problem
 
-The repository currently exposes several overlapping names: `AmpMusic`, `Winamp Music`, and `Ámpulamp`. The maintainer has chosen the final naming model:
+The repository previously exposed several overlapping names. The maintainer has chosen the final naming model:
 
 - **Ámpula** is the project / portable musical-moment concept.
 - **ÁmpulaMP** is the music player (`MP` = Music Player).
@@ -37,7 +37,7 @@ Make Ámpula / ÁmpulaMP the canonical public naming everywhere that users, cont
 
 1. The project is documented as **Ámpula**.
 2. The installed/browser player is named **ÁmpulaMP**.
-3. Current user-facing production shell, PWA metadata, Media Session fallback branding, and share/QR copy do not advertise `AmpMusic`, `Winamp Music`, or `Ámpulamp` as the product/player name.
+3. Current user-facing production shell, PWA metadata, Media Session fallback branding, and share/QR copy do not advertise legacy names as the product/player name.
 4. `.ampula` semantics and provider-independent recovery rules remain unchanged.
 5. Existing local libraries and import compatibility identifiers continue to work unchanged.
 6. A targeted automated branding test encodes these requirements.

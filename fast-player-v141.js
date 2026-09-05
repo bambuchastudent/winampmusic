@@ -259,7 +259,7 @@
         });
         setTimeout(() => { if (!settled && player) finish(); }, 8000);
       } catch (error) { playerPromise = null; reject(error); }
-    })).catch((error) => { playerPromise = null; setStatus('YOUTUBE UNAVAILABLE · TAP AGAIN'); console.warn('[Winamp Music fast]', error); throw error; });
+    })).catch((error) => { playerPromise = null; setStatus('YOUTUBE UNAVAILABLE · TAP AGAIN'); console.warn('[ÁmpulaMP fast]', error); throw error; });
     return playerPromise;
   }
 
@@ -393,5 +393,5 @@
     window.caches?.keys?.().then((keys) => Promise.all(keys.filter((key) => key.startsWith('winampmusic-shell-')).map((key) => window.caches.delete(key)))).catch(() => {});
   }, 2500);
 
-  console.info(`[Winamp Music] ${VERSION} ready`, { tracks: library.length });
+  console.info(`[ÁmpulaMP] ${VERSION} ready`, { tracks: library.length });
 })();

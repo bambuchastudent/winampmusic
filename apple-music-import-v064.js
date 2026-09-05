@@ -326,7 +326,7 @@
       return true;
     } catch (error) {
       if (error?.name === 'AbortError') return true;
-      console.warn('[Winamp Music Apple Music v0.6.4]', error);
+      console.warn('[ÁmpulaMP Apple Music v0.6.4]', error);
       setUiState('APPLE MUSIC IMPORT FAILED', 'Could not add this track yet');
       return true;
     }
