@@ -1,4 +1,4 @@
-# Winamp Music optimization workflow
+# ÁmpulaMP optimization workflow
 
 Optimization is allowed only after behavior is proven.
 

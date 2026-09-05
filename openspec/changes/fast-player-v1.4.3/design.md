@@ -26,7 +26,7 @@ The player must become interactive from local state before optional network work
 ## Clear
 `Clear` is intentionally two-step:
 1. First tap arms the destructive action for five seconds and changes label to `Confirm clear`.
-2. Second tap within the window clears the Winamp Music playlist/current-playback keys and reloads the page.
+2. Second tap within the window clears the ÁmpulaMP playlist/current-playback keys and reloads the page.
 
 It must not clear browser cache, site storage unrelated to the playlist, service-worker data, or user settings.
 

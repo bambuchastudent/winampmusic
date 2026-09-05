@@ -44,5 +44,5 @@ Clearing the playlist SHALL require two distinct user actions within a short con
 
 ### Scenario: Confirmed clear
 - WHEN the user confirms within the allowed window
-- THEN Winamp Music playlist/current-playback state SHALL be removed
+- THEN ÁmpulaMP playlist/current-playback state SHALL be removed
 - AND unrelated site/browser data SHALL remain untouched.

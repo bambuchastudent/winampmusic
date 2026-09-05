@@ -1,4 +1,4 @@
-name: Deploy Winamp Music to Pages
+name: Deploy ÁmpulaMP to Pages
 
 on:
   push:

@@ -26,5 +26,5 @@ Add playlist gifting/sharing (including QR) and playlist clearing while preservi
 ## Success criteria
 - Existing 183-track fast startup regression test stays green.
 - Share/QR modules are absent from normal startup and load only after `Gift / QR`.
-- Clear requires two user actions and removes only playlist/current-playback state owned by Winamp Music.
+- Clear requires two user actions and removes only playlist/current-playback state owned by ÁmpulaMP.
 - Shared playlists merge into the receiver library rather than deleting existing tracks.

@@ -1,4 +1,4 @@
-# Design: Winamp Music v1.5.0
+# Design: ÁmpulaMP v1.5.0
 
 ## Runtime ownership
 `fast-player-v141.js` remains the sole owner of core playback and library interaction. Optional modules may observe state and invoke the public FAST functions/buttons, but may not replace handlers or intercept events globally.
@@ -27,14 +27,14 @@ Playlist sharing SHALL use one canonical share URL for all surfaces:
 - the QR payload;
 - the recipient import route.
 
-The QR module must never encode an unrelated CDN, paste-service or raw storage URL. Remote storage may hold encrypted payload data, but the user-facing destination remains the Winamp Music site.
+The QR module must never encode an unrelated CDN, paste-service or raw storage URL. Remote storage may hold encrypted payload data, but the user-facing destination remains the ÁmpulaMP site.
 
-Release/demo story media SHALL include a readable Winamp Music URL and a QR code targeting the canonical site/share URL. The system share payload should include the same URL alongside media when supported. The visual QR/URL is the fallback when the receiving social app strips link metadata from uploaded media.
+Release/demo story media SHALL include a readable ÁmpulaMP URL and a QR code targeting the canonical site/share URL. The system share payload should include the same URL alongside media when supported. The visual QR/URL is the fallback when the receiving social app strips link metadata from uploaded media.
 
 ## Failure behavior
 If Media Session is unavailable or the browser suspends the YouTube iframe, foreground playback controls remain unaffected. The background module records a resume snapshot and restores the track/position when the app becomes active again.
 
-If remote compact sharing fails, the fallback URL still points to Winamp Music and encodes the playlist ids locally. QR must render the resulting fallback site URL.
+If remote compact sharing fails, the fallback URL still points to ÁmpulaMP and encodes the playlist ids locally. QR must render the resulting fallback site URL.
 
 ## Critical-path constraints
 The release SHALL NOT add service-worker registration, legacy `app.js`, recovery/failsafe scripts, QR/share code or background code to the synchronous player startup path.

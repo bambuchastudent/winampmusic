@@ -4,6 +4,8 @@
 
 The player in this repository is a reference client that can collect music from available services, create an Ámpula, open one, resolve playable representations locally, and play them.
 
+Its visual language, including the equalizer, is inspired by the classic Winamp player.
+
 > `winampmusic` is the legacy repository and GitHub Pages path. It is infrastructure, not the musical format.
 
 ## What an Ámpula is
@@ -158,7 +160,7 @@ Included today:
 - local persistent working library;
 - provider-independent track identity, including visible unresolved tracks;
 - play/pause, previous, next, shuffle, seek, volume and Radio;
-- collapsible Winamp-style PRE + 10-band equalizer UI; for provider-owned playback such as YouTube/Apple Music it is explicitly visual/stateful only because that audio cannot be routed through ÁmpulaMP filters;
+- collapsible PRE + 10-band equalizer UI; for provider-owned playback such as YouTube/Apple Music it is explicitly visual/stateful only because that audio cannot be routed through ÁmpulaMP filters;
 - playback-preserving background imports;
 - Media Session integration where supported;
 - Ámpula v1 self-contained link sharing;
@@ -193,4 +195,4 @@ Production URL while the repository keeps its legacy slug:
 
 Optional end-user short-link creation is integrated into the same production workflow. To enable it, configure the repository Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; see [`relay/short-link/README.md`](./relay/short-link/README.md). Missing or broken relay credentials do not block Pages deployment or canonical Ámpula sharing.
 
-This project is independent and is not affiliated with YouTube, Apple Music, Spotify, or Winamp.
+This project is independent and is not affiliated with YouTube, Apple Music, or Spotify.

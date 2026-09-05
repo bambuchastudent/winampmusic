@@ -22,7 +22,7 @@ The music player application SHALL be named **ÁmpulaMP**.
 ### Scenario: user opens or installs the player
 - WHEN the canonical production shell or PWA metadata is shown
 - THEN the application name SHALL be `ÁmpulaMP`
-- AND `AmpMusic`, `Winamp Music`, and `Ámpulamp` SHALL NOT be presented as the current player name.
+- AND legacy product names SHALL NOT be presented as the current player name.
 
 ## Requirement: user-facing integration branding
 
