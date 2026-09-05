@@ -1,0 +1,22 @@
+name: Equalizer v1.5 contract
+
+on:
+  pull_request:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  equalizer-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check equalizer module syntax
+        run: node --check equalizer-v150.js
+      - name: Check equalizer UI contract
+        run: node tests/equalizer-ui.test.mjs
