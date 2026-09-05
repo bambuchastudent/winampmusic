@@ -23,7 +23,6 @@
     prev: $('prevButton'), next: $('nextButton'), shuffle: $('shuffleButton'), search: $('search'),
     list: $('trackList'), count: $('trackCount'), empty: $('emptyState'),
   };
-
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
   const localRecordingId = (title, artist) => {
@@ -40,14 +39,10 @@
       const url = new URL(value);
       const host = url.hostname.replace(/^www\./, '').toLowerCase();
       if (!['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'].includes(host)) return '';
-      if (host === 'youtu.be') {
-        const id = url.pathname.split('/').filter(Boolean)[0] || '';
-        return VIDEO_ID_RE.test(id) ? id : '';
-      }
-      const queryId = clean(url.searchParams.get('v'));
-      if (VIDEO_ID_RE.test(queryId)) return queryId;
       const parts = url.pathname.split('/').filter(Boolean);
-      if (['shorts', 'embed', 'live'].includes(parts[0]) && VIDEO_ID_RE.test(parts[1] || '')) return parts[1];
+      const id = host === 'youtu.be' ? parts[0] : url.searchParams.get('v') ||
+        (['shorts', 'embed', 'live'].includes(parts[0]) ? parts[1] : '');
+      return VIDEO_ID_RE.test(id || '') ? id : '';
     } catch {}
     return '';
   }
@@ -56,31 +51,29 @@
     try {
       const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       if (!Array.isArray(value)) return [];
-      return value.filter((track) => track && clean(track.id)).map((track) => {
-        const rawId = clean(track.id);
-        const normalizedId = videoIdFromValue(rawId) || rawId;
-        return { ...track, id: normalizedId, title: clean(track.title), artist: clean(track.artist) };
-      });
+      return value.filter(track => track && clean(track.id)).map(track => ({
+        ...track, id: videoIdFromValue(track.id) || clean(track.id), title: clean(track.title), artist: clean(track.artist),
+      }));
     } catch { return []; }
   };
 
   let library = readLibrary();
   let filtered = library.map((_, index) => index);
-  let currentIndex = (() => {
-    const value = Number(localStorage.getItem(CURRENT_KEY));
-    return Number.isInteger(value) && value >= 0 && value < library.length ? value : -1;
-  })();
+  let currentIndex = savedIndex();
   let player = null;
   let playerPromise = null;
   let youtubePromise = null;
   let progressTimer = null;
   let renderGeneration = 0;
   let playing = false;
+  let requestId = 0;
+  let active = false;
+  let loadedId = '';
   const repairAttempts = new Set();
 
   const setStatus = (text) => { ui.status.textContent = text; };
   const isResolved = (track) => VIDEO_ID_RE.test(clean(track?.id));
-  const recordingId = (track) => (clean(track?.title) ? localRecordingId(clean(track.title), clean(track.artist)) : '');
+  const recordingId=(t)=>clean(t?.title)?localRecordingId(clean(t.title),clean(t.artist)):'';
   const shownTitle = (track) => clean(track?.title) || 'Unknown track';
   const shownArtist = (track) => clean(track?.artist) || 'Unknown artist';
   const saveLibrary = () => {
@@ -141,10 +134,7 @@
     return row;
   }
 
-  const scheduleIdle = (callback, timeout = 120) => {
-    if ('requestIdleCallback' in window) requestIdleCallback(callback, { timeout });
-    else setTimeout(callback, 0);
-  };
+  const scheduleIdle=(callback,timeout=120)=>window.requestIdleCallback?requestIdleCallback(callback,{timeout}):setTimeout(callback,0);
 
   function renderLibrary(indices = filtered) {
     const generation = ++renderGeneration;
@@ -172,9 +162,7 @@
 
   function filterLibrary() {
     const query = clean(ui.search.value).toLocaleLowerCase();
-    filtered = library.map((track, index) => ({ track, index }))
-      .filter(({ track }) => !query || `${track.title} ${track.artist} ${track.playlist || ''}`.toLocaleLowerCase().includes(query))
-      .map(({ index }) => index);
+    filtered = library.flatMap((t, i) => !query || `${t.title} ${t.artist} ${t.playlist || ''}`.toLocaleLowerCase().includes(query) ? [i] : []);
     renderLibrary(filtered);
   }
 
@@ -204,7 +192,8 @@
     if (query.length < 2) return '';
     for (const base of REPAIR_SEARCH_INSTANCES) {
       try {
-        const url = new URL('/api/v1/search', base); url.searchParams.set('q', query); url.searchParams.set('type', 'video'); url.searchParams.set('sort', 'relevance'); url.searchParams.set('hl', navigator.language?.split('-')[0] || 'en');
+        const url = new URL('/api/v1/search', base);
+        url.search = new URLSearchParams({ q: query, type: 'video', sort: 'relevance', hl: navigator.language?.split('-')[0] || 'en' });
         const response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } });
         if (!response.ok) continue;
         const payload = await response.json();
@@ -216,6 +205,7 @@
   }
 
   async function repairCurrentTrack() {
+    const generation = requestId;
     const track = library[currentIndex];
     if (!track) return false;
     const attemptKey = `${currentIndex}:${clean(track.id)}`;
@@ -224,13 +214,14 @@
     setStatus('REPAIRING YOUTUBE ID…');
     let repairedId = videoIdFromValue(track.id);
     if (!repairedId) repairedId = await findRepairCandidate(track);
-    if (!VIDEO_ID_RE.test(repairedId)) return false;
+    if (generation !== requestId || !VIDEO_ID_RE.test(repairedId)) return false;
     track.id = repairedId;
     saveLibrary(); renderLibrary(filtered); updateNowPlaying();
-    try { player?.loadVideoById(repairedId); return true; } catch { return false; }
+    try { loadedId = repairedId; player?.loadVideoById(repairedId); return true; } catch { return false; }
   }
 
   function onPlayerStateChange(event) {
+    if (!active) return;
     const state = event?.data;
     if (state === window.YT?.PlayerState?.PLAYING) { playing = true; ui.play.textContent = '⏸'; setStatus('PLAYING'); startProgress(); }
     else if (state === window.YT?.PlayerState?.PAUSED) { playing = false; ui.play.textContent = '▶'; setStatus('PAUSED'); }
@@ -239,11 +230,13 @@
   }
 
   async function onPlayerError(event) {
+    if (!active) return;
+    const generation = requestId;
     playing = false; ui.play.textContent = '▶'; highlightCurrent();
     const code = Number(event?.data);
     if (code === 2) {
       const repaired = await repairCurrentTrack();
-      if (repaired) return;
+      if (repaired || generation !== requestId) return;
       setStatus('TRACK SOURCE INVALID · RE-IMPORT');
       return;
     }
@@ -257,7 +250,7 @@
       const finish = () => { if (settled) return; settled = true; resolve(player); };
       try {
         player = new YT.Player('youtubePlayer', {
-          width: '1', height: '1', playerVars: { autoplay: 0, controls: 0, playsinline: 1, rel: 0, origin: location.origin },
+          width: '1', height: '1', playerVars: { autoplay: 0, controls: 0, playsinline: 1, rel: 0, origin: window.location.origin },
           events: {
             onReady: () => { try { player.setVolume(Number(ui.volume.value) || 75); } catch {} if (ui.status.textContent.startsWith('WARMING')) setStatus('READY · FAST'); finish(); },
             onStateChange: onPlayerStateChange,
@@ -272,39 +265,48 @@
 
   async function playIndex(index) {
     if (!library.length) return setStatus('LIBRARY EMPTY');
+    const generation = ++requestId;
+    active = true;
     currentIndex = ((Number(index) % library.length) + library.length) % library.length;
     updateNowPlaying(); setStatus('LOADING PLAYER…'); ui.play.textContent = '…';
     try {
-      const readyPlayer = await ensurePlayer();
+      const ready = await ensurePlayer();
+      if (generation !== requestId) return;
       const track = library[currentIndex];
       if (!track) return;
       const safeId = videoIdFromValue(track.id);
       if (!safeId) {
         const repaired = await repairCurrentTrack();
+        if (generation !== requestId) return;
         if (!repaired) { ui.play.textContent = '▶'; setStatus(clean(track.id).startsWith('U-') ? 'NO SOURCE FOUND · RESOLVE LATER' : 'TRACK SOURCE INVALID · RE-IMPORT'); }
         return;
       }
       if (safeId !== track.id) { track.id = safeId; saveLibrary(); renderLibrary(filtered); }
-      setStatus('STARTING…'); readyPlayer.loadVideoById(safeId);
-    } catch { ui.play.textContent = '▶'; }
+      loadedId = safeId;
+      setStatus('STARTING…'); ready.loadVideoById(safeId);
+    } catch { if (generation === requestId) ui.play.textContent = '▶'; }
   }
 
   function togglePlayback() {
     if (!library.length) return setStatus('LIBRARY EMPTY');
-    if (!player || !window.YT?.PlayerState) return playIndex(currentIndex >= 0 ? currentIndex : 0);
+    if (!player || !window.YT?.PlayerState || !active || !loadedId) return window.playIndex(currentIndex >= 0 ? currentIndex : 0);
     let state = null; try { state = player.getPlayerState(); } catch {}
-    if (state === window.YT.PlayerState.PLAYING) { try { player.pauseVideo(); } catch {} }
+    if (state === window.YT.PlayerState.PLAYING || state === window.YT.PlayerState.BUFFERING) { try { player.pauseVideo(); } catch {} }
     else if (currentIndex >= 0) { setStatus('STARTING…'); try { player.playVideo(); } catch { playIndex(currentIndex); } }
     else playIndex(0);
   }
 
-  function playRelative(delta) { if (library.length) playIndex((currentIndex >= 0 ? currentIndex : 0) + delta); }
-  function playRandom() { if (!library.length) return; if (library.length === 1) return playIndex(0); let index = currentIndex; while (index === currentIndex) index = Math.floor(Math.random() * library.length); playIndex(index); }
+  function savedIndex() {
+    const index = Number(localStorage.getItem(CURRENT_KEY));
+    return Number.isInteger(index) && index >= 0 && index < library.length ? index : -1;
+  }
+  function playRelative(delta) { if (library.length) return window.playIndex(Math.max(0, savedIndex()) + delta); }
+  function playRandom() { if (!library.length) return; if (library.length === 1) return window.playIndex(0); let index = currentIndex; while (index === currentIndex) index = Math.floor(Math.random() * library.length); window.playIndex(index); }
 
   function startProgress() {
     if (progressTimer) return;
     progressTimer = setInterval(() => {
-      if (!player) return;
+      if (!player || !active) return;
       try {
         const current = Number(player.getCurrentTime()) || 0; const total = Number(player.getDuration()) || 0;
         ui.elapsed.textContent = formatTime(current); ui.duration.textContent = formatTime(total);
@@ -357,12 +359,19 @@
   ui.prev.addEventListener('click', () => playRelative(-1));
   ui.next.addEventListener('click', () => playRelative(1));
   ui.shuffle.addEventListener('click', playRandom);
-  ui.list.addEventListener('click', (event) => { const button = event.target.closest('.track-main'); if (!button) return; const index = Number(button.dataset.index); if (Number.isInteger(index)) playIndex(index); });
+  ui.list.addEventListener('click', (event) => { const button = event.target.closest('.track-main'); if (!button) return; const index = Number(button.dataset.index); if (Number.isInteger(index)) window.playIndex(index); });
   ui.search.addEventListener('input', filterLibrary, { passive: true });
   ui.search.addEventListener('search', filterLibrary, { passive: true });
   ui.volume.addEventListener('input', () => { try { player?.setVolume(Number(ui.volume.value) || 0); } catch {} }, { passive: true });
   ui.seek.addEventListener('change', () => { if (!player) return; try { const total = Number(player.getDuration()) || 0; if (total > 0) player.seekTo((Number(ui.seek.value) / 1000) * total, true); } catch {} });
 
+  window.ampMusicYouTube150 = {
+    isActive: () => active && Boolean(loadedId),
+    suspend() {
+      requestId += 1; active = false; playing = false; loadedId = '';
+      try { player?.pauseVideo(); } catch {}
+    },
+  };
   window.playIndex = playIndex;
   window.importTracks = importTracks;
   window.updateTrackMetadata = updateTrackMetadata;

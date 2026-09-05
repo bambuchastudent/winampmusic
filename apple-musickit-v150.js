@@ -22,6 +22,8 @@
   let activeIndex = -1;
   let fallbackDepth = 0;
   let progressTimer = null;
+  let generation = 0;
+  let musicCommands = Promise.resolve();
 
   function config() {
     return window.AMP_MUSIC_APPLE_CONFIG || {};
@@ -137,14 +139,15 @@
 
   async function stopMusicKit() {
     if (!music || !active) return;
-    try { await music.stop?.(); } catch {}
+    const stopping = music;
     active = false;
     paused = false;
     activeIndex = -1;
     if (ui.play) ui.play.textContent = '▶';
+    try { await stopping.stop?.(); } catch {}
   }
 
-  async function tryMusicKit(index) {
+  async function tryMusicKit(index, request = generation) {
     const library = readLibrary();
     const track = library[index];
     const appleTrackId = clean(track?.appleTrackId);
@@ -156,11 +159,22 @@
 
     try {
       const instance = await ensureMusicKit();
+      if (request !== generation) return null;
       const authorized = await authorize(instance);
+      if (request !== generation) return null;
       if (!authorized) throw new Error('Apple Music authorization was not granted');
-      await instance.setQueue({ song: appleTrackId });
-      if (ui.volume) instance.volume = Math.max(0, Math.min(1, Number(ui.volume.value || 75) / 100));
-      await instance.play();
+      // MusicKit owns one mutable queue: serialize mutations, then recheck intent.
+      const command = musicCommands.then(async () => {
+        if (request !== generation) return false;
+        await instance.setQueue({ song: appleTrackId });
+        if (request !== generation) return false;
+        if (ui.volume) instance.volume = Math.max(0, Math.min(1, Number(ui.volume.value || 75) / 100));
+        await instance.play();
+        if (request !== generation) { await instance.stop?.(); return false; }
+        return true;
+      });
+      musicCommands = command.catch(() => {});
+      if (!await command || request !== generation) return null;
       active = true;
       paused = false;
       activeIndex = index;
@@ -170,6 +184,7 @@
       startProgress();
       return true;
     } catch (error) {
+      if (request !== generation) return null;
       console.warn('[AmpMusic MusicKit]', error);
       active = false;
       paused = false;
@@ -178,7 +193,7 @@
     }
   }
 
-  async function fallbackInsidePlayer(index) {
+  async function fallbackInsidePlayer(index, request = generation) {
     if (fallbackDepth > 0) {
       setStatus('TRACK UNAVAILABLE · STAYING IN AMP MUSIC');
       return false;
@@ -191,10 +206,13 @@
         return false;
       }
       const result = await directFallback(index);
+      if (request !== generation) return null;
+      if (result === null) return null;
       if (result) setStatus('YOUTUBE DIRECT · PLAYING');
       else setStatus('TRACK UNAVAILABLE · STAYING IN AMP MUSIC');
       return Boolean(result);
     } catch (error) {
+      if (request !== generation) return null;
       console.warn('[AmpMusic Apple fallback]', error);
       setStatus('TRACK UNAVAILABLE · STAYING IN AMP MUSIC');
       return false;
@@ -206,17 +224,24 @@
   async function playPreferred(index) {
     const library = readLibrary();
     if (!library.length) return false;
+    const request = ++generation;
     const safeIndex = ((Number(index) % library.length) + library.length) % library.length;
     const track = library[safeIndex];
+    window.ampMusicDirect150?.stop();
+    window.ampMusicYouTube150?.suspend();
     if (!isApple(track)) {
       await stopMusicKit();
+      if (request !== generation) return null;
+      if (window.ampMusicRadio150?.wantsDirect(track)) return directFallback?.(safeIndex);
       return typeof legacyPlayIndex === 'function' ? legacyPlayIndex(safeIndex) : false;
     }
 
     updateNow(track, safeIndex);
-    if (await tryMusicKit(safeIndex)) return true;
     await stopMusicKit();
-    return fallbackInsidePlayer(safeIndex);
+    if (request !== generation) return null;
+    if (await tryMusicKit(safeIndex, request)) return true;
+    if (request !== generation) return null;
+    return fallbackInsidePlayer(safeIndex, request);
   }
 
   async function toggleMusicKit() {
@@ -265,8 +290,7 @@
       void playPreferred(safeIndex);
       return true;
     }
-    void stopMusicKit();
-    return legacyPlayIndex?.(safeIndex);
+    return playPreferred(safeIndex);
   };
 
   document.addEventListener('click', (event) => {
@@ -276,7 +300,7 @@
     if (target.classList?.contains('track-main')) {
       const index = Number(target.dataset.index);
       const track = readLibrary()[index];
-      if (!Number.isInteger(index) || !isApple(track)) return;
+      if (!Number.isInteger(index) || (!isApple(track) && !active)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       void playPreferred(index);
@@ -290,6 +314,7 @@
     if (!appleContext) return;
 
     if (id === 'playButton') {
+      if (!active && (window.ampMusicDirect150?.isActive() || window.ampMusicDirect150?.isPending() || window.ampMusicYouTube150?.isActive())) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       void toggleMusicKit();
