@@ -34,7 +34,12 @@
     return 0;
   };
 
-  const stateText = () => String(status.textContent || '').trim().toUpperCase();
+  const stateText = () => {
+    const text = String(status.textContent || '').trim().toUpperCase();
+    if (/\bPAUSED\b/.test(text)) return 'PAUSED';
+    if (/\bPLAYING\b/.test(text)) return 'PLAYING';
+    return text;
+  };
 
   function currentTrack() {
     const library = readJson(LIBRARY_KEY, []);

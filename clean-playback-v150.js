@@ -29,6 +29,8 @@
   let directPayload = null;
   let bypassLegacyPause = false;
   let audio = null;
+  let generation = 0;
+  let pending = false;
 
   function readLibrary() {
     try {
@@ -116,7 +118,7 @@
     audio.playsInline = true;
     audio.volume = Math.max(0, Math.min(1, Number(ui.volume?.value || 75) / 100));
     audio.addEventListener('play', () => {
-      directActive = true;
+      if (!directActive) return;
       if (ui.play) ui.play.textContent = '⏸';
       setStatus(trackIsRadio(readLibrary()[directIndex]) ? 'RADIO · PLAYING' : 'PLAYING · DIRECT');
       markCurrent(directIndex, true);
@@ -136,6 +138,7 @@
       if (ui.seek && total > 0 && document.activeElement !== ui.seek) ui.seek.value = String(Math.round((current / total) * 1000));
     });
     audio.addEventListener('ended', () => {
+      if (!directActive) return;
       const next = directIndex + 1;
       directActive = false;
       if (ui.play) ui.play.textContent = '▶';
@@ -153,9 +156,9 @@
   }
 
   function stopDirect() {
+    generation += 1; pending = false; directActive = false;
     if (!audio) return;
     try { audio.pause(); } catch {}
-    directActive = false;
     directIndex = -1;
     directVideoId = '';
     directPayload = null;
@@ -163,6 +166,7 @@
   }
 
   function pauseLegacyIfPlaying() {
+    if (window.ampMusicYouTube150) { window.ampMusicYouTube150.suspend(); return; }
     if (directActive || bypassLegacyPause || !ui.play || !ui.status) return;
     if (clean(ui.status.textContent) !== 'PLAYING') return;
     bypassLegacyPause = true;
@@ -235,7 +239,7 @@
     return api;
   }
 
-  async function strictVideoIdForTrack(track, index) {
+  async function strictVideoIdForTrack(track, index, request = generation) {
     if (!trackIsApple(track)) return parseVideoId(track?.id);
     const api = await ensureAppleMatcher();
     const match = await api.findYouTubeMatch({
@@ -243,6 +247,7 @@
       artist: clean(track?.artist),
       durationMs: Number(track?.duration || 0) * 1000,
     }, new AbortController().signal);
+    if (request !== generation) throw new Error('Playback superseded');
     const id = parseVideoId(match?.id);
     if (!id) throw new Error('Strict Apple source unavailable');
 
@@ -272,15 +277,20 @@
     const track = library[safeIndex];
     if (!track) return false;
 
+    stopDirect();
+    const request = generation; pending = true; directIndex = safeIndex;
     pauseLegacyIfPlaying();
     updateNow(track, safeIndex);
     setStatus(trackIsRadio(track) ? 'RADIO · RESOLVING' : 'RESOLVING DIRECT AUDIO…');
     if (ui.play) ui.play.textContent = '…';
 
     try {
-      const videoId = await strictVideoIdForTrack(track, safeIndex);
+      const videoId = await strictVideoIdForTrack(track, safeIndex, request);
+      if (request !== generation) return null;
       if (!VIDEO_ID_RE.test(videoId)) throw new Error('No exact video id');
       const payload = await fetchStreamPayload(videoId);
+      if (request !== generation) return null;
+      pending = false;
       const stream = pickAudioStream(payload);
       if (!stream) throw new Error('No playable audio stream');
 
@@ -296,7 +306,9 @@
       updateNow(readLibrary()[safeIndex] || track, safeIndex);
       try {
         await direct.play();
+        if (request !== generation) return null;
       } catch (error) {
+        if (request !== generation) return null;
         if (error?.name === 'NotAllowedError') {
           if (ui.play) ui.play.textContent = '▶';
           setStatus('DIRECT READY · TAP ▶');
@@ -307,6 +319,8 @@
       }
       return true;
     } catch (error) {
+      if (request !== generation) return null;
+      pending = false;
       console.warn('[AmpMusic direct playback]', error);
       directActive = false;
       if (ui.play) ui.play.textContent = '▶';
@@ -317,6 +331,7 @@
   }
 
   async function playBestIndex(index) {
+    if (window.ampMusicPlayPreferredIndex) return window.ampMusicPlayPreferredIndex(index);
     const library = readLibrary();
     if (!library.length) return;
     const safeIndex = ((Number(index) % library.length) + library.length) % library.length;
@@ -426,12 +441,13 @@
   }, true);
 
   ui.play?.addEventListener('click', (event) => {
-    if (bypassLegacyPause) return;
+    if (bypassLegacyPause || window.ampMusicYouTube150?.isActive()) return;
     const index = directActive ? directIndex : currentIndex();
     const track = readLibrary()[index];
     if (!directActive && !wantsDirect(track)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    if (pending) { stopDirect(); if (ui.play) ui.play.textContent = '▶'; setStatus('PAUSED · DIRECT'); return; }
     if (!directActive) { void playDirectIndex(index); return; }
     const direct = ensureAudio();
     if (direct.paused) void direct.play().catch(() => setStatus('DIRECT READY · TAP ▶'));
@@ -439,21 +455,21 @@
   }, true);
 
   ui.prev?.addEventListener('click', (event) => {
-    if (!directActive) return;
+    if (!directActive && !pending) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     void playBestIndex(directIndex - 1);
   }, true);
 
   ui.next?.addEventListener('click', (event) => {
-    if (!directActive) return;
+    if (!directActive && !pending) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     void playBestIndex(directIndex + 1);
   }, true);
 
   ui.shuffle?.addEventListener('click', (event) => {
-    if (!directActive) return;
+    if (!directActive && !pending) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     const library = readLibrary();
@@ -476,6 +492,7 @@
 
   ui.radio?.addEventListener('click', () => { void startRadio(); });
 
+  window.ampMusicDirect150 = { stop: stopDirect, isActive: () => directActive, isPending: () => pending };
   window.ampMusicPlayDirectIndex = playDirectIndex;
   window.ampMusicRadio150 = { start: startRadio, fetchStreamPayload, chooseRadioCandidate, wantsDirect };
   console.info('[AmpMusic] direct playback + Radio 1.5 ready');

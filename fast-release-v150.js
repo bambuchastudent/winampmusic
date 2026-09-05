@@ -70,6 +70,7 @@
     const wrapped = async (index) => {
       let result = false;
       try { result = await value(index); } catch (error) { console.warn('[AmpMusic] direct playback failed', error); }
+      if (result === null) return null; // Superseded requests must not fall back.
       if (result) return true;
 
       const library = readJson(LIBRARY_KEY, []);

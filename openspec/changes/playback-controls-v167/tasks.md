@@ -1,0 +1,5 @@
+- [x] Describe ownership and executable scenarios.
+- [x] Add regression tests and demonstrate failures.
+- [x] Implement controls fixes.
+- [x] Run behavioral suite and contracts.
+- [x] Document player roadmap and remaining limitations.
