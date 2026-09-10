@@ -47,6 +47,7 @@ jobs:
             legacy-share-v1.js \
             qr-share-v1.js \
             sw.js \
+            scripts/run-node-tests.mjs \
             tests/repository-integrity-v1.mjs \
             tests/apple-full-resolution-v162.mjs \
             tests/legacy-share-recovery-v1.mjs \
@@ -59,43 +60,22 @@ jobs:
       - name: Install targeted test runtime
         run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
 
-      - name: Repository dependency integrity
-        run: node tests/repository-integrity-v1.mjs
-
-      - name: Local playback continuity
-        run: node tests/local-playback-continuity-v160.mjs
-
-      - name: Apple full-source resolution
-        run: node tests/apple-full-resolution-v162.mjs
-
-      - name: Share recovery and compact UI contracts
+      - name: Repository contracts — 4 workers
         run: |
-          node tests/legacy-share-recovery-v1.mjs
-          node tests/fast-actions-v143.mjs
-          node tests/share-ui-cleanup-v1.mjs
-          node tests/ampula-sharing-v1.mjs
-
-      - name: Now Playing and header contract
-        run: node tests/now-playing-header-v159.mjs
-
-      - name: Unified music entry contract
-        run: |
-          node tests/unified-music-entry.mjs
-          node tests/unified-entry-polish-v153.mjs
-
-      - name: Non-blocking Share and QR contract
-        run: node verify-share-nonblocking-v158.mjs
-
-      - name: Branding and logo geometry contracts
-        run: |
-          node verify-logo-fit-v158.mjs
-          node verify-mobile-bottle-fit-v157.mjs
-
-      - name: Apple origin is not playability contract
-        run: node tests/apple-origin-playback-v151.mjs
-
-      - name: Current YouTube and Apple import routing
-        run: node tests/fast-import-v142.mjs
-
-      - name: Telegram text import contract
-        run: node tests/telegram-text-import-v1.mjs
+          node scripts/run-node-tests.mjs --jobs 4 \
+            tests/repository-integrity-v1.mjs \
+            tests/local-playback-continuity-v160.mjs \
+            tests/apple-full-resolution-v162.mjs \
+            tests/legacy-share-recovery-v1.mjs \
+            tests/fast-actions-v143.mjs \
+            tests/share-ui-cleanup-v1.mjs \
+            tests/ampula-sharing-v1.mjs \
+            tests/now-playing-header-v159.mjs \
+            tests/unified-music-entry.mjs \
+            tests/unified-entry-polish-v153.mjs \
+            verify-share-nonblocking-v158.mjs \
+            verify-logo-fit-v158.mjs \
+            verify-mobile-bottle-fit-v157.mjs \
+            tests/apple-origin-playback-v151.mjs \
+            tests/fast-import-v142.mjs \
+            tests/telegram-text-import-v1.mjs

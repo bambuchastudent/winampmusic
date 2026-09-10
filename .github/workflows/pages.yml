@@ -34,20 +34,18 @@ jobs:
       - name: Install test runtime
         run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
 
-      - name: Behavioral suite
+      - name: Parallel behavioral contracts — 4 workers
         run: |
-          status=0
-          for test in tests/*.mjs; do
-            echo "::group::$test"
-            node "$test" || status=1
-            echo "::endgroup::"
-          done
-          for contract in verify-*.mjs; do
-            echo "::group::$contract"
-            node "$contract" || status=1
-            echo "::endgroup::"
-          done
-          exit $status
+          node scripts/run-node-tests.mjs --jobs 4 \
+            --exclude tests/mutation-v150.mjs \
+            --exclude tests/performance-v150.mjs \
+            tests/*.mjs verify-*.mjs
+
+      - name: Mutation — isolated
+        run: node tests/mutation-v150.mjs
+
+      - name: Performance — isolated
+        run: node tests/performance-v150.mjs
 
   deploy:
     needs: verify

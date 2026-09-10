@@ -2,8 +2,40 @@ name: Unified music entry
 
 on:
   pull_request:
+    paths:
+      - 'unified-entry-v152.js'
+      - 'spotify-playlist-core-v160.js'
+      - 'spotify-origin-import-v162.js'
+      - 'origin-playback-v151.js'
+      - 'stable-v150.js'
+      - 'sw.js'
+      - 'scripts/run-node-tests.mjs'
+      - 'tests/unified-music-entry.mjs'
+      - 'tests/spotify-playlist-source.mjs'
+      - 'tests/spotify-origin-import-v162.mjs'
+      - 'tests/spotify-origin-playback-v162.mjs'
+      - 'openspec/changes/unified-music-entry-v1.5/**'
+      - 'openspec/changes/spotify-origin-youtube-fallback-v1.6.2/**'
+      - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
+      - '.github/workflows/unified-music-entry.yml'
   push:
     branches: [develop]
+    paths:
+      - 'unified-entry-v152.js'
+      - 'spotify-playlist-core-v160.js'
+      - 'spotify-origin-import-v162.js'
+      - 'origin-playback-v151.js'
+      - 'stable-v150.js'
+      - 'sw.js'
+      - 'scripts/run-node-tests.mjs'
+      - 'tests/unified-music-entry.mjs'
+      - 'tests/spotify-playlist-source.mjs'
+      - 'tests/spotify-origin-import-v162.mjs'
+      - 'tests/spotify-origin-playback-v162.mjs'
+      - 'openspec/changes/unified-music-entry-v1.5/**'
+      - 'openspec/changes/spotify-origin-youtube-fallback-v1.6.2/**'
+      - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
+      - '.github/workflows/unified-music-entry.yml'
 
 permissions:
   contents: read
@@ -28,14 +60,16 @@ jobs:
           node --check spotify-origin-import-v162.js
           node --check origin-playback-v151.js
           node --check stable-v150.js
+          node --check scripts/run-node-tests.mjs
       - name: Install targeted test runtime
         run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
-      - name: Run behavioral contracts
+      - name: Run behavioral contracts — 4 workers
         run: |
-          node tests/unified-music-entry.mjs
-          node tests/spotify-playlist-source.mjs
-          node tests/spotify-origin-import-v162.mjs
-          node tests/spotify-origin-playback-v162.mjs
+          node scripts/run-node-tests.mjs --jobs 4 \
+            tests/unified-music-entry.mjs \
+            tests/spotify-playlist-source.mjs \
+            tests/spotify-origin-import-v162.mjs \
+            tests/spotify-origin-playback-v162.mjs
       - name: Check metadata-only Spotify wiring
         run: |
           grep -q "'./spotify-origin-import-v162.js'" sw.js
