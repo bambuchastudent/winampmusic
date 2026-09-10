@@ -6,7 +6,7 @@
     const script = document.createElement('script');
     script.src = './track-diagnostics-v164.js?v=164';
     script.async = true;
-    script.dataset.ampulaTrackDiagnostics164 = '1';
+    script.setAttribute('data-ampula-track-diagnostics-164', '1');
     document.head.appendChild(script);
   }
 
