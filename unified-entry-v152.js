@@ -277,5 +277,12 @@
   mountLibraryFilterToggle();
   prepareSearchUi();
   polishUi();
+
+  if (localStorage.getItem('ampula.spotifySource.v1')) {
+    const restoreSpotify = () => ensureSpotifyAdapter().catch((error) => console.warn('[ÁmpulaMP] Spotify restore skipped', error));
+    if ('requestIdleCallback' in window) window.requestIdleCallback(restoreSpotify, { timeout: 1500 });
+    else setTimeout(restoreSpotify, 700);
+  }
+
   console.info('[ÁmpulaMP] unified music entry 1.6 Spotify-ready');
 })();
