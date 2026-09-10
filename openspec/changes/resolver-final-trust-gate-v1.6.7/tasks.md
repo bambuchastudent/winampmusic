@@ -1,11 +1,11 @@
 # Tasks: resolver final trust gate v1.6.7
 
 - [x] Capture the production Madigan false-positive as a spec scenario.
-- [ ] Add failing behavioral coverage for the shared final trust gate.
-- [ ] Add the shared trust-gate runtime.
-- [ ] Integrate the gate into current-track resolution.
-- [ ] Integrate the gate into two-track prefetch.
-- [ ] Integrate the gate into Spotify compatibility resolution.
-- [ ] Bump trusted marker and cache-busting chain to v1.6.7.
+- [x] Add behavioral coverage for the shared final trust gate.
+- [x] Add the shared trust-gate runtime.
+- [x] Guard the public matcher used by current-track resolution.
+- [x] Guard the public matcher used by two-track prefetch.
+- [x] Guard the public matcher used by Spotify compatibility resolution.
+- [x] Revoke saved v1.6.4 trust once and refresh the runtime cache chain.
 - [ ] Run focused and broader regressions.
 - [ ] Merge only after all required checks pass.
