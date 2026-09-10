@@ -87,11 +87,12 @@ assert.equal(library[0].spotifyPlaylistUrl, 'https://open.spotify.com/playlist/3
 assert.equal(library[0].spotifyPlaylistTitle, 'Better Call Saul - soundtrack seasons 1 - 6 (Netflix and ABC)');
 assert.equal(library[0].spotifyPlaylistOwner, 'your own kind of music');
 assert.equal('preview_url' in library[0], false, 'Spotify preview URLs are metadata noise, not playback');
-assert.equal(document.querySelector('#spotifySourcePanel'), null, 'Spotify must not create a visible panel');
-assert.equal(document.querySelector('iframe[src*="spotify"]'), null, 'Spotify must not render an iframe');
+assert.equal(window.document.querySelector('#spotifySourcePanel'), null, 'Spotify must not create a visible panel');
+assert.equal(window.document.querySelector('iframe[src*="spotify"]'), null, 'Spotify must not render an iframe');
 
 const resolution = await result.resolution;
-assert.deepEqual(resolution, { matched: 2, total: 2 });
+assert.equal(resolution.matched, 2);
+assert.equal(resolution.total, 2);
 library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
 assert.equal(library[0].id, 'abcdefghijk');
 assert.equal(library[0].youtubeMatchId, 'abcdefghijk');
@@ -102,11 +103,10 @@ assert.equal(library[1].id, 'lmnopqrstuv');
 assert.ok(states.some((state) => state.phase === 'imported'));
 assert.ok(states.some((state) => state.phase === 'done'));
 
-// Re-import does not duplicate the Spotify tracks.
 const again = await api.importPlaylist('https://open.spotify.com/playlist/3A4l0emm89zzee5bzE7E0L', { play: false });
 await again.resolution;
 library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
-assert.equal(library.length, 2);
+assert.equal(library.length, 2, 're-import must not duplicate Spotify-origin tracks');
 
 console.log('spotify metadata-only origin import contract: ok');
 dom.window.close();
