@@ -1,0 +1,38 @@
+name: Track diagnostics v1.6.4
+
+on:
+  pull_request:
+    paths:
+      - 'track-diagnostics-v164.js'
+      - 'header-visualizer-v159.js'
+      - 'tests/track-diagnostics-v164.mjs'
+      - 'tests/youtube-music-resolver-v163.mjs'
+      - 'openspec/changes/track-diagnostics-safe-resolver-v1.6.4/**'
+      - '.github/workflows/track-diagnostics-v164.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'track-diagnostics-v164.js'
+      - 'header-visualizer-v159.js'
+      - 'tests/track-diagnostics-v164.mjs'
+      - 'tests/youtube-music-resolver-v163.mjs'
+      - 'openspec/changes/track-diagnostics-safe-resolver-v1.6.4/**'
+      - '.github/workflows/track-diagnostics-v164.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check diagnostics runtime
+        run: node --check track-diagnostics-v164.js
+      - name: Track diagnostics contract
+        run: node tests/track-diagnostics-v164.mjs
+      - name: Music-only resolver regression
+        run: node tests/youtube-music-resolver-v163.mjs
