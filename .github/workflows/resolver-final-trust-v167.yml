@@ -1,0 +1,45 @@
+name: Resolver final trust gate v1.6.7
+
+on:
+  pull_request:
+    paths:
+      - 'resolver-trust-v167.js'
+      - 'header-visualizer-v159.js'
+      - 'sw.js'
+      - 'tests/resolver-final-trust-gate-v167.mjs'
+      - 'tests/track-diagnostics-v164.mjs'
+      - 'tests/playback-prefetch-v165.mjs'
+      - 'openspec/changes/resolver-final-trust-gate-v1.6.7/**'
+      - '.github/workflows/resolver-final-trust-v167.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'resolver-trust-v167.js'
+      - 'header-visualizer-v159.js'
+      - 'sw.js'
+      - 'tests/resolver-final-trust-gate-v167.mjs'
+      - 'tests/track-diagnostics-v164.mjs'
+      - 'tests/playback-prefetch-v165.mjs'
+      - 'openspec/changes/resolver-final-trust-gate-v1.6.7/**'
+      - '.github/workflows/resolver-final-trust-v167.yml'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check final trust gate
+        run: node --check resolver-trust-v167.js
+      - name: Install test runtime
+        run: npm install --no-save jsdom@26
+      - name: Production false-positive regression
+        run: node tests/resolver-final-trust-gate-v167.mjs
+      - name: Diagnostics bridge regression
+        run: node tests/track-diagnostics-v164.mjs
+      - name: Two-track prefetch regression
+        run: node tests/playback-prefetch-v165.mjs
+      - name: Inner music-only matcher regression
+        run: node tests/youtube-music-resolver-v163.mjs
