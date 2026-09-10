@@ -6,8 +6,10 @@ const source = readFileSync(new URL('../playback-prefetch-v165.js', import.meta.
 const header = readFileSync(new URL('../header-visualizer-v159.js', import.meta.url), 'utf8');
 const spotify = readFileSync(new URL('../spotify-origin-import-v162.js', import.meta.url), 'utf8');
 
-assert.match(header, /track-diagnostics-v164\.js\?v=164/);
-assert.match(header, /playback-prefetch-v165\.js\?v=165/);
+assert.match(header, /resolver-trust-v167\.js\?v=167/);
+assert.match(header, /track-diagnostics-v164\.js\?v=167/);
+assert.match(header, /playback-prefetch-v165\.js\?v=167/);
+assert.ok(header.indexOf("script.addEventListener('load', loadTrackDiagnostics") >= 0, 'diagnostics must load after resolver trust gate');
 assert.ok(header.indexOf("script.addEventListener('load', loadPlaybackPrefetch") >= 0, 'prefetch must load after diagnostics');
 assert.match(spotify, /strategy: 'on-demand\+2-ahead'/);
 assert.doesNotMatch(spotify, /const resolution = resolveInBackground\(metadata\.tracks/);

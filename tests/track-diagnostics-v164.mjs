@@ -3,10 +3,13 @@ import fs from 'node:fs';
 
 const diagnostics = fs.readFileSync('track-diagnostics-v164.js', 'utf8');
 const header = fs.readFileSync('header-visualizer-v159.js', 'utf8');
+const trustGate = fs.readFileSync('resolver-trust-v167.js', 'utf8');
 const resolverTest = fs.readFileSync('tests/youtube-music-resolver-v163.mjs', 'utf8');
 
-assert.match(header, /track-diagnostics-v164\.js\?v=164/);
+assert.match(header, /resolver-trust-v167\.js\?v=167/);
+assert.match(header, /track-diagnostics-v164\.js\?v=167/);
 assert.match(header, /data-ampula-track-diagnostics-164|ampulaTrackDiagnostics164/);
+assert.match(trustGate, /Final trust gate rejected/);
 
 assert.match(diagnostics, /Copy diagnostics/);
 assert.match(diagnostics, /storedYoutubeId/);
@@ -29,10 +32,11 @@ assert.match(diagnostics, /genre && genre !== 'music'/);
 assert.match(diagnostics, /categoryId && categoryId !== 10/);
 assert.match(diagnostics, /duration delta/);
 
-// The existing resolver regression must remain the source-of-truth contract.
+// The existing resolver regression remains the inner matcher contract; v1.6.7
+// adds an independent guard around its public API.
 assert.match(resolverTest, /s1b8Q5avQZs/);
 assert.match(resolverTest, /rWWNZigf7PA/);
 assert.match(resolverTest, /Madigan/);
 assert.match(resolverTest, /The News/);
 
-console.log('Track diagnostics + trusted playback bridge v1.6.4 contract: OK');
+console.log('Track diagnostics + final trust gate contract: OK');
