@@ -25,8 +25,14 @@ jobs:
         with:
           node-version: 22
 
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+
       - name: Install test runtime
-        run: npm install --no-save jsdom@26
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
 
       - name: Behavioral suite
         run: |
