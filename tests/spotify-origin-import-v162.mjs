@@ -25,7 +25,7 @@ window.importTracks = (incoming) => {
       (item.spotifyTrackId && track.spotifyTrackId === item.spotifyTrackId)
       || `${track.title}\0${track.artist}` === `${item.title}\0${item.artist}`);
     if (known >= 0) {
-      if (/^[A-Za-z0-9_-]{11}$/.test(String(item.id || ''))) library[known].id = item.id;
+      if (/^[A-Za-z0-9_-]{11}$/.test(String(item.id || ''))) library[known] = { ...library[known], ...item };
       continue;
     }
     library.push({ ...item, id: /^[A-Za-z0-9_-]{11}$/.test(String(item.id || '')) ? item.id : localId(item.title, item.artist) });
@@ -36,14 +36,16 @@ window.importTracks = (incoming) => {
 };
 window.renderLibrary = () => {};
 window.ampMusicOriginPlayback151 = { refresh() {} };
+let matcherCalls = 0;
 const candidates = new Map([
   ['Better Call Saul Main Title', 'abcdefghijk'],
   ['Address Unknown', 'lmnopqrstuv'],
 ]);
 window.winampMusicAppleImport = {
-  findYouTubeMatch: async ({ title, artist, durationMs }) => ({
-    id: candidates.get(title), title, artist, duration: Math.round(durationMs / 1000),
-  }),
+  findYouTubeMatch: async ({ title, artist, durationMs }) => {
+    matcherCalls += 1;
+    return { id: candidates.get(title), title, artist, duration: Math.round(durationMs / 1000) };
+  },
 };
 window.fetch = async (url) => {
   assert.match(String(url), /spotify\.xwolf\.space\/api\/playlist\/3A4l0emm89zzee5bzE7E0L$/);
@@ -91,22 +93,32 @@ assert.equal(window.document.querySelector('#spotifySourcePanel'), null, 'Spotif
 assert.equal(window.document.querySelector('iframe[src*="spotify"]'), null, 'Spotify must not render an iframe');
 
 const resolution = await result.resolution;
-assert.equal(resolution.matched, 2);
+assert.equal(resolution.matched, 0, 'normal import must not resolve the whole playlist');
 assert.equal(resolution.total, 2);
+assert.equal(resolution.strategy, 'on-demand+2-ahead');
+assert.equal(matcherCalls, 0, 'normal metadata import must not call YouTube matcher when play=false');
+library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+assert.match(library[0].id, /^U-/);
+assert.match(library[1].id, /^U-/);
+assert.ok(states.some((state) => state.phase === 'imported'));
+assert.ok(states.some((state) => state.phase === 'done'));
+
+const manual = await api.resolveInBackground(result.metadata.tracks);
+assert.equal(manual.matched, 2, 'explicit compatibility API may still resolve all tracks');
+assert.equal(matcherCalls, 2);
 library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
 assert.equal(library[0].id, 'abcdefghijk');
 assert.equal(library[0].youtubeMatchId, 'abcdefghijk');
+assert.equal(library[0].youtubeMatchResolverVersion, 'music-only-v1.6.4');
 assert.equal(library[0].playbackProvider, 'youtube');
 assert.equal(library[0].title, 'Better Call Saul Main Title', 'Spotify title must survive YouTube resolution');
 assert.equal(library[0].artist, 'Dave Porter', 'Spotify artist must survive YouTube resolution');
 assert.equal(library[1].id, 'lmnopqrstuv');
-assert.ok(states.some((state) => state.phase === 'imported'));
-assert.ok(states.some((state) => state.phase === 'done'));
 
 const again = await api.importPlaylist('https://open.spotify.com/playlist/3A4l0emm89zzee5bzE7E0L', { play: false });
 await again.resolution;
 library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
 assert.equal(library.length, 2, 're-import must not duplicate Spotify-origin tracks');
 
-console.log('spotify metadata-only origin import contract: ok');
+console.log('spotify metadata-only lazy origin import contract: ok');
 dom.window.close();
