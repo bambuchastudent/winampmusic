@@ -24,6 +24,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
 
       - name: Syntax check
         run: |
@@ -32,7 +37,7 @@ jobs:
           node --check tests/apple-canonical-metadata-v163.mjs
 
       - name: Install test runtime
-        run: npm install --no-save jsdom@26
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
 
       - name: Music-only resolver regressions
         run: node tests/youtube-music-resolver-v163.mjs

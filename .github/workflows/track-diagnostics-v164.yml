@@ -40,6 +40,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
       - name: Syntax check resolver runtimes
         run: |
           node --check track-diagnostics-v164.js
@@ -48,7 +53,7 @@ jobs:
       - name: Track diagnostics contract
         run: node tests/track-diagnostics-v164.mjs
       - name: Install resolver test runtime
-        run: npm install --no-save jsdom@26
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
       - name: Lazy playback resolver prefetch
         run: node tests/playback-prefetch-v165.mjs
       - name: Spotify metadata-only lazy import
