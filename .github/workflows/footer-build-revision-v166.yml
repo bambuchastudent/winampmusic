@@ -1,0 +1,34 @@
+name: Footer build revision v1.6.6
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/footer-build-revision-v166.yml'
+      - 'scripts/stamp-build-revision.mjs'
+      - 'tests/footer-build-revision-v166.mjs'
+      - 'openspec/changes/footer-build-revision-v1.6.6/**'
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/footer-build-revision-v166.yml'
+      - 'scripts/stamp-build-revision.mjs'
+      - 'tests/footer-build-revision-v166.mjs'
+      - 'openspec/changes/footer-build-revision-v1.6.6/**'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check revision stamper
+        run: node --check scripts/stamp-build-revision.mjs
+      - name: Footer build revision contract
+        run: node tests/footer-build-revision-v166.mjs
