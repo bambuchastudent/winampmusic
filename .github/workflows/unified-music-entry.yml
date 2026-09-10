@@ -17,10 +17,21 @@ jobs:
         with:
           node-version: 22
       - name: Check adapter syntax
-        run: node --check unified-entry-v152.js
-      - name: Run behavioral contract
-        run: node tests/unified-music-entry.mjs
+        run: |
+          node --check unified-entry-v152.js
+          node --check spotify-playlist-core-v160.js
+          node --check spotify-playlist-embed-v160.js
+      - name: Run behavioral contracts
+        run: |
+          node tests/unified-music-entry.mjs
+          node tests/spotify-playlist-source.mjs
       - name: Check PWA wiring
         run: |
           grep -q 'unified-entry-v152.js?v=152' index.html
           grep -q "'./unified-entry-v152.js'" sw.js
+          grep -q "'./spotify-playlist-core-v160.js'" sw.js
+          grep -q "'./spotify-playlist-embed-v160.js'" sw.js
+          grep -q 'Spotify playlist ready' unified-entry-v152.js
+          grep -q 'T0seuEuCz8Wdpksp3' spotify-playlist-core-v160.js
+          grep -q '3A4l0emm89zzee5bzE7E0L' spotify-playlist-core-v160.js
+          grep -q 'open.spotify.com/embed/iframe-api/v1' spotify-playlist-embed-v160.js
