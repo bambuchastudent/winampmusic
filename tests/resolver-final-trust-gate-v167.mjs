@@ -7,7 +7,6 @@ const diagnosticsSource = readFileSync(new URL('../track-diagnostics-v164.js', i
 const prefetchSource = readFileSync(new URL('../playback-prefetch-v165.js', import.meta.url), 'utf8');
 const spotifySource = readFileSync(new URL('../spotify-origin-import-v162.js', import.meta.url), 'utf8');
 const headerSource = readFileSync(new URL('../header-visualizer-v159.js', import.meta.url), 'utf8');
-const indexSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const swSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 const TRUST = 'music-only-v1.6.7';
@@ -80,7 +79,7 @@ const wrongArtist = gate.validate({
 assert.equal(wrongArtist.ok, false);
 assert.match(wrongArtist.reason, /artist identity mismatch/);
 
-// The guard is installed before the legacy matcher module assigns its public API.
+// The gate owns the public matcher property before the legacy matcher assigns its API.
 window.winampMusicAppleImport = {
   findYouTubeMatch: async () => productionFalsePositive,
 };
@@ -101,19 +100,20 @@ for (const [name, source] of [
   ['prefetch', prefetchSource],
   ['spotify compatibility resolver', spotifySource],
 ]) {
-  assert.match(source, /winampMusicAppleImport[^\n]+findYouTubeMatch|findYouTubeMatch/, `${name} must consume the guarded public matcher API`);
+  assert.match(source, /findYouTubeMatch/, `${name} must consume the guarded public matcher API`);
 }
 
+assert.match(headerSource, /resolver-trust-v167\.js\?v=167/);
 assert.match(headerSource, /track-diagnostics-v164\.js\?v=167/);
 assert.match(headerSource, /playback-prefetch-v165\.js\?v=167/);
-assert.match(indexSource, /resolver-trust-v167\.js\?v=167/);
 assert.ok(
-  indexSource.indexOf('resolver-trust-v167.js?v=167') < indexSource.indexOf('fast-player-v141.js'),
-  'trust gate must install before player/runtime scripts',
+  headerSource.indexOf('loadResolverTrust();') < headerSource.indexOf("const spectrum"),
+  'trust loader must start before optional header behavior',
 );
-assert.match(indexSource, /header-visualizer-v159\.js\?v=167/);
+assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
 assert.match(swSource, /winampmusic-shell-v168-resolver-trust/);
+assert.match(swSource, /ampmusic-v1\.6\.7/);
 
 console.log('resolver final trust gate v1.6.7: ok');
 dom.window.close();
