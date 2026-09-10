@@ -41,7 +41,7 @@
     const existing = document.querySelector('script[data-amp-origin-playback-151]');
     if (existing) return;
     const script = document.createElement('script');
-    script.src = './origin-playback-v151.js?v=162';
+    script.src = './origin-playback-v151.js?v=151';
     script.async = true;
     script.dataset.ampOriginPlayback151 = '1';
     script.addEventListener('error', () => console.warn('[AmpMusic] origin/playback bridge failed to load'), { once: true });
