@@ -8,6 +8,7 @@
 
   const STORAGE_KEY = 'ampula.spotifySource.v1';
   const API_SRC = 'https://open.spotify.com/embed/iframe-api/v1';
+  const TRACK_URI_RE = /^spotify:track:[A-Za-z0-9]{16,40}$/;
   const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
   let apiPromise = null;
   let controller = null;
@@ -87,6 +88,29 @@
     } catch {
       return null;
     }
+  }
+
+  function sourceSnapshot() {
+    if (!currentSource?.playlistId) return null;
+    return {
+      playlistId: clean(currentSource.playlistId),
+      canonicalUrl: clean(currentSource.canonicalUrl),
+      sourceUrl: clean(currentSource.sourceUrl || currentSource.canonicalUrl),
+      title: clean(currentSource.title),
+      owner: clean(currentSource.owner),
+    };
+  }
+
+  function emitPlaybackEvent(type, data = {}) {
+    const playingURI = clean(data?.playingURI);
+    if (!TRACK_URI_RE.test(playingURI)) return;
+    const detail = {
+      playingURI,
+      durationMs: Math.max(0, Number(data?.duration || 0)),
+      positionMs: Math.max(0, Number(data?.position || 0)),
+      playlist: sourceSnapshot(),
+    };
+    window.dispatchEvent(new CustomEvent(type, { detail }));
   }
 
   function resetSlot() {
@@ -192,11 +216,15 @@
         });
       });
 
-      controller.addListener?.('ready', () => setStatus('Spotify playlist ready · tap a track or Play'));
-      controller.addListener?.('playback_started', () => setStatus('Playing from Spotify'));
+      controller.addListener?.('ready', () => setStatus('Spotify playlist ready · heard tracks save automatically'));
+      controller.addListener?.('playback_started', (event) => {
+        setStatus('Playing from Spotify · saving heard track…');
+        emitPlaybackEvent('ampula:spotify-playback-started', event?.data);
+      });
       controller.addListener?.('playback_update', (event) => {
         if (event?.data?.isBuffering) setStatus('Spotify buffering…');
-        else if (event?.data?.isPaused === false) setStatus('Playing from Spotify');
+        else if (event?.data?.isPaused === false) setStatus('Playing from Spotify · heard tracks save automatically');
+        emitPlaybackEvent('ampula:spotify-playback-update', event?.data);
       });
       try { controller.play?.(); } catch {}
 
