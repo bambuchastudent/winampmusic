@@ -11,15 +11,35 @@ const indexSource = readFileSync(new URL('../index.html', import.meta.url), 'utf
 const swSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 const TRUST = 'music-only-v1.6.7';
+const LIBRARY_KEY = 'winampmusic.library.v1';
 const dom = new JSDOM('<!doctype html><body></body>', {
   url: 'https://bambuchastudent.github.io/winampmusic/',
   runScripts: 'outside-only',
 });
 const { window } = dom;
+
+window.localStorage.setItem(LIBRARY_KEY, JSON.stringify([
+  {
+    id: 'vuJwrcKQ7Sg',
+    title: 'The News',
+    artist: 'Madigan',
+    duration: 279,
+    spotifyTrackId: '7e6JhLyQ0HalkvkW0qKr65',
+    badges: ['Spotify', 'Origin', 'YouTube match'],
+    youtubeMatchResolverVersion: 'music-only-v1.6.4',
+  },
+  { id: 'abcdefghijk', title: 'Local', artist: 'Local Artist' },
+]));
+
 window.eval(trustSource);
 const gate = window.ampulaResolverTrust167;
 assert.ok(gate, 'shared final trust gate must install');
 assert.equal(gate.version, TRUST);
+
+const migrated = JSON.parse(window.localStorage.getItem(LIBRARY_KEY) || '[]');
+assert.equal(migrated[0].youtubeMatchResolverVersion, undefined, 'legacy trusted Spotify rows must be forced through current-track revalidation');
+assert.equal(migrated[0].id, 'vuJwrcKQ7Sg', 'migration keeps previous id only as diagnostic/revalidation input');
+assert.equal(migrated[1].id, 'abcdefghijk', 'unrelated local rows must not be changed');
 
 const madigan = { title: 'The News', artist: 'Madigan', duration: 279 };
 const productionFalsePositive = {
@@ -32,13 +52,14 @@ const rejected = gate.validate(productionFalsePositive, madigan);
 assert.equal(rejected.ok, false, 'captured production false positive must be rejected');
 assert.match(rejected.reason, /duration delta 17s > 15s|title identity mismatch/);
 
-const correct = gate.validate({
+const correctCandidate = {
   id: 's1b8Q5avQZs',
   title: 'Madigan - The News',
   artist: 'Madigan - Topic',
   duration: 279,
   musicTracks: [{ song: 'The News', artist: 'Madigan' }],
-}, madigan);
+};
+const correct = gate.validate(correctCandidate, madigan);
 assert.equal(correct.ok, true, 'correct Topic recording must pass final trust gate');
 
 const missingDuration = gate.validate({
@@ -59,21 +80,37 @@ const wrongArtist = gate.validate({
 assert.equal(wrongArtist.ok, false);
 assert.match(wrongArtist.reason, /artist identity mismatch/);
 
+// The guard is installed before the legacy matcher module assigns its public API.
+window.winampMusicAppleImport = {
+  findYouTubeMatch: async () => productionFalsePositive,
+};
+await assert.rejects(
+  () => window.winampMusicAppleImport.findYouTubeMatch({ title: 'The News', artist: 'Madigan', durationMs: 279000 }),
+  /Final trust gate rejected: (?:duration delta 17s > 15s|title identity mismatch)/,
+);
+
+window.winampMusicAppleImport = {
+  findYouTubeMatch: async () => correctCandidate,
+};
+const guardedCorrect = await window.winampMusicAppleImport.findYouTubeMatch({ title: 'The News', artist: 'Madigan', durationMs: 279000 });
+assert.equal(guardedCorrect.id, 's1b8Q5avQZs');
+assert.equal(guardedCorrect.finalTrustVersion, TRUST);
+
 for (const [name, source] of [
   ['diagnostics', diagnosticsSource],
   ['prefetch', prefetchSource],
   ['spotify compatibility resolver', spotifySource],
 ]) {
-  assert.match(source, /music-only-v1\.6\.7/, `${name} must use the v1.6.7 trust marker`);
-  assert.match(source, /ampulaResolverTrust167/, `${name} must consult the independent final trust gate`);
+  assert.match(source, /winampMusicAppleImport[^\n]+findYouTubeMatch|findYouTubeMatch/, `${name} must consume the guarded public matcher API`);
 }
 
-assert.match(headerSource, /resolver-trust-v167\.js\?v=167/);
-assert.ok(
-  headerSource.indexOf('resolver-trust-v167.js?v=167') < headerSource.indexOf('track-diagnostics-v164.js?v=167'),
-  'trust gate must be loaded before diagnostics bridge',
-);
+assert.match(headerSource, /track-diagnostics-v164\.js\?v=167/);
 assert.match(headerSource, /playback-prefetch-v165\.js\?v=167/);
+assert.match(indexSource, /resolver-trust-v167\.js\?v=167/);
+assert.ok(
+  indexSource.indexOf('resolver-trust-v167.js?v=167') < indexSource.indexOf('fast-player-v141.js'),
+  'trust gate must install before player/runtime scripts',
+);
 assert.match(indexSource, /header-visualizer-v159\.js\?v=167/);
 assert.match(swSource, /resolver-trust-v167\.js/);
 assert.match(swSource, /winampmusic-shell-v168-resolver-trust/);
