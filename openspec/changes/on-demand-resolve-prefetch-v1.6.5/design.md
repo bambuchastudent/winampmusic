@@ -22,9 +22,11 @@ A new `playback-prefetch-v165.js` wrapper is loaded only after that trusted brid
 
 ## Prefetch window
 
-For current index N, the prefetch layer considers N+1 and N+2, wrapping at the end of the library. It skips rows that are not known Spotify/Apple song origins and rows already carrying a valid YouTube id with `youtubeMatchResolverVersion=music-only-v1.6.4`.
+For current index N, the prefetch layer considers N+1 and N+2, wrapping at the end of the library. It only submits rows that are known Spotify/Apple song origins and do not yet contain a valid YouTube id.
 
-When playback advances, the wrapper runs again, so the window naturally slides forward.
+A valid-looking YouTube id with an older or missing trust marker is deliberately not revalidated by background prefetch. FAST keeps its own in-memory library, and overwriting a valid id only in persistent storage could create a stored-vs-live race. Those stale-valid rows remain the responsibility of the current-track v1.6.4 safe bridge, where playback can be revalidated synchronously before delegation.
+
+When playback advances, the wrapper runs again, so the two-position window naturally slides forward.
 
 ## Resolver
 
@@ -37,6 +39,8 @@ Each prefetch request has a timeout and is de-duplicated by provider track id or
 The FAST player keeps an in-memory library in addition to local storage. A prefetch result written only to local storage could therefore remain invisible to the next playback call until reload.
 
 On successful prefetch the implementation first feeds the resolved row through `window.importTracks()` so unresolved live rows adopt the YouTube id, then writes the complete canonical origin row back to local storage. Only playback fields are changed: id, youtubeMatchId, youtubeMatchResolverVersion, playbackProvider and playback badge. Canonical provider metadata remains unchanged.
+
+If another code path resolves the same row while prefetch is in flight, prefetch does not overwrite that newer representation.
 
 ## Loading order
 
