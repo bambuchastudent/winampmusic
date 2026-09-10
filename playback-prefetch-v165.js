@@ -39,9 +39,12 @@
     );
   }
 
-  function needsTrustedResolution(track) {
+  function needsPrefetchResolution(track) {
     if (!track || !isKnownSongOrigin(track) || !clean(track.title)) return false;
-    return !VIDEO_ID_RE.test(clean(track.id)) || clean(track.youtubeMatchResolverVersion) !== TRUST_VERSION;
+    // Prefetch is deliberately limited to unresolved rows. A valid-looking stale YouTube
+    // id is revalidated only when it becomes current, where the v1.6.4 safe bridge can
+    // keep FAST's in-memory playback state and persisted state in lock-step.
+    return !VIDEO_ID_RE.test(clean(track.id));
   }
 
   function loadMatcher() {
@@ -81,7 +84,7 @@
   }
 
   async function resolveAhead(index, originalTrack) {
-    if (!needsTrustedResolution(originalTrack)) return originalTrack || null;
+    if (!needsPrefetchResolution(originalTrack)) return originalTrack || null;
     const key = recordingKey(originalTrack);
     if (inflight.has(key)) return inflight.get(key);
 
@@ -103,6 +106,8 @@
         const currentIndex = findCurrentIndex(library, originalTrack, index);
         if (currentIndex < 0) return null;
         const current = library[currentIndex];
+        // If another path resolved the row while prefetch was in flight, do not replace it.
+        if (!needsPrefetchResolution(current)) return current;
         const resolved = {
           ...current,
           id,
@@ -114,7 +119,7 @@
           badges: [...new Set([...(Array.isArray(current.badges) ? current.badges : []), 'YouTube match'])],
         };
 
-        // Keep FAST player's in-memory library in sync before persisting the full origin row.
+        // Newly imported unresolved rows can be adopted safely by FAST's in-memory library.
         try { window.importTracks?.([resolved]); } catch {}
         const latest = readLibrary();
         const latestIndex = findCurrentIndex(latest, originalTrack, currentIndex);
@@ -145,7 +150,7 @@
     for (let offset = 1; offset <= limit; offset += 1) {
       const targetIndex = (safeIndex + offset) % library.length;
       const track = library[targetIndex];
-      if (needsTrustedResolution(track)) targets.push([targetIndex, track]);
+      if (needsPrefetchResolution(track)) targets.push([targetIndex, track]);
     }
     return Promise.allSettled(targets.map(([targetIndex, track]) => resolveAhead(targetIndex, track)));
   }
@@ -168,7 +173,7 @@
   window.ampulaPlaybackPrefetch165 = {
     version: VERSION,
     count: PREFETCH_COUNT,
-    needsTrustedResolution,
+    needsPrefetchResolution,
     resolveAhead,
     prefetchFollowing,
     installPlayBridge,
