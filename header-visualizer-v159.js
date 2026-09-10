@@ -4,7 +4,7 @@
   function loadPlaybackPrefetch() {
     if (document.querySelector('script[data-ampula-playback-prefetch-165]')) return;
     const script = document.createElement('script');
-    script.src = './playback-prefetch-v165.js?v=165';
+    script.src = './playback-prefetch-v165.js?v=167';
     script.async = true;
     script.setAttribute('data-ampula-playback-prefetch-165', '1');
     document.head.appendChild(script);
@@ -18,7 +18,7 @@
       return;
     }
     const script = document.createElement('script');
-    script.src = './track-diagnostics-v164.js?v=164';
+    script.src = './track-diagnostics-v164.js?v=167';
     script.async = true;
     script.setAttribute('data-ampula-track-diagnostics-164', '1');
     script.addEventListener('load', loadPlaybackPrefetch, { once: true });
