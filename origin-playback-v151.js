@@ -47,6 +47,16 @@
     }
   }
 
+  function parseSpotifyUrl(value) {
+    try {
+      const url = new URL(clean(value));
+      if (url.hostname.replace(/^www\./, '').toLowerCase() !== 'open.spotify.com') return null;
+      return { url: url.href };
+    } catch {
+      return null;
+    }
+  }
+
   function appleOrigin(track) {
     const badges = Array.isArray(track?.badges) ? track.badges.map(clean) : [];
     const source = clean(track?.originUrl || track?.sourceUrl);
@@ -55,15 +65,34 @@
     if (!isApple) return null;
     const fallback = parseAppleUrl(lastAppleUrl);
     return {
+      provider: 'Apple Music',
       url: parsed?.url || fallback?.url || source,
       storefront: clean(track?.originStorefront) || parsed?.storefront || fallback?.storefront || '',
     };
   }
 
+  function spotifyOrigin(track) {
+    const badges = Array.isArray(track?.badges) ? track.badges.map(clean) : [];
+    const source = clean(track?.spotifyTrackUrl || track?.originUrl || track?.sourceUrl);
+    const parsed = parseSpotifyUrl(source);
+    const isSpotify = Boolean(clean(track?.spotifyTrackId)) || Boolean(clean(track?.spotifyPlaylistId)) || badges.includes('Spotify') || Boolean(parsed);
+    if (!isSpotify) return null;
+    return {
+      provider: 'Spotify',
+      url: clean(track?.spotifyTrackUrl) || parsed?.url || source,
+      playlistUrl: clean(track?.spotifyPlaylistUrl),
+    };
+  }
+
+  function trackOrigin(track) {
+    return appleOrigin(track) || spotifyOrigin(track);
+  }
+
   function activeOrigin() {
     const track = currentTrack();
-    if (track) return { track, origin: appleOrigin(track) };
-    return { track: null, origin: parseAppleUrl(lastAppleUrl) };
+    if (track) return { track, origin: trackOrigin(track) };
+    const fallback = parseAppleUrl(lastAppleUrl);
+    return { track: null, origin: fallback ? { provider: 'Apple Music', ...fallback } : null };
   }
 
   function ensureSourceLine() {
@@ -81,12 +110,15 @@
 
   function providerState(track, statusText) {
     const status = clean(statusText).toUpperCase();
-    if (/NO PLAYABLE SOURCE|TRACK UNAVAILABLE|APPLE TRACK NOT MATCHED/.test(status)) return 'No playable source in AMP';
+    if (/NO PLAYABLE SOURCE|TRACK UNAVAILABLE|TRACK SOURCE INVALID|NO SOURCE FOUND|APPLE TRACK NOT MATCHED/.test(status)) return 'No playable source in AMP';
     if (/APPLE MUSIC\s*·\s*PLAYING/.test(status)) return 'Playing · Apple Music';
+    if (/SPOTIFY\s*·\s*PLAYING/.test(status) && clean(track?.playbackProvider).toLowerCase() === 'spotify') return 'Playing · Spotify';
     if (/YOUTUBE DIRECT\s*·\s*PLAYING|PLAYING\s*·\s*DIRECT|^PLAYING$/.test(status)) return 'Playing · YouTube';
+    if (/REPAIRING YOUTUBE|RESOLVING.*YOUTUBE|MATCHING.*YOUTUBE/.test(status)) return 'Resolving · YouTube';
+    if (/LOADING PLAYER|STARTING/.test(status) && (clean(track?.youtubeMatchId) || /^[A-Za-z0-9_-]{11}$/.test(clean(track?.id)))) return 'Starting · YouTube';
 
     const badges = Array.isArray(track?.badges) ? track.badges.map(clean) : [];
-    if (badges.some((badge) => /strict match|youtube match/i.test(badge)) || /APPLE MUSIC MATCHED|MATCHING APPLE MUSIC|RESOLVING DIRECT AUDIO/.test(status)) {
+    if (clean(track?.playbackProvider).toLowerCase() === 'youtube' || clean(track?.youtubeMatchId) || badges.some((badge) => /strict match|youtube match/i.test(badge)) || /APPLE MUSIC MATCHED|MATCHING APPLE MUSIC|RESOLVING DIRECT AUDIO/.test(status)) {
       return 'Playback · YouTube candidate';
     }
     return 'Playback · not resolved';
@@ -105,7 +137,7 @@
   }
 
   function rewriteImportHint(track, origin) {
-    if (!ui.hint || !origin) return;
+    if (!ui.hint || !origin || origin.provider !== 'Apple Music') return;
     const text = clean(ui.hint.textContent);
     const status = clean(ui.status?.textContent).toUpperCase();
     const region = origin.storefront ? ` (${origin.storefront})` : '';
@@ -140,18 +172,21 @@
         line.hidden = true;
         line.textContent = '';
         line.removeAttribute('data-origin-url');
+        line.removeAttribute('data-origin-playlist-url');
         line.removeAttribute('title');
         return;
       }
 
-      const region = origin.storefront ? ` (${origin.storefront})` : '';
-      const sourceText = `Origin · Apple Music${region} · ${providerState(track, ui.status?.textContent)}`;
+      const region = origin.provider === 'Apple Music' && origin.storefront ? ` (${origin.storefront})` : '';
+      const sourceText = `Origin · ${origin.provider}${region} · ${providerState(track, ui.status?.textContent)}`;
       line.hidden = false;
       if (clean(line.textContent) !== clean(sourceText)) line.textContent = sourceText;
       if (origin.url) {
         line.dataset.originUrl = origin.url;
-        line.title = `Original Apple Music link: ${origin.url}`;
+        line.title = `Original ${origin.provider} link: ${origin.url}`;
       }
+      if (origin.playlistUrl) line.dataset.originPlaylistUrl = origin.playlistUrl;
+      else line.removeAttribute('data-origin-playlist-url');
       rewriteImportHint(track, origin);
     } finally {
       updating = false;
@@ -173,8 +208,8 @@
 
   window.addEventListener('pageshow', refresh);
   window.addEventListener('focus', refresh);
-  window.ampMusicOriginPlayback151 = { parseAppleUrl, appleOrigin, providerState, refresh };
+  window.ampMusicOriginPlayback151 = { parseAppleUrl, parseSpotifyUrl, appleOrigin, spotifyOrigin, providerState, refresh };
 
   refresh();
-  console.info('[AmpMusic] origin/playback provenance 1.5.1 ready');
+  console.info('[AmpMusic] origin/playback provenance 1.6.2 ready');
 })();

@@ -20,25 +20,24 @@ jobs:
         run: |
           node --check unified-entry-v152.js
           node --check spotify-playlist-core-v160.js
-          node --check spotify-playlist-embed-v160.js
-          node --check spotify-played-library-v161.js
+          node --check spotify-origin-import-v162.js
+          node --check origin-playback-v151.js
+          node --check stable-v150.js
       - name: Install targeted test runtime
         run: npm install --no-save jsdom@26
       - name: Run behavioral contracts
         run: |
           node tests/unified-music-entry.mjs
           node tests/spotify-playlist-source.mjs
-          node tests/spotify-played-library-v161.mjs
-      - name: Check PWA wiring
+          node tests/spotify-origin-import-v162.mjs
+          node tests/spotify-origin-playback-v162.mjs
+      - name: Check metadata-only Spotify wiring
         run: |
-          grep -q 'unified-entry-v152.js?v=152' index.html
-          grep -q "'./unified-entry-v152.js'" sw.js
-          grep -q "'./spotify-playlist-core-v160.js'" sw.js
-          grep -q "'./spotify-playlist-embed-v160.js'" sw.js
-          grep -q "'./spotify-played-library-v161.js'" sw.js
-          grep -q 'spotify-played-library-v161.js?v=161' spotify-playlist-core-v160.js
-          grep -q 'ampula:spotify-playback-started' spotify-playlist-embed-v160.js
-          grep -q 'Spotify playlist ready' unified-entry-v152.js
-          grep -q 'T0seuEuCz8Wdpksp3' spotify-playlist-core-v160.js
-          grep -q '3A4l0emm89zzee5bzE7E0L' spotify-playlist-core-v160.js
-          grep -q 'open.spotify.com/embed/iframe-api/v1' spotify-playlist-embed-v160.js
+          grep -q "'./spotify-origin-import-v162.js'" sw.js
+          grep -q 'spotify-origin-import-v162.js?v=162' stable-v150.js
+          grep -q 'spotify.xwolf.space/api/playlist/' spotify-origin-import-v162.js
+          grep -q 'Origin ·' origin-playback-v151.js
+          grep -q 'Spotify' origin-playback-v151.js
+          ! grep -q "'./spotify-playlist-embed-v160.js'" sw.js
+          ! grep -q "'./spotify-played-library-v161.js'" sw.js
+          ! grep -q 'spotify-playlist-embed-v160.js' stable-v150.js

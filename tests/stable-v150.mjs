@@ -8,9 +8,10 @@ const stableSource = fs.readFileSync('stable-v150.js', 'utf8');
 const sw = fs.readFileSync('sw.js', 'utf8');
 
 assert.match(index, /stable-v150\.js\?v=150/);
-assert.match(sw, /ampmusic-v1\.5-stable/);
+assert.match(sw, /ampmusic-v1\.6\.2/);
 assert.match(sw, /fast-player-v141\.js/);
 assert.match(sw, /stable-v150\.js/);
+assert.match(sw, /spotify-origin-import-v162\.js/);
 
 const stripped = index
   .replace('<script src="./fast-player-v141.js?v=150"></script>', '')
@@ -85,8 +86,8 @@ assert.equal(acknowledgements[0].message.total, 3);
 
 window.dispatchEvent(new window.Event('load'));
 await new Promise((resolve) => setTimeout(resolve, 0));
-assert.ok(registrations.some(({ url, options }) => url === './sw.js?v=150' && options?.updateViaCache === 'none'));
+assert.ok(registrations.some(({ url, options }) => url === './sw.js?v=162' && options?.updateViaCache === 'none'));
 
-console.log('AmpMusic 1.5 stable PWA + multi-track playlist import contract passed');
+console.log('AmpMusic 1.6.2 stable PWA + multi-track playlist import contract passed');
 dom.window.close();
 process.exit(0);
