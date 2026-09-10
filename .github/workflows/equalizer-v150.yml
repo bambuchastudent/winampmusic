@@ -2,8 +2,20 @@ name: Equalizer v1.5 contract
 
 on:
   pull_request:
+    paths:
+      - 'index.html'
+      - 'equalizer-v150.js'
+      - 'tests/equalizer-ui.test.mjs'
+      - 'openspec/changes/visual-eq-v150/**'
+      - '.github/workflows/equalizer-v150.yml'
   push:
     branches: [develop]
+    paths:
+      - 'index.html'
+      - 'equalizer-v150.js'
+      - 'tests/equalizer-ui.test.mjs'
+      - 'openspec/changes/visual-eq-v150/**'
+      - '.github/workflows/equalizer-v150.yml'
 
 permissions:
   contents: read
