@@ -4,19 +4,29 @@ on:
   pull_request:
     paths:
       - 'track-diagnostics-v164.js'
+      - 'playback-prefetch-v165.js'
+      - 'spotify-origin-import-v162.js'
       - 'header-visualizer-v159.js'
       - 'tests/track-diagnostics-v164.mjs'
+      - 'tests/playback-prefetch-v165.mjs'
+      - 'tests/spotify-origin-import-v162.mjs'
       - 'tests/youtube-music-resolver-v163.mjs'
       - 'openspec/changes/track-diagnostics-safe-resolver-v1.6.4/**'
+      - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
       - '.github/workflows/track-diagnostics-v164.yml'
   push:
     branches: [develop]
     paths:
       - 'track-diagnostics-v164.js'
+      - 'playback-prefetch-v165.js'
+      - 'spotify-origin-import-v162.js'
       - 'header-visualizer-v159.js'
       - 'tests/track-diagnostics-v164.mjs'
+      - 'tests/playback-prefetch-v165.mjs'
+      - 'tests/spotify-origin-import-v162.mjs'
       - 'tests/youtube-music-resolver-v163.mjs'
       - 'openspec/changes/track-diagnostics-safe-resolver-v1.6.4/**'
+      - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
       - '.github/workflows/track-diagnostics-v164.yml'
 
 permissions:
@@ -30,11 +40,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Syntax check diagnostics runtime
-        run: node --check track-diagnostics-v164.js
+      - name: Syntax check resolver runtimes
+        run: |
+          node --check track-diagnostics-v164.js
+          node --check playback-prefetch-v165.js
+          node --check spotify-origin-import-v162.js
       - name: Track diagnostics contract
         run: node tests/track-diagnostics-v164.mjs
       - name: Install resolver test runtime
         run: npm install --no-save jsdom@26
+      - name: Lazy playback resolver prefetch
+        run: node tests/playback-prefetch-v165.mjs
+      - name: Spotify metadata-only lazy import
+        run: node tests/spotify-origin-import-v162.mjs
       - name: Music-only resolver regression
         run: node tests/youtube-music-resolver-v163.mjs

@@ -16,6 +16,7 @@ const CORE = [
   './stable-v150.js',
   './origin-playback-v151.js',
   './spotify-origin-import-v162.js',
+  './playback-prefetch-v165.js',
   './fast-actions-v143.js',
   './fast-background-v150.js',
   './unified-entry-v152.js',
