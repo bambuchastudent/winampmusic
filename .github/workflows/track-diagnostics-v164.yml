@@ -34,5 +34,7 @@ jobs:
         run: node --check track-diagnostics-v164.js
       - name: Track diagnostics contract
         run: node tests/track-diagnostics-v164.mjs
+      - name: Install resolver test runtime
+        run: npm install --no-save jsdom@26
       - name: Music-only resolver regression
         run: node tests/youtube-music-resolver-v163.mjs
