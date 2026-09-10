@@ -38,4 +38,5 @@ window.ampMusicOriginPlayback151.refresh();
 assert.equal(line.textContent, 'Origin · Spotify · Resolving · YouTube');
 
 console.log('spotify origin/playback provenance contract: ok');
+await new Promise((resolve) => setTimeout(resolve, 0));
 dom.window.close();
