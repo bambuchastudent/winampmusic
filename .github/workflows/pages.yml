@@ -115,6 +115,13 @@ jobs:
             RELAY_DEPLOYMENT_URL='' RELAY_COMMAND_OUTPUT='' node scripts/generate-short-link-config.mjs ampula-short-link-config.js
           fi
 
+      - name: Stamp footer build revision
+        env:
+          TZ: Europe/Madrid
+        run: |
+          revision="$(date +'%y%m%d%H%M')"
+          node scripts/stamp-build-revision.mjs index.html "$revision"
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
