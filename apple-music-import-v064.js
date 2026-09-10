@@ -17,6 +17,12 @@
     'https://invidious.nerdvpn.de',
     'https://yt.chocolatemoo53.com',
   ];
+  const SEARCH_TIMEOUT_MS = 2200;
+  const DETAIL_TIMEOUT_MS = 2200;
+  const ENRICH_LIMIT = 10;
+  const MAX_DURATION_DELTA_SECONDS = 15;
+  const MIN_MUSIC_EVIDENCE = 4;
+  const MIN_MATCH_SCORE = 20;
   const status = document.getElementById('status');
   let activeController = null;
 
@@ -158,6 +164,59 @@
     }
   }
 
+  function targetDurationSeconds(metadata) {
+    return Number(metadata?.durationMs || 0) > 0 ? Number(metadata.durationMs) / 1000 : 0;
+  }
+
+  function durationDelta(candidate, metadata) {
+    const targetSeconds = targetDurationSeconds(metadata);
+    const candidateSeconds = Number(candidate?.duration || 0);
+    if (!targetSeconds || !candidateSeconds) return null;
+    return Math.abs(targetSeconds - candidateSeconds);
+  }
+
+  function musicEvidenceScore(candidate) {
+    const title = clean(candidate?.title);
+    const artist = clean(candidate?.artist);
+    const description = clean(candidate?.description);
+    const genre = normalize(candidate?.genre);
+    const keywords = Array.isArray(candidate?.keywords) ? candidate.keywords.map(clean) : [];
+    const musicTracks = Array.isArray(candidate?.musicTracks) ? candidate.musicTracks : [];
+    const categoryId = Number(candidate?.categoryId || 0);
+    let score = 0;
+
+    if (genre === 'music') score += 5;
+    if (categoryId === 10) score += 5;
+    if (musicTracks.length > 0) score += 6;
+    if (/\s-\s*topic\b/i.test(artist)) score += 5;
+    if (/\bofficial\s+audio\b/i.test(`${title} ${description}`)) score += 4;
+    if (/vevo\b/i.test(`${artist} ${title}`)) score += 4;
+    if (/provided\s+to\s+youtube\s+by/i.test(description)) score += 5;
+    if (keywords.some((keyword) => normalize(keyword) === 'music')) score += 1;
+    if (candidate?.licensedContent === true) score += 1;
+    return score;
+  }
+
+  function isTrustedMusicCandidate(candidate, metadata) {
+    if (!candidate || candidate.liveNow === true || candidate.isUpcoming === true) return false;
+
+    const genre = normalize(candidate.genre);
+    if (genre && genre !== 'music') return false;
+
+    const categoryId = Number(candidate.categoryId || 0);
+    if (categoryId && categoryId !== 10) return false;
+
+    const targetSeconds = targetDurationSeconds(metadata);
+    const candidateSeconds = Number(candidate.duration || 0);
+    if (targetSeconds) {
+      if (!candidateSeconds) return false;
+      const diff = Math.abs(targetSeconds - candidateSeconds);
+      if (diff > MAX_DURATION_DELTA_SECONDS) return false;
+    }
+
+    return musicEvidenceScore(candidate) >= MIN_MUSIC_EVIDENCE;
+  }
+
   function scoreCandidate(candidate, metadata) {
     const haystackTitle = normalize(candidate.title);
     const haystackAll = `${haystackTitle} ${normalize(candidate.artist)}`.trim();
@@ -168,20 +227,19 @@
     for (const token of titleTokens) score += haystackTitle.includes(token) ? 9 : -7;
     for (const token of artistTokens) score += haystackAll.includes(token) ? 5 : -2;
 
-    const targetSeconds = metadata.durationMs > 0 ? metadata.durationMs / 1000 : 0;
-    const candidateSeconds = Number(candidate.duration || 0);
-    if (targetSeconds && candidateSeconds) {
-      const diff = Math.abs(targetSeconds - candidateSeconds);
-      if (diff <= 3) score += 12;
-      else if (diff <= 8) score += 7;
-      else if (diff <= 20) score += 2;
-      else if (diff > 60) score -= 8;
+    const diff = durationDelta(candidate, metadata);
+    if (diff !== null) {
+      if (diff <= 3) score += 20;
+      else if (diff <= 10) score += 10;
+      else if (diff <= MAX_DURATION_DELTA_SECONDS) score += 3;
+      else score -= 100;
     }
 
-    if (/\b(topic|official audio|soundtrack|ost)\b/i.test(`${candidate.title} ${candidate.artist}`)) score += 2;
+    score += Math.min(10, musicEvidenceScore(candidate));
+
     const source = normalize(`${metadata.title} ${metadata.artist}`);
     for (const noisy of ['cover', 'remix', 'nightcore', 'sped up', 'slowed', 'live']) {
-      if (!source.includes(noisy) && haystackAll.includes(noisy)) score -= 7;
+      if (!source.includes(noisy) && haystackAll.includes(noisy)) score -= 10;
     }
     return score;
   }
@@ -209,7 +267,7 @@
     const url = new URL('/search', base);
     url.searchParams.set('q', query);
     url.searchParams.set('filter', 'videos');
-    const payload = await fetchJson(url, signal);
+    const payload = await fetchJson(url, signal, SEARCH_TIMEOUT_MS);
     const items = Array.isArray(payload?.items) ? payload.items : [];
     return items
       .filter((item) => item?.type === 'stream' || item?.url)
@@ -228,7 +286,7 @@
     url.searchParams.set('q', query);
     url.searchParams.set('type', 'video');
     url.searchParams.set('sort', 'relevance');
-    const payload = await fetchJson(url, signal);
+    const payload = await fetchJson(url, signal, SEARCH_TIMEOUT_MS);
     return (Array.isArray(payload) ? payload : [])
       .filter((item) => item?.type === 'video')
       .map((item) => ({
@@ -236,31 +294,84 @@
         title: clean(item.title),
         artist: clean(item.author),
         duration: Number(item.lengthSeconds || 0),
+        description: clean(item.description),
+        liveNow: item.liveNow === true,
         thumbnail: `https://i.ytimg.com/vi/${encodeURIComponent(clean(item.videoId))}/hqdefault.jpg`,
       }))
       .filter((item) => ID_PATTERN.test(item.id));
+  }
+
+  async function enrichCandidate(base, candidate, signal) {
+    if (!base) return candidate;
+    const url = new URL(`/api/v1/videos/${encodeURIComponent(candidate.id)}`, base);
+    try {
+      const payload = await fetchJson(url, signal, DETAIL_TIMEOUT_MS);
+      return {
+        ...candidate,
+        title: clean(payload?.title) || candidate.title,
+        artist: clean(payload?.author) || candidate.artist,
+        duration: Number(payload?.lengthSeconds || candidate.duration || 0),
+        description: clean(payload?.description) || clean(candidate.description),
+        keywords: Array.isArray(payload?.keywords) ? payload.keywords.map(clean).filter(Boolean) : [],
+        genre: clean(payload?.genre),
+        musicTracks: Array.isArray(payload?.musicTracks) ? payload.musicTracks : [],
+        liveNow: payload?.liveNow === true || candidate.liveNow === true,
+        isUpcoming: payload?.isUpcoming === true,
+        categoryId: payload?.categoryId,
+        licensedContent: payload?.licensedContent === true,
+      };
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      return candidate;
+    }
   }
 
   async function findYouTubeMatch(metadata, signal) {
     const query = [metadata.artist, metadata.title].filter(Boolean).join(' ');
     if (!query) throw new Error('Apple metadata is incomplete');
 
-    const piped = await Promise.allSettled(PIPED_APIS.map((base) => pipedCandidates(base, query, signal)));
-    let candidates = piped.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
+    const [piped, invidious] = await Promise.all([
+      Promise.allSettled(PIPED_APIS.map((base) => pipedCandidates(base, query, signal))),
+      Promise.allSettled(INVIDIOUS_APIS.map(async (base) => ({
+        base,
+        candidates: await invidiousCandidates(base, query, signal),
+      }))),
+    ]);
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
-    if (!candidates.length && !signal.aborted) {
-      const invidious = await Promise.allSettled(INVIDIOUS_APIS.map((base) => invidiousCandidates(base, query, signal)));
-      candidates = invidious.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
-    }
+    const candidates = [
+      ...piped.flatMap((result) => result.status === 'fulfilled' ? result.value : []),
+      ...invidious.flatMap((result) => result.status === 'fulfilled' ? result.value.candidates : []),
+    ];
+    const detailBase = invidious.find((result) => result.status === 'fulfilled')?.value?.base || '';
 
     const unique = new Map();
-    for (const candidate of candidates) if (!unique.has(candidate.id)) unique.set(candidate.id, candidate);
-    const ranked = [...unique.values()]
+    for (const candidate of candidates) {
+      const current = unique.get(candidate.id);
+      unique.set(candidate.id, current ? {
+        ...current,
+        ...candidate,
+        thumbnail: current.thumbnail || candidate.thumbnail,
+      } : candidate);
+    }
+
+    const shortlist = [...unique.values()]
+      .map((candidate) => ({ ...candidate, preliminaryScore: scoreCandidate(candidate, metadata) }))
+      .sort((a, b) => b.preliminaryScore - a.preliminaryScore)
+      .slice(0, ENRICH_LIMIT);
+
+    const enriched = detailBase
+      ? await Promise.all(shortlist.map((candidate) => enrichCandidate(detailBase, candidate, signal)))
+      : shortlist;
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
+    const ranked = enriched
+      .filter((candidate) => isTrustedMusicCandidate(candidate, metadata))
       .map((candidate) => ({ ...candidate, score: scoreCandidate(candidate, metadata) }))
       .sort((a, b) => b.score - a.score);
 
     const best = ranked[0];
-    if (!best || best.score < 8) throw new Error('No reliable YouTube match found');
+    if (!best || best.score < MIN_MATCH_SCORE) throw new Error('No reliable YouTube match found');
     return best;
   }
 
