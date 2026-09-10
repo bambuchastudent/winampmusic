@@ -60,6 +60,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
 
       - name: OpenSpec release contract
         run: |
@@ -130,7 +135,7 @@ jobs:
           node --check tests/real-tracks-radio-v150.mjs
 
       - name: Install test runtime
-        run: npm install --no-save jsdom@26
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
 
       - name: Functional — PWA and multi-track playlist import
         run: node tests/stable-v150.mjs
