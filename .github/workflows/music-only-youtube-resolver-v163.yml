@@ -1,0 +1,50 @@
+name: Music-only YouTube resolver v1.6.3
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'apple-music-import-v064.js'
+      - 'apple-resolution-v162.js'
+      - 'spotify-origin-import-v162.js'
+      - 'origin-playback-v151.js'
+      - 'tests/youtube-music-resolver-v163.mjs'
+      - 'tests/apple-canonical-metadata-v163.mjs'
+      - 'tests/apple-full-resolution-v162.mjs'
+      - 'tests/spotify-origin-import-v162.mjs'
+      - 'tests/spotify-origin-playback-v162.mjs'
+      - 'openspec/changes/music-only-youtube-resolver-v1.6.3/**'
+      - '.github/workflows/music-only-youtube-resolver-v163.yml'
+
+jobs:
+  resolver-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Syntax check
+        run: |
+          node --check apple-music-import-v064.js
+          node --check tests/youtube-music-resolver-v163.mjs
+          node --check tests/apple-canonical-metadata-v163.mjs
+
+      - name: Install test runtime
+        run: npm install --no-save jsdom@26
+
+      - name: Music-only resolver regressions
+        run: node tests/youtube-music-resolver-v163.mjs
+
+      - name: Canonical Apple metadata
+        run: node tests/apple-canonical-metadata-v163.mjs
+
+      - name: Existing Apple full-resolution contract
+        run: node tests/apple-full-resolution-v162.mjs
+
+      - name: Existing Spotify origin contract
+        run: node tests/spotify-origin-import-v162.mjs
+
+      - name: Existing Spotify provenance/playback contract
+        run: node tests/spotify-origin-playback-v162.mjs
