@@ -7,5 +7,5 @@
 - [x] Guard the public matcher used by two-track prefetch.
 - [x] Guard the public matcher used by Spotify compatibility resolution.
 - [x] Revoke saved v1.6.4 trust once and refresh the runtime cache chain.
-- [ ] Run focused and broader regressions.
+- [x] Run focused and broader regressions.
 - [ ] Merge only after all required checks pass.
