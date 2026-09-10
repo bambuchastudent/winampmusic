@@ -35,24 +35,64 @@
     return /^https?:\/\//i.test(clean(value));
   }
 
+  function isSpotifyLike(value) {
+    const text = clean(value);
+    if (!/^https?:\/\//i.test(text)) return false;
+    try {
+      const url = new URL(text);
+      const host = url.hostname.toLowerCase().replace(/^www\./, '');
+      if (host === 'share.google' && url.pathname.replace(/\/$/, '') === '/T0seuEuCz8Wdpksp3') return true;
+      if (host !== 'open.spotify.com') return false;
+      return url.pathname.split('/').filter(Boolean).includes('playlist');
+    } catch {
+      return false;
+    }
+  }
+
+  function loadScriptOnce(src, marker) {
+    const existing = document.querySelector(`script[data-ampula-module="${marker}"]`);
+    if (existing?.dataset.loaded === '1') return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = existing || document.createElement('script');
+      const onLoad = () => { script.dataset.loaded = '1'; resolve(); };
+      script.addEventListener('load', onLoad, { once: true });
+      script.addEventListener('error', () => reject(new Error(`${marker} failed to load`)), { once: true });
+      if (!existing) {
+        script.src = src;
+        script.async = true;
+        script.dataset.ampulaModule = marker;
+        document.head.appendChild(script);
+      }
+    });
+  }
+
+  async function ensureSpotifyAdapter() {
+    if (window.ampulaSpotifyPlaylist160?.openSource) return window.ampulaSpotifyPlaylist160;
+    await loadScriptOnce('./spotify-playlist-core-v160.js?v=160', 'spotify-playlist-core-160');
+    await loadScriptOnce('./spotify-playlist-embed-v160.js?v=160', 'spotify-playlist-embed-160');
+    if (!window.ampulaSpotifyPlaylist160?.openSource) throw new Error('Spotify adapter unavailable');
+    return window.ampulaSpotifyPlaylist160;
+  }
+
   function setMode() {
     if (button.disabled && button.dataset.unifiedSearchBusy === '1') return;
     button.textContent = isUrlLike(input.value) ? 'Add & Play' : 'Search';
     const results = $('unifiedSearchResults');
     if (results && isUrlLike(input.value)) results.hidden = true;
+    if (isSpotifyLike(input.value)) hint.textContent = 'Spotify playlist ready — tap Add & Play';
   }
 
   function rewritePrimaryCopy() {
     input.type = 'search';
     input.inputMode = 'search';
-    input.placeholder = 'Song, artist, or YouTube / Apple Music link…';
-    input.setAttribute('aria-label', 'Search music or paste a YouTube or Apple Music link');
+    input.placeholder = 'Song, artist, or YouTube / Apple Music / Spotify link…';
+    input.setAttribute('aria-label', 'Search music or paste a YouTube, Apple Music, or Spotify link');
     const head = importPanel.querySelector('.fast-import-head');
     const eyebrow = head?.querySelector('.eyebrow');
     const strong = head?.querySelector('strong');
     if (eyebrow) eyebrow.textContent = 'MUSIC';
     if (strong) strong.textContent = 'Search or paste a track, album, or playlist';
-    hint.textContent = 'Type a song or paste a YouTube / Apple Music link';
+    hint.textContent = 'Type a song or paste a YouTube / Apple Music / Spotify link';
     setMode();
   }
 
@@ -146,15 +186,43 @@
     }
   }
 
+  async function runSpotifyImport(value) {
+    button.disabled = true;
+    button.textContent = 'Opening…';
+    hint.textContent = 'Opening Spotify playlist…';
+    try {
+      const adapter = await ensureSpotifyAdapter();
+      const result = await adapter.openSource(value, {
+        input,
+        onStatus: (state) => { if (state?.message) hint.textContent = state.message; },
+      });
+      if (!result?.handled) hint.textContent = 'Could not read this Spotify playlist';
+    } catch (error) {
+      console.warn('[ÁmpulaMP] Spotify source unavailable', error);
+      hint.textContent = 'Spotify playlist unavailable';
+    } finally {
+      button.disabled = false;
+      button.textContent = input.value ? 'Add & Play' : 'Search';
+    }
+  }
+
   form.addEventListener('submit', (event) => {
     const value = clean(input.value);
-    if (!value || isUrlLike(value)) return;
+    if (!value) return;
+    if (isSpotifyLike(value)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void runSpotifyImport(value);
+      return;
+    }
+    if (isUrlLike(value)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     void runTextSearch(value);
   }, true);
 
   input.addEventListener('input', setMode, { passive: true });
+  input.addEventListener('paste', () => setTimeout(setMode, 0));
 
   function mountLibraryFilterToggle() {
     if (!libraryFilter || !libraryHeader || $('librarySearchToggle')) return;
@@ -209,5 +277,5 @@
   mountLibraryFilterToggle();
   prepareSearchUi();
   polishUi();
-  console.info('[ÁmpulaMP] unified music entry 1.5.3 polish ready');
+  console.info('[ÁmpulaMP] unified music entry 1.6 Spotify-ready');
 })();
