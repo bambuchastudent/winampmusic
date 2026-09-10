@@ -3,12 +3,13 @@
   if (window.__AMPULA_SPOTIFY_ORIGIN_162__) return;
   window.__AMPULA_SPOTIFY_ORIGIN_162__ = true;
 
-  const VERSION = '1.6.2';
+  const VERSION = '1.6.5';
   const STORAGE_KEY = 'winampmusic.library.v1';
   const LEGACY_SOURCE_KEY = 'ampula.spotifySource.v1';
   const DATA_API = 'https://spotify.xwolf.space/api/playlist/';
   const PLAYLIST_ID_RE = /^[A-Za-z0-9]{16,40}$/;
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+  const TRUST_VERSION = 'music-only-v1.6.4';
   const KNOWN_ALIASES = new Map([
     ['https://share.google/T0seuEuCz8Wdpksp3', '3A4l0emm89zzee5bzE7E0L'],
   ]);
@@ -153,7 +154,7 @@
       const done = () => { clearTimeout(timer); finish(); };
       if (!script) {
         script = document.createElement('script');
-        script.src = './apple-music-import-v064.js?v=162';
+        script.src = './apple-music-import-v064.js?v=165';
         script.async = true;
         script.dataset.spotifyOriginMatcher = '1';
         document.head.appendChild(script);
@@ -168,19 +169,26 @@
 
   function mergeResolved(track, candidate) {
     if (!VIDEO_ID_RE.test(clean(candidate?.id))) return false;
-    const resolved = { ...track, id: clean(candidate.id), badges: ['Spotify', 'Origin', 'YouTube match'] };
+    const resolved = {
+      ...track,
+      id: clean(candidate.id),
+      youtubeMatchId: clean(candidate.id),
+      youtubeMatchResolverVersion: TRUST_VERSION,
+      playbackProvider: 'youtube',
+      badges: ['Spotify', 'Origin', 'YouTube match'],
+    };
     window.importTracks?.([resolved]);
     const library = readLibrary();
     const localId = recordingId(track.title, track.artist);
-    const index = library.findIndex((item) => clean(item?.spotifyTrackId) === clean(track.spotifyTrackId)) >= 0
-      ? library.findIndex((item) => clean(item?.spotifyTrackId) === clean(track.spotifyTrackId))
-      : library.findIndex((item) => recordingId(item?.title, item?.artist) === localId || clean(item?.id) === clean(candidate.id));
+    let index = library.findIndex((item) => clean(item?.spotifyTrackId) === clean(track.spotifyTrackId));
+    if (index < 0) index = library.findIndex((item) => recordingId(item?.title, item?.artist) === localId || clean(item?.id) === clean(candidate.id));
     if (index < 0) return false;
     library[index] = {
       ...library[index],
       ...track,
       id: clean(candidate.id),
       youtubeMatchId: clean(candidate.id),
+      youtubeMatchResolverVersion: TRUST_VERSION,
       playbackProvider: 'youtube',
       badges: [...new Set([...(Array.isArray(library[index].badges) ? library[index].badges : []), 'Spotify', 'Origin', 'YouTube match'])],
     };
@@ -207,6 +215,7 @@
     }
   }
 
+  // Compatibility API only. Normal playlist import no longer calls this function.
   async function resolveInBackground(tracks, onProgress) {
     const matcher = await loadMatcher();
     if (typeof matcher !== 'function') return { matched: 0, total: tracks.length };
@@ -247,19 +256,22 @@
       if (generation !== activeImport) return { handled: true, stale: true };
       importMetadata(metadata.tracks);
       options.input && (options.input.value = '');
-      onStatus({ phase: 'imported', message: `Spotify · ${metadata.tracks.length} tracks imported · resolving YouTube…` });
+      onStatus({ phase: 'imported', message: `Spotify · ${metadata.tracks.length} tracks imported · resolve on playback · 2 ahead` });
 
       const firstIndex = firstImportedIndex(metadata.tracks[0]);
-      if (options.play !== false && firstIndex >= 0) setTimeout(() => window.playIndex?.(firstIndex), 0);
+      if (options.play !== false && firstIndex >= 0) {
+        setTimeout(() => {
+          window.playIndex?.(firstIndex);
+          void window.ampulaPlaybackPrefetch165?.prefetchFollowing?.(firstIndex, 2);
+        }, 0);
+      }
 
-      const resolution = resolveInBackground(metadata.tracks, ({ done, matched, total }) => {
-        if (generation !== activeImport) return;
-        onStatus({ phase: 'resolving', message: `Spotify origin · YouTube matches ${matched}/${done} · ${total} tracks` });
-      }).then((summary) => {
-        if (generation === activeImport) onStatus({ phase: 'done', message: `Spotify origin · ${metadata.tracks.length} tracks · YouTube matches ${summary.matched}/${summary.total}` });
-        return summary;
+      const resolution = Promise.resolve({
+        matched: 0,
+        total: metadata.tracks.length,
+        strategy: 'on-demand+2-ahead',
       });
-
+      onStatus({ phase: 'done', message: `Spotify origin · ${metadata.tracks.length} tracks · resolve on playback · 2 ahead` });
       return { handled: true, parsed, metadata, resolution };
     } catch (error) {
       if (error?.name === 'AbortError') onStatus({ phase: 'error', message: 'Spotify playlist read timed out' });
@@ -304,5 +316,5 @@
     importPlaylist,
     resolveInBackground,
   };
-  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready`);
+  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready · on-demand resolver`);
 })();
