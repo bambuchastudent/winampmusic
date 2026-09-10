@@ -4,6 +4,9 @@
   window.__AMPULA_RESOLVER_TRUST_167__ = true;
 
   const VERSION = 'music-only-v1.6.7';
+  const LEGACY_TRUST_VERSION = 'music-only-v1.6.4';
+  const LIBRARY_KEY = 'winampmusic.library.v1';
+  const MIGRATION_KEY = 'ampula.resolverTrust167.migrated';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const MAX_DURATION_DELTA_SECONDS = 15;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -31,9 +34,9 @@
     if (!candidate) return false;
     if (candidate.includes(canonical)) return true;
 
-    // For longer titles tolerate punctuation/version wording changes, but require
-    // nearly all meaningful words. Short one-word titles intentionally do not
-    // fall back to token overlap (e.g. `The News` vs `News in the Past`).
+    // Longer titles may differ only by punctuation/version wording. Short titles
+    // deliberately do not fall back to one shared keyword: `The News` must not
+    // become `News in the Past: Kathleen Madigan`.
     const stop = new Set(['a', 'an', 'the', 'of', 'and', 'or', 'to', 'in']);
     const canonicalTokens = canonical.split(' ').filter((token) => token.length > 1 && !stop.has(token));
     if (canonicalTokens.length < 2) return false;
@@ -58,8 +61,8 @@
     const musicTracks = Array.isArray(candidate?.musicTracks) ? candidate.musicTracks : [];
     if (musicTracks.some((item) => normalize(item?.artist).includes(canonicalArtist))) return true;
 
-    // Accept explicit `Artist - Title` or `Title - Artist` attribution even when
-    // the YouTube channel itself is a label/uploader rather than the artist.
+    // Allow a label/uploader channel when the video title itself clearly carries
+    // `Artist - Track` or `Track - Artist` attribution.
     const segments = clean(candidate?.title)
       .split(/\s[-–—|•]\s|\s*:\s*/)
       .map(normalize)
@@ -102,12 +105,96 @@
     return { ok: true, reason: '', durationDelta };
   }
 
+  function isKnownSongOrigin(track) {
+    const badges = Array.isArray(track?.badges) ? track.badges.map(clean) : [];
+    const url = clean(track?.originUrl || track?.sourceUrl);
+    return Boolean(
+      clean(track?.spotifyTrackId) || clean(track?.spotifyPlaylistId) || clean(track?.appleTrackId) ||
+      badges.includes('Spotify') || badges.includes('Apple Music') ||
+      /(?:open\.spotify\.com|music\.apple\.com)/i.test(url)
+    );
+  }
+
+  function migrateLegacyTrustedRows() {
+    try {
+      if (localStorage.getItem(MIGRATION_KEY) === VERSION) return 0;
+      const parsed = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]');
+      if (!Array.isArray(parsed)) return 0;
+      let changed = 0;
+      for (const track of parsed) {
+        if (!isKnownSongOrigin(track)) continue;
+        if (clean(track?.youtubeMatchResolverVersion) !== LEGACY_TRUST_VERSION) continue;
+        delete track.youtubeMatchResolverVersion;
+        changed += 1;
+      }
+      if (changed) localStorage.setItem(LIBRARY_KEY, JSON.stringify(parsed));
+      localStorage.setItem(MIGRATION_KEY, VERSION);
+      return changed;
+    } catch {
+      return 0;
+    }
+  }
+
+  function guardMatcher(original, api) {
+    if (typeof original !== 'function' || original.__ampulaFinalTrust167) return original;
+    const guarded = async function guardedFindYouTubeMatch(metadata, signal) {
+      const candidate = await original.call(api || this, metadata, signal);
+      const verdict = validate(candidate, metadata);
+      if (!verdict.ok) throw new Error(`Final trust gate rejected: ${verdict.reason}`);
+      return {
+        ...candidate,
+        finalTrustVersion: VERSION,
+        finalTrustDurationDelta: verdict.durationDelta,
+      };
+    };
+    Object.defineProperty(guarded, '__ampulaFinalTrust167', { value: true });
+    Object.defineProperty(guarded, '__ampulaOriginalMatcher', { value: original });
+    return guarded;
+  }
+
+  function wrapMatcherApi(api) {
+    if (!api || typeof api !== 'object') return api;
+    if (typeof api.findYouTubeMatch === 'function') {
+      api.findYouTubeMatch = guardMatcher(api.findYouTubeMatch, api);
+    }
+    return api;
+  }
+
+  function installMatcherGuard() {
+    let current = wrapMatcherApi(window.winampMusicAppleImport);
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(window, 'winampMusicAppleImport');
+      if (!descriptor || descriptor.configurable) {
+        Object.defineProperty(window, 'winampMusicAppleImport', {
+          configurable: true,
+          enumerable: true,
+          get() { return current; },
+          set(value) { current = wrapMatcherApi(value); },
+        });
+        return true;
+      }
+    } catch {}
+
+    // Rare fallback for a non-configurable host property.
+    const timer = setInterval(() => {
+      const api = window.winampMusicAppleImport;
+      if (api?.findYouTubeMatch && !api.findYouTubeMatch.__ampulaFinalTrust167) wrapMatcherApi(api);
+    }, 50);
+    setTimeout(() => clearInterval(timer), 15000);
+    return false;
+  }
+
+  const migrated = migrateLegacyTrustedRows();
+  installMatcherGuard();
+
   window.ampulaResolverTrust167 = {
     version: VERSION,
     maxDurationDeltaSeconds: MAX_DURATION_DELTA_SECONDS,
     validate,
     titleIdentityMatches,
     artistIdentityMatches,
+    guardMatcher,
+    migrateLegacyTrustedRows,
   };
-  console.info(`[ÁmpulaMP] resolver final trust gate ${VERSION} ready`);
+  console.info(`[ÁmpulaMP] resolver final trust gate ${VERSION} ready · migrated ${migrated}`);
 })();
