@@ -25,7 +25,22 @@
     document.head.appendChild(script);
   }
 
-  loadTrackDiagnostics();
+  function loadResolverTrust() {
+    const existing = document.querySelector('script[data-ampula-resolver-trust-167]');
+    if (existing) {
+      if (window.__AMPULA_RESOLVER_TRUST_167__) loadTrackDiagnostics();
+      else existing.addEventListener('load', loadTrackDiagnostics, { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = './resolver-trust-v167.js?v=167';
+    script.async = true;
+    script.setAttribute('data-ampula-resolver-trust-167', '1');
+    script.addEventListener('load', loadTrackDiagnostics, { once: true });
+    document.head.appendChild(script);
+  }
+
+  loadResolverTrust();
 
   const spectrum = document.getElementById('headerSpectrum');
   const playButton = document.getElementById('playButton');
