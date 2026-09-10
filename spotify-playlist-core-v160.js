@@ -58,9 +58,36 @@
     };
   }
 
+  function ensurePlayedLibrary() {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return Promise.resolve(null);
+    if (window.ampulaSpotifyPlayedLibrary161) return Promise.resolve(window.ampulaSpotifyPlayedLibrary161);
+    if (globalThis.__AMPULA_SPOTIFY_PLAYED_LIBRARY_PROMISE__) return globalThis.__AMPULA_SPOTIFY_PLAYED_LIBRARY_PROMISE__;
+
+    globalThis.__AMPULA_SPOTIFY_PLAYED_LIBRARY_PROMISE__ = new Promise((resolve, reject) => {
+      let script = document.querySelector('script[data-ampula-spotify-played-161]');
+      const done = () => resolve(window.ampulaSpotifyPlayedLibrary161 || null);
+      const failed = () => reject(new Error('Spotify heard-track library failed to load'));
+      if (script?.dataset.loaded === '1') return done();
+      script = script || document.createElement('script');
+      script.addEventListener('load', () => { script.dataset.loaded = '1'; done(); }, { once: true });
+      script.addEventListener('error', failed, { once: true });
+      if (!script.isConnected) {
+        script.src = './spotify-played-library-v161.js?v=161';
+        script.async = true;
+        script.dataset.ampulaSpotifyPlayed161 = '1';
+        document.head.appendChild(script);
+      }
+    }).catch((error) => {
+      globalThis.__AMPULA_SPOTIFY_PLAYED_LIBRARY_PROMISE__ = null;
+      throw error;
+    });
+    return globalThis.__AMPULA_SPOTIFY_PLAYED_LIBRARY_PROMISE__;
+  }
+
   globalThis.AmpulaSpotifyCore160 = Object.freeze({
     parseSource,
     canonicalPlaylistUrl,
+    ensurePlayedLibrary,
     knownAliases: Object.freeze([...KNOWN_ALIASES.keys()]),
   });
 })();
