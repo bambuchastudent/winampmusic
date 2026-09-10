@@ -95,7 +95,8 @@
     const next = document.createElement('div');
     next.id = 'spotifyEmbedSlot';
     next.className = 'spotify-embed-slot';
-    old?.replaceWith(next);
+    if (old) old.replaceWith(next);
+    else panel.appendChild(next);
     return next;
   }
 
@@ -183,7 +184,7 @@
         api.createController(slot, {
           uri: `spotify:playlist:${source.playlistId}`,
           width,
-          height: matchMedia('(max-width: 520px)').matches ? 352 : 352,
+          height: 352,
         }, (embedController) => {
           settled = true;
           clearTimeout(timer);
