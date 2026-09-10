@@ -1,5 +1,5 @@
 const BUILD = 'ampmusic-v1.5-stable';
-const CACHE = 'winampmusic-shell-v164-listen-first';
+const CACHE = 'winampmusic-shell-v165-spotify-playlist';
 const CORE = [
   './',
   './index.html',
@@ -17,6 +17,8 @@ const CORE = [
   './fast-actions-v143.js',
   './fast-background-v150.js',
   './unified-entry-v152.js',
+  './spotify-playlist-core-v160.js',
+  './spotify-playlist-embed-v160.js',
   './compact-share.js',
   './share-ui-cleanup-v162.js',
   './ampula-short-link-config.js',
