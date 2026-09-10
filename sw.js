@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.6.2';
-const CACHE = 'winampmusic-shell-v167-spotify-origin';
+const BUILD = 'ampmusic-v1.6.7';
+const CACHE = 'winampmusic-shell-v168-resolver-trust';
 const CORE = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const CORE = [
   './fast-import-v150.js',
   './telegram-text-import-v1.js',
   './apple-music-import-v064.js',
+  './resolver-trust-v167.js',
   './apple-playlist-import-v150.js',
   './stable-v150.js',
   './origin-playback-v151.js',
