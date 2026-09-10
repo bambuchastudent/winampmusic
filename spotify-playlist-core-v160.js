@@ -90,4 +90,8 @@
     ensurePlayedLibrary,
     knownAliases: Object.freeze([...KNOWN_ALIASES.keys()]),
   });
+
+  if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+    void ensurePlayedLibrary().catch((error) => console.warn('[ÁmpulaMP] Spotify heard-track retention unavailable', error));
+  }
 })();
