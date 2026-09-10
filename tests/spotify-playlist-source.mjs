@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('../spotify-playlist-core-v160.js', import.meta.url), 'utf8');
-const context = { globalThis: {} };
+const context = { globalThis: {}, URL };
 vm.runInNewContext(source, context, { filename: 'spotify-playlist-core-v160.js' });
 const core = context.globalThis.AmpulaSpotifyCore160;
 assert.ok(core, 'Spotify core should expose parser helpers');
