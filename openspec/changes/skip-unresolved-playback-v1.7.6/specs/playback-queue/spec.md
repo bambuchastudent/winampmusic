@@ -12,6 +12,10 @@ Given row 40 is current and playable, row 41 is unresolved, and row 42 is final-
 
 Given row 40 reaches YouTube `ENDED`, row 41 is unresolved, and row 42 is final-trusted playable, automatic continuation starts row 42.
 
+### Scenario: multiple consecutive unresolved rows are skipped
+
+Given row 40 is current and playable, rows 41 and 42 are unresolved, and row 43 is final-trusted playable, Next or automatic continuation skips rows 41 and 42 and starts row 43.
+
 ## Requirement: current row is not a recovery candidate
 
 The row that was current immediately before unresolved recovery begins MUST be excluded from fallback selection for that recovery attempt.
