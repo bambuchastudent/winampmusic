@@ -1,0 +1,34 @@
+name: Delete merged feature branch
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete merged head branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          case "$HEAD_REF" in
+            develop|main|master)
+              echo "::error::Refusing to delete protected trunk branch $HEAD_REF"
+              exit 1
+              ;;
+          esac
+
+          ref_path="/repos/${GITHUB_REPOSITORY}/git/refs/heads/${HEAD_REF}"
+          if ! gh api "$ref_path" >/dev/null 2>&1; then
+            echo "Merged branch $HEAD_REF is already absent."
+            exit 0
+          fi
+          gh api --method DELETE "$ref_path"
+          echo "Deleted merged branch $HEAD_REF"
