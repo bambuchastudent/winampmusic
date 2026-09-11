@@ -8,9 +8,9 @@ const header = readFileSync(new URL('../header-visualizer-v159.js', import.meta.
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 assert.match(header, /ad-indicator-v170\.js\?v=175/);
-assert.match(header, /playback-queue-v170\.js\?v=175/);
+assert.match(header, /playback-queue-v170\.js\?v=176/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(sw, /ampmusic-v1\.7\.5/);
+assert.match(sw, /ampmusic-v1\.7\.6/);
 assert.match(sw, /resolver-music-recall-v174\.js/);
 assert.match(sw, /playback-queue-v170\.js/);
 
@@ -133,4 +133,4 @@ assert.equal(indicator.hidden, true);
 adWindow.ampulaAdIndicator170.stop();
 adDom.window.close();
 
-console.log('full-library queue continuation + compact ad timer v1.7.5: ok');
+console.log('full-library queue continuation + compact ad timer v1.7.6: ok');
