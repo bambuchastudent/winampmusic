@@ -143,7 +143,7 @@
   function loadPlaybackNavigation() {
     if (window.__AMPULA_PLAYBACK_NAVIGATION_178__ || document.querySelector('script[data-ampula-playback-navigation-178]')) return;
     const script = document.createElement('script');
-    script.src = './playback-navigation-v178.js?v=178';
+    script.src = './playback-navigation-v178.js?v=179';
     script.async = true;
     script.setAttribute('data-ampula-playback-navigation-178', '1');
     document.head.appendChild(script);
@@ -174,5 +174,5 @@
   else setTimeout(loadBackground, 900);
 
   window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
-  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.8');
+  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9');
 })();
