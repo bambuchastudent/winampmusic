@@ -110,20 +110,23 @@ for (const [name, source] of [
   assert.match(source, /findYouTubeMatch/, `${name} must consume the guarded public matcher API`);
 }
 
-assert.match(headerSource, /apple-music-import-v064\.js\?v=173/);
+assert.match(headerSource, /apple-music-import-v064\.js\?v=174/);
 assert.match(headerSource, /playback-miss-v173\.js\?v=173/);
 assert.match(headerSource, /resolver-trust-v167\.js\?v=173/);
+assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/);
 assert.match(headerSource, /track-diagnostics-v164\.js\?v=173/);
 assert.match(headerSource, /diagnostics-download-v171\.js\?v=173/);
 assert.match(headerSource, /playback-prefetch-v165\.js\?v=173/);
 assert.ok(
   headerSource.indexOf('loadMatcherCore();') < headerSource.indexOf("const spectrum"),
-  'fresh matcher/MISS/trust loader chain must start before optional header behavior',
+  'fresh matcher/MISS/trust/recall loader chain must start before optional header behavior',
 );
+assert.match(headerSource, /script\.addEventListener\('load', loadResolverMusicRecall/);
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
-assert.match(swSource, /winampmusic-shell-v173-playback-miss/);
-assert.match(swSource, /ampmusic-v1\.7\.3/);
+assert.match(swSource, /resolver-music-recall-v174\.js/);
+assert.match(swSource, /winampmusic-shell-v174-resolver-music-recall/);
+assert.match(swSource, /ampmusic-v1\.7\.4/);
 assert.match(swSource, /playback-queue-v170\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /ad-indicator-v170\.js/);

@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.3';
-const CACHE = 'winampmusic-shell-v173-playback-miss';
+const BUILD = 'ampmusic-v1.7.4';
+const CACHE = 'winampmusic-shell-v174-resolver-music-recall';
 const CORE = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const CORE = [
   './telegram-text-import-v1.js',
   './apple-music-import-v064.js',
   './resolver-trust-v167.js',
+  './resolver-music-recall-v174.js',
   './apple-playlist-import-v150.js',
   './stable-v150.js',
   './origin-playback-v151.js',

@@ -1,0 +1,63 @@
+name: Resolver music recall v1.7.4
+
+on:
+  pull_request:
+    paths:
+      - 'resolver-music-recall-v174.js'
+      - 'resolver-trust-v167.js'
+      - 'apple-music-import-v064.js'
+      - 'header-visualizer-v159.js'
+      - 'stable-v150.js'
+      - 'sw.js'
+      - 'tests/youtube-music-search-recall-v174.mjs'
+      - 'tests/youtube-music-resolver-v163.mjs'
+      - 'tests/resolver-final-trust-gate-v167.mjs'
+      - 'tests/stable-v150.mjs'
+      - 'openspec/changes/resolver-music-search-recall-v1.7.4/**'
+      - '.github/workflows/resolver-music-recall-v174.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'resolver-music-recall-v174.js'
+      - 'resolver-trust-v167.js'
+      - 'apple-music-import-v064.js'
+      - 'header-visualizer-v159.js'
+      - 'stable-v150.js'
+      - 'sw.js'
+      - 'tests/youtube-music-search-recall-v174.mjs'
+      - 'tests/youtube-music-resolver-v163.mjs'
+      - 'tests/resolver-final-trust-gate-v167.mjs'
+      - 'tests/stable-v150.mjs'
+      - 'openspec/changes/resolver-music-search-recall-v1.7.4/**'
+      - '.github/workflows/resolver-music-recall-v174.yml'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+      - name: Syntax check recall runtime
+        run: node --check resolver-music-recall-v174.js
+      - name: Syntax check runtime chain
+        run: |
+          node --check header-visualizer-v159.js
+          node --check stable-v150.js
+          node --check sw.js
+      - name: Install test runtime
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Music-search recall regression
+        run: node tests/youtube-music-search-recall-v174.mjs
+      - name: Existing music-only resolver regression
+        run: node tests/youtube-music-resolver-v163.mjs
+      - name: Final trust regression
+        run: node tests/resolver-final-trust-gate-v167.mjs
+      - name: Stable PWA regression
+        run: node tests/stable-v150.mjs
