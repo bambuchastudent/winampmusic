@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.0';
-const CACHE = 'winampmusic-shell-v170-playback-queue';
+const BUILD = 'ampmusic-v1.7.1';
+const CACHE = 'winampmusic-shell-v171-final-trust';
 const CORE = [
   './',
   './index.html',
@@ -20,6 +20,7 @@ const CORE = [
   './playback-prefetch-v165.js',
   './playback-queue-v170.js',
   './ad-indicator-v170.js',
+  './diagnostics-download-v171.js',
   './fast-actions-v143.js',
   './fast-background-v150.js',
   './unified-entry-v152.js',
