@@ -126,5 +126,6 @@ assert.equal(playButton.textContent, '▶');
 assert.equal(status.textContent, 'PAUSED');
 assert.equal(window.ampulaPlaybackNavigation178.isPendingPlaybackIntent(), false);
 
-dom.window.close();
+// Let MutationObserver microtasks drain before process exit; closing jsdom here races a queued render.
+await new Promise((resolve) => setTimeout(resolve, 0));
 console.log('latest playback intent v1.7.9: ok');
