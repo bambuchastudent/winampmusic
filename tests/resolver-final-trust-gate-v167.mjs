@@ -79,7 +79,6 @@ const wrongArtist = gate.validate({
 assert.equal(wrongArtist.ok, false);
 assert.match(wrongArtist.reason, /artist identity mismatch/);
 
-// The gate owns the public matcher property before the legacy matcher assigns its API.
 window.winampMusicAppleImport = {
   findYouTubeMatch: async () => productionFalsePositive,
 };
@@ -112,8 +111,10 @@ assert.ok(
 );
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
-assert.match(swSource, /winampmusic-shell-v168-resolver-trust/);
-assert.match(swSource, /ampmusic-v1\.6\.7/);
+assert.match(swSource, /winampmusic-shell-v170-playback-queue/);
+assert.match(swSource, /ampmusic-v1\.7\.0/);
+assert.match(swSource, /playback-queue-v170\.js/);
+assert.match(swSource, /ad-indicator-v170\.js/);
 
 console.log('resolver final trust gate v1.6.7: ok');
 dom.window.close();
