@@ -329,6 +329,11 @@
   async function findYouTubeMatch(metadata, signal) {
     const query = [metadata.artist, metadata.title].filter(Boolean).join(' ');
     if (!query) throw new Error('Apple metadata is incomplete');
+    const excludedIds = new Set(
+      (Array.isArray(metadata?.excludeYoutubeIds) ? metadata.excludeYoutubeIds : [])
+        .map(clean)
+        .filter((id) => ID_PATTERN.test(id))
+    );
 
     const [piped, invidious] = await Promise.all([
       Promise.allSettled(PIPED_APIS.map((base) => pipedCandidates(base, query, signal))),
@@ -356,6 +361,7 @@
     }
 
     const shortlist = [...unique.values()]
+      .filter((candidate) => !excludedIds.has(candidate.id))
       .map((candidate) => ({ ...candidate, preliminaryScore: scoreCandidate(candidate, metadata) }))
       .sort((a, b) => b.preliminaryScore - a.preliminaryScore)
       .slice(0, ENRICH_LIMIT);

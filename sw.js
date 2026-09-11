@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.1';
-const CACHE = 'winampmusic-shell-v171-final-trust';
+const BUILD = 'ampmusic-v1.7.3';
+const CACHE = 'winampmusic-shell-v173-playback-miss';
 const CORE = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ const CORE = [
   './spotify-origin-import-v162.js',
   './playback-prefetch-v165.js',
   './playback-queue-v170.js',
+  './playback-miss-v173.js',
   './ad-indicator-v170.js',
   './diagnostics-download-v171.js',
   './fast-actions-v143.js',

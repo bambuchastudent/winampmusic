@@ -16,10 +16,12 @@ const CURRENT = 'winampmusic.fast.current.v1';
 
 assert.match(queueSource, /youtubeMatchFinalTrustVersion/);
 assert.match(prefetchSource, /finalTrustVersion/);
-assert.match(headerSource, /diagnostics-download-v171\.js\?v=171/);
-assert.match(headerSource, /ad-indicator-v170\.js\?v=171/);
-assert.match(headerSource, /playback-queue-v170\.js\?v=171/);
-assert.match(swSource, /ampmusic-v1\.7\.1/);
+assert.match(headerSource, /diagnostics-download-v171\.js\?v=173/);
+assert.match(headerSource, /ad-indicator-v170\.js\?v=173/);
+assert.match(headerSource, /playback-queue-v170\.js\?v=173/);
+assert.match(headerSource, /playback-miss-v173\.js\?v=173/);
+assert.match(swSource, /ampmusic-v1\.7\.3/);
+assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /diagnostics-download-v171\.js/);
 
 // A legacy v1.6.4 marker alone must not make a canonical-origin row playable.

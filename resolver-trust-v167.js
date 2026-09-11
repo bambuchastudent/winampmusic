@@ -138,8 +138,14 @@
   function guardMatcher(original, api) {
     if (typeof original !== 'function' || original.__ampulaFinalTrust167) return original;
     const guarded = async function guardedFindYouTubeMatch(metadata, signal) {
-      const candidate = await original.call(api || this, metadata, signal);
-      const verdict = validate(candidate, metadata);
+      let effectiveMetadata = metadata;
+      try {
+        if (typeof window.ampulaPlaybackMiss173?.metadataWithRejected === 'function') {
+          effectiveMetadata = window.ampulaPlaybackMiss173.metadataWithRejected(metadata);
+        }
+      } catch {}
+      const candidate = await original.call(api || this, effectiveMetadata, signal);
+      const verdict = validate(candidate, effectiveMetadata);
       if (!verdict.ok) throw new Error(`Final trust gate rejected: ${verdict.reason}`);
       return {
         ...candidate,

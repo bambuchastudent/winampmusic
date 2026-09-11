@@ -7,11 +7,13 @@ const adSource = readFileSync(new URL('../ad-indicator-v170.js', import.meta.url
 const header = readFileSync(new URL('../header-visualizer-v159.js', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
-assert.match(header, /ad-indicator-v170\.js\?v=171/);
-assert.match(header, /playback-queue-v170\.js\?v=171/);
+assert.match(header, /ad-indicator-v170\.js\?v=173/);
+assert.match(header, /playback-queue-v170\.js\?v=173/);
+assert.match(header, /playback-miss-v173\.js\?v=173/);
 assert.ok(header.indexOf("script.addEventListener('load', loadPlaybackQueue") >= 0, 'rolling queue must load after prefetch');
-assert.match(sw, /ampmusic-v1\.7\.1/);
+assert.match(sw, /ampmusic-v1\.7\.3/);
 assert.match(sw, /playback-queue-v170\.js/);
+assert.match(sw, /playback-miss-v173\.js/);
 assert.match(sw, /ad-indicator-v170\.js/);
 assert.match(sw, /diagnostics-download-v171\.js/);
 

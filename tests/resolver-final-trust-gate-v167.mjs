@@ -30,6 +30,9 @@ window.localStorage.setItem(LIBRARY_KEY, JSON.stringify([
   { id: 'abcdefghijk', title: 'Local', artist: 'Local Artist' },
 ]));
 
+window.ampulaPlaybackMiss173 = {
+  metadataWithRejected: (metadata) => ({ ...metadata, excludeYoutubeIds: ['vuJwrcKQ7Sg'] }),
+};
 window.eval(trustSource);
 const gate = window.ampulaResolverTrust167;
 assert.ok(gate, 'shared final trust gate must install');
@@ -79,13 +82,18 @@ const wrongArtist = gate.validate({
 assert.equal(wrongArtist.ok, false);
 assert.match(wrongArtist.reason, /artist identity mismatch/);
 
+let guardedMetadata = null;
 window.winampMusicAppleImport = {
-  findYouTubeMatch: async () => productionFalsePositive,
+  findYouTubeMatch: async (metadata) => {
+    guardedMetadata = metadata;
+    return productionFalsePositive;
+  },
 };
 await assert.rejects(
   () => window.winampMusicAppleImport.findYouTubeMatch({ title: 'The News', artist: 'Madigan', durationMs: 279000 }),
   /Final trust gate rejected: (?:duration delta 17s > 15s|title identity mismatch)/,
 );
+assert.deepEqual(guardedMetadata.excludeYoutubeIds, ['vuJwrcKQ7Sg'], 'final trust guard must forward locally rejected IDs to the matcher');
 
 window.winampMusicAppleImport = {
   findYouTubeMatch: async () => correctCandidate,
@@ -102,19 +110,22 @@ for (const [name, source] of [
   assert.match(source, /findYouTubeMatch/, `${name} must consume the guarded public matcher API`);
 }
 
-assert.match(headerSource, /resolver-trust-v167\.js\?v=171/);
-assert.match(headerSource, /track-diagnostics-v164\.js\?v=171/);
-assert.match(headerSource, /diagnostics-download-v171\.js\?v=171/);
-assert.match(headerSource, /playback-prefetch-v165\.js\?v=171/);
+assert.match(headerSource, /apple-music-import-v064\.js\?v=173/);
+assert.match(headerSource, /playback-miss-v173\.js\?v=173/);
+assert.match(headerSource, /resolver-trust-v167\.js\?v=173/);
+assert.match(headerSource, /track-diagnostics-v164\.js\?v=173/);
+assert.match(headerSource, /diagnostics-download-v171\.js\?v=173/);
+assert.match(headerSource, /playback-prefetch-v165\.js\?v=173/);
 assert.ok(
-  headerSource.indexOf('loadResolverTrust();') < headerSource.indexOf("const spectrum"),
-  'trust loader must start before optional header behavior',
+  headerSource.indexOf('loadMatcherCore();') < headerSource.indexOf("const spectrum"),
+  'fresh matcher/MISS/trust loader chain must start before optional header behavior',
 );
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
-assert.match(swSource, /winampmusic-shell-v171-final-trust/);
-assert.match(swSource, /ampmusic-v1\.7\.1/);
+assert.match(swSource, /winampmusic-shell-v173-playback-miss/);
+assert.match(swSource, /ampmusic-v1\.7\.3/);
 assert.match(swSource, /playback-queue-v170\.js/);
+assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /ad-indicator-v170\.js/);
 assert.match(swSource, /diagnostics-download-v171\.js/);
 

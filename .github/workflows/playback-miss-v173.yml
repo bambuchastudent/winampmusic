@@ -1,0 +1,50 @@
+name: Playback MISS v1.7.3
+
+on:
+  pull_request:
+    paths:
+      - 'playback-miss-v173.js'
+      - 'apple-music-import-v064.js'
+      - 'resolver-trust-v167.js'
+      - 'header-visualizer-v159.js'
+      - 'sw.js'
+      - 'tests/playback-miss-v173.mjs'
+      - 'openspec/changes/manual-playback-miss-v1.7.3/**'
+      - '.github/workflows/playback-miss-v173.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'playback-miss-v173.js'
+      - 'apple-music-import-v064.js'
+      - 'resolver-trust-v167.js'
+      - 'header-visualizer-v159.js'
+      - 'sw.js'
+      - 'tests/playback-miss-v173.mjs'
+      - 'openspec/changes/manual-playback-miss-v1.7.3/**'
+      - '.github/workflows/playback-miss-v173.yml'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+      - name: Syntax check MISS runtime
+        run: node --check playback-miss-v173.js
+      - name: Syntax check matcher
+        run: node --check apple-music-import-v064.js
+      - name: Install test runtime
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Manual playback miss regression
+        run: node tests/playback-miss-v173.mjs
+      - name: Final trust regression
+        run: node tests/resolver-final-trust-gate-v167.mjs
+      - name: Playback safety regression
+        run: node tests/playback-safety-v171.mjs
