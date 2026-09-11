@@ -8,20 +8,12 @@ const recallSource = readFileSync(new URL('../resolver-music-recall-v174.js', im
 const headerSource = readFileSync(new URL('../header-visualizer-v159.js', import.meta.url), 'utf8');
 const swSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
-assert.match(headerSource, /apple-music-import-v064\.js\?v=174/);
-assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/);
-assert.match(
-  headerSource,
-  /function loadResolverMusicRecall[\s\S]*?resolver-music-recall-v174\.js\?v=174[\s\S]*?loadTrackDiagnostics/,
-  'music recall must hand off to diagnostics after it loads',
-);
-assert.match(
-  headerSource,
-  /function loadResolverTrust[\s\S]*?loadResolverMusicRecall/,
-  'final trust must load music recall before diagnostics',
-);
-assert.match(swSource, /ampmusic-v1\.7\.4/);
-assert.match(swSource, /resolver-music-recall-v174\.js/);
+assert.match(headerSource, /apple-music-import-v064\.js\?v=175/);
+assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/);
+assert.match(swSource, /ampmusic-v1\.7\.5/);
+assert.match(recallSource, /TRACK_SEARCH_BUDGET_MS\s*=\s*120000/);
+assert.match(recallSource, /REQUEST_TIMEOUT_MS\s*=\s*12000/);
+assert.match(recallSource, /\/nextpage\/search/);
 
 function response(payload, status = 200) {
   return {
@@ -40,47 +32,55 @@ const dom = new JSDOM(`<!doctype html><html><head></head><body>
 });
 
 const { window } = dom;
-const filters = [];
+const requests = [];
 window.console = console;
 window.fetch = async (input) => {
   const url = new URL(String(input));
+  requests.push(`${url.pathname}?${url.searchParams.toString()}`);
+
   if (url.pathname === '/search') {
     const filter = url.searchParams.get('filter');
-    filters.push(filter);
-    const rows = filter === 'music_songs'
-      ? [{
-          type: 'stream',
-          url: 'https://www.youtube.com/watch?v=s1b8Q5avQZs',
-          title: 'Madigan - The News',
-          uploaderName: 'Madigan - Topic',
-          duration: 279,
-          thumbnail: '',
-        }]
-      : [{
+    if (filter === 'music_songs') {
+      return response({
+        items: [{
           type: 'stream',
           url: 'https://www.youtube.com/watch?v=vuJwrcKQ7Sg',
           title: 'News in the Past: Kathleen Madigan',
           uploaderName: 'Laugh Society - Ladies First',
           duration: 262,
           thumbnail: '',
-        }];
-    return response({ items: rows });
-  }
-  if (url.pathname === '/api/v1/search') return response([]);
-  const match = url.pathname.match(/^\/api\/v1\/videos\/([A-Za-z0-9_-]{11})$/);
-  if (match?.[1] === 's1b8Q5avQZs') {
+        }],
+        nextpage: 'page-two-token',
+      });
+    }
     return response({
-      videoId: match[1],
-      title: 'Madigan - The News',
-      author: 'Madigan - Topic',
-      genre: 'Music',
-      description: 'Provided to YouTube by the rights holder',
-      keywords: ['music', 'Madigan', 'The News'],
-      lengthSeconds: 279,
-      liveNow: false,
-      musicTracks: [{ song: 'The News', artist: 'Madigan' }],
+      items: [{
+        type: 'stream',
+        url: 'https://www.youtube.com/watch?v=vuJwrcKQ7Sg',
+        title: 'News in the Past: Kathleen Madigan',
+        uploaderName: 'Laugh Society - Ladies First',
+        duration: 262,
+        thumbnail: '',
+      }],
+      nextpage: null,
     });
   }
+
+  if (url.pathname === '/nextpage/search' && url.searchParams.get('nextpage') === 'page-two-token') {
+    return response({
+      items: [{
+        type: 'stream',
+        url: 'https://www.youtube.com/watch?v=s1b8Q5avQZs',
+        title: 'Madigan - The News',
+        uploaderName: 'Madigan - Topic',
+        duration: 279,
+        thumbnail: '',
+      }],
+      nextpage: null,
+    });
+  }
+
+  if (url.pathname === '/api/v1/search') return response([]);
   return response({ error: 'not found' }, 404);
 };
 
@@ -94,10 +94,11 @@ const candidate = await window.winampMusicAppleImport.findYouTubeMatch(
   new window.AbortController().signal,
 );
 
-assert.equal(candidate.id, 's1b8Q5avQZs', 'YouTube Music song search must recover the exact music recording');
-assert.equal(candidate.finalTrustVersion, 'music-only-v1.6.7', 'fallback must pass the same final trust boundary');
-assert.ok(filters.includes('videos'), 'ordinary video search remains part of discovery');
-assert.ok(filters.includes('music_songs'), 'resolver must also query the YouTube Music songs surface');
+assert.equal(candidate.id, 's1b8Q5avQZs', 'later search pages must recover the exact Madigan recording');
+assert.equal(candidate.finalTrustVersion, 'music-only-v1.6.7', 'deeper recall must still pass final trust');
+assert.ok(requests.some((value) => value.startsWith('/search?') && value.includes('filter=music_songs')), 'YouTube Music songs search must run');
+assert.ok(requests.some((value) => value.startsWith('/nextpage/search?') && value.includes('page-two-token')), 'resolver must follow Piped search pagination');
+assert.ok(requests.some((value) => value.startsWith('/search?') && value.includes('filter=videos')), 'generic video discovery remains available');
 
 dom.window.close();
-console.log('YouTube music search recall v1.7.4: OK');
+console.log('deep YouTube music recall v1.7.5: OK');
