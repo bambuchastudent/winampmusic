@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.8';
-const CACHE = 'winampmusic-shell-v178-deterministic-navigation';
+const BUILD = 'ampmusic-v1.7.9';
+const CACHE = 'winampmusic-shell-v179-latest-intent';
 const CORE = [
   './',
   './index.html',
