@@ -30,7 +30,7 @@
   async function registerPwa() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      await navigator.serviceWorker.register('./sw.js?v=175', { updateViaCache: 'none' });
+      await navigator.serviceWorker.register('./sw.js?v=176', { updateViaCache: 'none' });
     } catch (error) {
       console.warn('[AmpMusic] PWA registration failed', error);
     }
@@ -118,5 +118,5 @@
   setTimeout(registerPwa, 3200);
 
   loadOriginPlaybackBridge();
-  console.info('[AmpMusic] stable 1.7.5 bridge ready');
+  console.info('[AmpMusic] stable 1.7.6 bridge ready');
 })();
