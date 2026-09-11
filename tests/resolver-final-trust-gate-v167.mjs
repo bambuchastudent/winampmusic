@@ -117,6 +117,7 @@ assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/);
 assert.match(headerSource, /track-diagnostics-v164\.js\?v=175/);
 assert.match(headerSource, /diagnostics-download-v171\.js\?v=175/);
 assert.match(headerSource, /playback-prefetch-v165\.js\?v=175/);
+assert.match(headerSource, /playback-queue-v170\.js\?v=176/);
 assert.ok(
   headerSource.indexOf('loadMatcherCore();') < headerSource.indexOf("const spectrum"),
   'fresh matcher/MISS/trust/recall loader chain must start before optional header behavior',
@@ -125,12 +126,12 @@ assert.match(headerSource, /script\.addEventListener\('load', loadResolverMusicR
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
-assert.match(swSource, /winampmusic-shell-v175-full-library-resolution/);
-assert.match(swSource, /ampmusic-v1\.7\.5/);
+assert.match(swSource, /winampmusic-shell-v176-skip-unresolved-release-lifecycle/);
+assert.match(swSource, /ampmusic-v1\.7\.6/);
 assert.match(swSource, /playback-queue-v170\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /ad-indicator-v170\.js/);
 assert.match(swSource, /diagnostics-download-v171\.js/);
 
-console.log('resolver final trust gate v1.6.7 + full-library runtime v1.7.5: ok');
+console.log('resolver final trust gate v1.6.7 + queue runtime v1.7.6: ok');
 dom.window.close();
