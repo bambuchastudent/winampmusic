@@ -87,7 +87,7 @@ const result = await api.importPlaylist(`https://open.spotify.com/playlist/${PLA
 
 assert.equal(result.handled, true);
 assert.ok(!result.error, 'fallback should recover a failed primary request');
-const library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+let library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
 assert.equal(library.length, 51, 'fallback must paginate beyond the first 50 Spotify items');
 assert.equal(library[0].title, 'Fallback Track 1');
 assert.equal(library[0].artist, 'Artist 1');
@@ -96,10 +96,21 @@ assert.equal(library[50].spotifyTrackId, 'spotify-track-51');
 assert.equal(library[0].spotifyPlaylistId, PLAYLIST_ID);
 assert.equal(library[0].spotifyPlaylistTitle, 'Fallback Playlist');
 assert.equal(library[0].spotifyPlaylistOwner, 'Fallback Owner');
-assert.equal(matcherCalls, 0, 'metadata fallback must not resolve YouTube during import');
 assert.ok(states.some((state) => state.phase === 'retrying' && state.message === 'Spotify metadata retry…'));
 assert.ok(calls.some((call) => call.url === 'https://spotify.xwolf.space/api/token'));
 assert.equal(calls.filter((call) => call.url.includes('/tracks?')).length, 2, 'fallback must request the second page');
 
-console.log('Spotify playlist metadata fallback v1.7.2: ok');
+const resolution = await result.resolution;
+assert.equal(resolution.matched, 0, 'unmatched rows stay unresolved instead of accepting weak playback');
+assert.equal(resolution.total, 51);
+assert.equal(resolution.strategy, 'background-all+on-demand');
+assert.equal(matcherCalls, 51, 'background resolver must attempt every unresolved imported track');
+library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+assert.equal(library.length, 51);
+assert.match(library[0].id, /^U-/, 'failed playback resolution preserves the unresolved recording id');
+assert.equal(library[0].title, 'Fallback Track 1');
+assert.equal(library[0].artist, 'Artist 1');
+assert.equal(library[0].youtubeMatchId, undefined);
+
+console.log('Spotify playlist metadata fallback + full-library resolution v1.7.5: ok');
 dom.window.close();
