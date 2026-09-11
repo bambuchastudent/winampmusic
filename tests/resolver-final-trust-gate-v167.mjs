@@ -126,13 +126,13 @@ assert.match(headerSource, /script\.addEventListener\('load', loadResolverMusicR
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
-assert.match(swSource, /winampmusic-shell-v178-deterministic-navigation/);
-assert.match(swSource, /ampmusic-v1\.7\.8/);
+assert.match(swSource, /winampmusic-shell-v179-latest-intent/);
+assert.match(swSource, /ampmusic-v1\.7\.9/);
 assert.match(swSource, /playback-navigation-v178\.js/);
 assert.match(swSource, /playback-queue-v170\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /ad-indicator-v170\.js/);
 assert.match(swSource, /diagnostics-download-v171\.js/);
 
-console.log('resolver final trust gate v1.6.7 + queue runtime v1.7.8: ok');
+console.log('resolver final trust gate v1.6.7 + queue runtime v1.7.9: ok');
 dom.window.close();
