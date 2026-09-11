@@ -3,7 +3,7 @@
   if (window.__AMPULA_PLAYBACK_QUEUE_170__) return;
   window.__AMPULA_PLAYBACK_QUEUE_170__ = true;
 
-  const VERSION = '1.7.8';
+  const VERSION = '1.7.9';
   const MODE = 'full-library';
   const LIBRARY_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
@@ -16,6 +16,7 @@
   const POLL_MS = 250;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
   const inflight = new Map();
+  let navigationGeneration = 0;
 
   function readLibrary() {
     try {
@@ -150,24 +151,31 @@
     return -1;
   }
 
+  function isCurrentGeneration(generation) {
+    return !Number.isInteger(generation) || generation === navigationGeneration;
+  }
+
   async function playNextAvailable(startIndex, originalPlayIndex, options = {}) {
     const initial = readLibrary();
     if (!initial.length) return false;
     const safeIndex = ((Number(startIndex) % initial.length) + initial.length) % initial.length;
     const excludedIndex = Number.isInteger(options.excludedIndex) ? options.excludedIndex : -1;
     const direction = options.direction < 0 ? -1 : 1;
+    const generation = Number.isInteger(options.generation) ? options.generation : null;
     const attempted = new Set();
     startFullResolution(safeIndex);
     const status = document.getElementById('status');
-    if (status) status.textContent = direction < 0 ? 'SKIPPING UNRESOLVED · FINDING PREVIOUS…' : 'SKIPPING UNRESOLVED · FINDING NEXT…';
+    if (status && isCurrentGeneration(generation)) status.textContent = direction < 0 ? 'SKIPPING UNRESOLVED · FINDING PREVIOUS…' : 'SKIPPING UNRESOLVED · FINDING NEXT…';
     const deadline = Date.now() + QUEUE_WAIT_MS;
 
     while (true) {
+      if (!isCurrentGeneration(generation)) return false;
       const rows = readLibrary();
       if (!rows.length) return false;
       const targetIndex = nextReadyIndex(rows, safeIndex, attempted, excludedIndex, direction);
       if (targetIndex >= 0) {
         attempted.add(targetIndex);
+        if (!isCurrentGeneration(generation)) return false;
         const result = await originalPlayIndex(targetIndex);
         if (result !== false) {
           startFullResolution(targetIndex);
@@ -180,7 +188,7 @@
       await new Promise((resolve) => setTimeout(resolve, POLL_MS));
     }
 
-    if (status) status.textContent = 'NO PLAYABLE TRACK YET · RESOLUTION CONTINUES';
+    if (status && isCurrentGeneration(generation)) status.textContent = 'NO PLAYABLE TRACK YET · RESOLUTION CONTINUES';
     return false;
   }
 
@@ -194,24 +202,25 @@
 
   function isForwardContinuation(intent, requestedIndex, previousIndex, length) {
     if (previousIndex < 0 || !length) return false;
-    if (intent?.type === 'track' || intent?.type === 'previous' || intent?.type === 'play') return false;
+    if (intent?.type === 'track' || intent?.type === 'previous' || intent?.type === 'play' || intent?.type === 'pause') return false;
     const nextIndex = (previousIndex + 1) % length;
     return requestedIndex === nextIndex && (!intent || intent.type === 'next');
   }
 
-  async function playExplicitSelection(index, track, originalPlayIndex) {
+  async function playExplicitSelection(index, track, originalPlayIndex, generation) {
     const status = document.getElementById('status');
-    if (status) status.textContent = 'SELECTED TRACK UNRESOLVED · RESOLVING…';
+    if (status && isCurrentGeneration(generation)) status.textContent = 'SELECTED TRACK UNRESOLVED · RESOLVING…';
     const resolved = await resolveAndCache(index, track);
+    if (!isCurrentGeneration(generation)) return false;
     const rows = readLibrary();
     const selected = rows[index] || resolved;
     if (isReady(selected)) {
       const result = await originalPlayIndex(index);
-      startFullResolution(index);
+      if (isCurrentGeneration(generation)) startFullResolution(index);
       return result;
     }
     startFullResolution(index);
-    if (status) status.textContent = 'SELECTED TRACK UNRESOLVED · RESOLUTION CONTINUES';
+    if (status && isCurrentGeneration(generation)) status.textContent = 'SELECTED TRACK UNRESOLVED · RESOLUTION CONTINUES';
     return false;
   }
 
@@ -219,6 +228,7 @@
     const current = window.playIndex;
     if (typeof current !== 'function' || current.__ampulaPlaybackQueue170) return false;
     const wrapped = async (index) => {
+      const generation = ++navigationGeneration;
       const rows = readLibrary();
       if (!rows.length) return current(index);
       const requestedIndex = ((Number(index) % rows.length) + rows.length) % rows.length;
@@ -239,12 +249,13 @@
       const track = rows[safeIndex];
 
       if (!isReady(track)) {
-        if (explicitSelection) return playExplicitSelection(safeIndex, track, current);
+        if (explicitSelection) return playExplicitSelection(safeIndex, track, current, generation);
         void startResolveAndCache(safeIndex, track);
-        return playNextAvailable(safeIndex, current, { excludedIndex, direction });
+        return playNextAvailable(safeIndex, current, { excludedIndex, direction, generation });
       }
+      if (!isCurrentGeneration(generation)) return false;
       const result = await current(safeIndex);
-      startFullResolution(safeIndex);
+      if (isCurrentGeneration(generation)) startFullResolution(safeIndex);
       return result;
     };
     Object.defineProperty(wrapped, '__ampulaPlaybackQueue170', { value: true });
@@ -269,5 +280,5 @@
     playNextAvailable,
     installQueueBridge,
   };
-  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · exact manual selection · unresolved continuation skip · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
+  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · latest intent wins · exact manual selection · unresolved continuation skip · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
 })();
