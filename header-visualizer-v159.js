@@ -64,18 +64,33 @@
     document.head.appendChild(script);
   }
 
+  function loadResolverMusicRecall() {
+    const existing = document.querySelector('script[data-ampula-resolver-music-recall-174]');
+    if (existing) {
+      if (window.__AMPULA_RESOLVER_MUSIC_RECALL_174__) loadTrackDiagnostics();
+      else existing.addEventListener('load', loadTrackDiagnostics, { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = './resolver-music-recall-v174.js?v=174';
+    script.async = true;
+    script.setAttribute('data-ampula-resolver-music-recall-174', '1');
+    script.addEventListener('load', loadTrackDiagnostics, { once: true });
+    document.head.appendChild(script);
+  }
+
   function loadResolverTrust() {
     const existing = document.querySelector('script[data-ampula-resolver-trust-167]');
     if (existing) {
-      if (window.__AMPULA_RESOLVER_TRUST_167__) loadTrackDiagnostics();
-      else existing.addEventListener('load', loadTrackDiagnostics, { once: true });
+      if (window.__AMPULA_RESOLVER_TRUST_167__) loadResolverMusicRecall();
+      else existing.addEventListener('load', loadResolverMusicRecall, { once: true });
       return;
     }
     const script = document.createElement('script');
     script.src = './resolver-trust-v167.js?v=173';
     script.async = true;
     script.setAttribute('data-ampula-resolver-trust-167', '1');
-    script.addEventListener('load', loadTrackDiagnostics, { once: true });
+    script.addEventListener('load', loadResolverMusicRecall, { once: true });
     document.head.appendChild(script);
   }
 
@@ -99,7 +114,7 @@
       loadPlaybackMiss();
       return;
     }
-    const existing = document.querySelector('script[data-ampula-matcher-v173],script[src*="apple-music-import-v064.js"]');
+    const existing = document.querySelector('script[data-ampula-matcher-v174],script[src*="apple-music-import-v064.js"]');
     if (existing) {
       existing.addEventListener('load', loadPlaybackMiss, { once: true });
       setTimeout(() => {
@@ -108,9 +123,9 @@
       return;
     }
     const script = document.createElement('script');
-    script.src = './apple-music-import-v064.js?v=173';
+    script.src = './apple-music-import-v064.js?v=174';
     script.async = true;
-    script.setAttribute('data-ampula-matcher-v173', '1');
+    script.setAttribute('data-ampula-matcher-v174', '1');
     script.addEventListener('load', loadPlaybackMiss, { once: true });
     document.head.appendChild(script);
   }
@@ -131,6 +146,6 @@
 
   const observer = new MutationObserver(sync);
   if (playButton) observer.observe(playButton, { childList: true, subtree: true });
-  if (status) observer.observe(status, { childList: true, subtree: true });
+  if (status) observer.observe(status, { childList: true, characterData: true, subtree: true });
   sync();
 })();
