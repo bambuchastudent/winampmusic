@@ -3,7 +3,7 @@
   if (window.__AMPULA_PLAYBACK_QUEUE_170__) return;
   window.__AMPULA_PLAYBACK_QUEUE_170__ = true;
 
-  const VERSION = '1.7.9';
+  const VERSION = '1.7.10';
   const MODE = 'full-library';
   const LIBRARY_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
@@ -13,6 +13,7 @@
   const PLAYABLE_AHEAD = Number.POSITIVE_INFINITY;
   const SCAN_LIMIT = Number.POSITIVE_INFINITY;
   const QUEUE_WAIT_MS = 120000;
+  const FOREGROUND_RESOLVE_GRACE_MS = 1500;
   const POLL_MS = 250;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
   const inflight = new Map();
@@ -151,8 +152,35 @@
     return -1;
   }
 
+  function orderedCandidateIndices(length, startIndex, excludedIndex = -1, direction = 1) {
+    if (!length) return [];
+    const safeIndex = ((Number(startIndex) % length) + length) % length;
+    const step = direction < 0 ? -1 : 1;
+    const indices = [];
+    for (let offset = 0; offset < length; offset += 1) {
+      const index = (safeIndex + (step * offset) + (length * 2)) % length;
+      if (index !== excludedIndex) indices.push(index);
+    }
+    return indices;
+  }
+
   function isCurrentGeneration(generation) {
     return !Number.isInteger(generation) || generation === navigationGeneration;
+  }
+
+  async function resolveWithinForegroundGrace(index, track, generation) {
+    if (!isCurrentGeneration(generation)) return null;
+    let timer = null;
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(() => resolve(null), FOREGROUND_RESOLVE_GRACE_MS);
+    });
+    const job = Promise.resolve(startResolveAndCache(index, track)).catch(() => null);
+    try {
+      const resolved = await Promise.race([job, timeout]);
+      return isCurrentGeneration(generation) ? resolved : null;
+    } finally {
+      if (timer !== null) clearTimeout(timer);
+    }
   }
 
   async function playNextAvailable(startIndex, originalPlayIndex, options = {}) {
@@ -162,29 +190,52 @@
     const excludedIndex = Number.isInteger(options.excludedIndex) ? options.excludedIndex : -1;
     const direction = options.direction < 0 ? -1 : 1;
     const generation = Number.isInteger(options.generation) ? options.generation : null;
-    const attempted = new Set();
+    const failedPlayback = new Set();
+    const candidates = orderedCandidateIndices(initial.length, safeIndex, excludedIndex, direction);
     startFullResolution(safeIndex);
     const status = document.getElementById('status');
     if (status && isCurrentGeneration(generation)) status.textContent = direction < 0 ? 'SKIPPING UNRESOLVED · FINDING PREVIOUS…' : 'SKIPPING UNRESOLVED · FINDING NEXT…';
     const deadline = Date.now() + QUEUE_WAIT_MS;
 
-    while (true) {
-      if (!isCurrentGeneration(generation)) return false;
+    const tryPlayReady = async (targetIndex) => {
+      if (!isCurrentGeneration(generation) || failedPlayback.has(targetIndex)) return null;
       const rows = readLibrary();
-      if (!rows.length) return false;
-      const targetIndex = nextReadyIndex(rows, safeIndex, attempted, excludedIndex, direction);
-      if (targetIndex >= 0) {
-        attempted.add(targetIndex);
-        if (!isCurrentGeneration(generation)) return false;
-        const result = await originalPlayIndex(targetIndex);
-        if (result !== false) {
-          startFullResolution(targetIndex);
-          return result;
-        }
-        continue;
+      if (!isReady(rows[targetIndex])) return null;
+      const result = await originalPlayIndex(targetIndex);
+      if (!isCurrentGeneration(generation)) return { done: true, result: false };
+      if (result !== false) {
+        startFullResolution(targetIndex);
+        return { done: true, result };
       }
+      failedPlayback.add(targetIndex);
+      return null;
+    };
 
-      if (Date.now() >= deadline) break;
+    for (const targetIndex of candidates) {
+      if (!isCurrentGeneration(generation)) return false;
+      let played = await tryPlayReady(targetIndex);
+      if (played?.done) return played.result;
+
+      const rows = readLibrary();
+      const candidate = rows[targetIndex];
+      if (!candidate || failedPlayback.has(targetIndex) || isReady(candidate)) continue;
+      if (status && isCurrentGeneration(generation)) {
+        status.textContent = direction < 0
+          ? `SKIPPING UNRESOLVED · TRYING ${targetIndex + 1}…`
+          : `SKIPPING UNRESOLVED · TRYING ${targetIndex + 1}…`;
+      }
+      await resolveWithinForegroundGrace(targetIndex, candidate, generation);
+      if (!isCurrentGeneration(generation)) return false;
+      played = await tryPlayReady(targetIndex);
+      if (played?.done) return played.result;
+    }
+
+    while (Date.now() < deadline) {
+      if (!isCurrentGeneration(generation)) return false;
+      for (const targetIndex of candidates) {
+        const played = await tryPlayReady(targetIndex);
+        if (played?.done) return played.result;
+      }
       await new Promise((resolve) => setTimeout(resolve, POLL_MS));
     }
 
@@ -250,7 +301,7 @@
 
       if (!isReady(track)) {
         if (explicitSelection) return playExplicitSelection(safeIndex, track, current, generation);
-        void startResolveAndCache(safeIndex, track);
+        void startResolveAndCache(safeIndex, track).catch(() => {});
         return playNextAvailable(safeIndex, current, { excludedIndex, direction, generation });
       }
       if (!isCurrentGeneration(generation)) return false;
@@ -273,6 +324,7 @@
     playableAhead: PLAYABLE_AHEAD,
     scanLimit: SCAN_LIMIT,
     queueWaitMs: QUEUE_WAIT_MS,
+    foregroundResolveGraceMs: FOREGROUND_RESOLVE_GRACE_MS,
     finalTrustVersion: FINAL_TRUST_VERSION,
     isReady,
     resolveAndCache,
@@ -280,5 +332,5 @@
     playNextAvailable,
     installQueueBridge,
   };
-  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · latest intent wins · exact manual selection · unresolved continuation skip · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
+  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · latest intent wins · exact manual selection · ${FOREGROUND_RESOLVE_GRACE_MS}ms foreground unresolved skip · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
 })();
