@@ -1,0 +1,48 @@
+name: Rolling playback queue v1.7.0
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'playback-queue-v170.js'
+      - 'ad-indicator-v170.js'
+      - 'playback-prefetch-v165.js'
+      - 'track-diagnostics-v164.js'
+      - 'header-visualizer-v159.js'
+      - 'sw.js'
+      - 'tests/playback-queue-ad-v170.mjs'
+      - 'tests/playback-prefetch-v165.mjs'
+      - 'tests/stable-v150.mjs'
+      - 'openspec/changes/rolling-playback-queue-v1.7.0/**'
+      - '.github/workflows/playback-queue-v170.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  queue-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+      - name: Syntax check
+        run: |
+          node --check playback-queue-v170.js
+          node --check ad-indicator-v170.js
+          node --check header-visualizer-v159.js
+          node --check tests/playback-queue-ad-v170.mjs
+      - name: Install test runtime
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Rolling queue and ad indicator regression
+        run: node tests/playback-queue-ad-v170.mjs
+      - name: Existing two-track prefetch regression
+        run: node tests/playback-prefetch-v165.mjs
+      - name: Stable PWA regression
+        run: node tests/stable-v150.mjs
