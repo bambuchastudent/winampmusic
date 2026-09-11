@@ -19,6 +19,7 @@ on:
       - 'openspec/changes/spotify-origin-youtube-fallback-v1.6.2/**'
       - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
       - 'openspec/changes/spotify-import-fallback-v1.7.2/**'
+      - 'openspec/changes/full-library-background-resolution-v1.7.5/**'
       - '.github/workflows/unified-music-entry.yml'
   push:
     branches: [develop]
@@ -39,6 +40,7 @@ on:
       - 'openspec/changes/spotify-origin-youtube-fallback-v1.6.2/**'
       - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
       - 'openspec/changes/spotify-import-fallback-v1.7.2/**'
+      - 'openspec/changes/full-library-background-resolution-v1.7.5/**'
       - '.github/workflows/unified-music-entry.yml'
 
 permissions:
@@ -76,10 +78,12 @@ jobs:
             tests/spotify-origin-import-v162.mjs \
             tests/spotify-import-fallback-v172.mjs \
             tests/spotify-origin-playback-v162.mjs
-      - name: Check metadata-only Spotify wiring
+      - name: Check full-library Spotify wiring
         run: |
           grep -q "'./spotify-origin-import-v162.js'" sw.js
-          grep -q 'spotify-origin-import-v162.js?v=162' stable-v150.js
+          grep -q 'spotify-origin-import-v162.js?v=175' stable-v150.js
+          grep -q "strategy: 'background-all+on-demand'" spotify-origin-import-v162.js
+          grep -q 'RESOLVE_TIMEOUT_MS = 120000' spotify-origin-import-v162.js
           grep -q 'spotify.xwolf.space/api/playlist/' spotify-origin-import-v162.js
           grep -q 'spotify.xwolf.space/api/token' spotify-origin-import-v162.js
           grep -q 'api.spotify.com/v1' spotify-origin-import-v162.js
