@@ -160,6 +160,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REVISION: ${{ needs.deploy.outputs.revision }}
+          PAGES_URL: https://bambuchastudent.github.io/winampmusic/
         run: |
           set -euo pipefail
           test -n "$REVISION"
@@ -179,24 +180,17 @@ jobs:
             --jq '.[0].number // empty')"
 
           if [ -n "$pr_number" ]; then
-            gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json number,title,body,url > release-pr.json
-            jq -r '"## Published\n\n### [#\(.number) — \(.title)](\(.url))\n\n" + ((.body // "") | if length > 0 then . else "_No PR description supplied._" end)' release-pr.json > release-notes.md
+            gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json number,title,body,url,headRefName > release-pr.json
           else
-            {
-              echo '## Published'
-              echo
-              git log -1 --pretty='%B'
-            } > release-notes.md
+            title="$(git log -1 --pretty='%s')"
+            body="$(git log -1 --pretty='%b')"
+            jq -n \
+              --arg title "$title" \
+              --arg body "$body" \
+              '{number:null,title:$title,body:$body,url:"",headRefName:""}' > release-pr.json
           fi
 
-          cat >> release-notes.md <<EOF
-
-          ## Deployment
-
-          - Revision: \`$REVISION\`
-          - Commit: \`$GITHUB_SHA\`
-          - Pages: https://bambuchastudent.github.io/winampmusic/
-          EOF
+          node scripts/build-release-notes.mjs release-pr.json release-notes.md
 
           gh release create "$REVISION" \
             --repo "$GITHUB_REPOSITORY" \
