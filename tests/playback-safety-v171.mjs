@@ -16,12 +16,13 @@ const CURRENT = 'winampmusic.fast.current.v1';
 
 assert.match(queueSource, /youtubeMatchFinalTrustVersion/);
 assert.match(prefetchSource, /finalTrustVersion/);
-assert.match(headerSource, /diagnostics-download-v171\.js\?v=173/);
-assert.match(headerSource, /ad-indicator-v170\.js\?v=173/);
-assert.match(headerSource, /playback-queue-v170\.js\?v=173/);
-assert.match(headerSource, /playback-miss-v173\.js\?v=173/);
-assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/);
-assert.match(swSource, /ampmusic-v1\.7\.4/);
+assert.match(prefetchSource, /RESOLVE_TIMEOUT_MS = 120000/);
+assert.match(headerSource, /diagnostics-download-v171\.js\?v=175/);
+assert.match(headerSource, /ad-indicator-v170\.js\?v=175/);
+assert.match(headerSource, /playback-queue-v170\.js\?v=175/);
+assert.match(headerSource, /playback-miss-v173\.js\?v=175/);
+assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/);
+assert.match(swSource, /ampmusic-v1\.7\.5/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /diagnostics-download-v171\.js/);
@@ -49,7 +50,7 @@ q.playIndex = async (index) => { played.push(index); return true; };
 q.renderLibrary = () => {};
 q.ampMusicOriginPlayback151 = { refresh() {} };
 q.importTracks = () => ({ added: 0, total: 1 });
-q.ampulaPlaybackPrefetch165 = { resolveAhead: async () => null };
+q.ampulaPlaybackPrefetch165 = { resolveAhead: async () => null, resolveAll: async () => [] };
 let resolverCalls = 0;
 q.ampulaTrackDiagnostics164 = {
   resolveTrusted: async () => {
@@ -130,4 +131,4 @@ assert.equal(menuButtons[1].dataset.downloadDiagnostics, '1');
 d.ampulaDiagnosticsDownload171.stop();
 downloadDom.window.close();
 
-console.log('final trust cache + iframe ad badge + diagnostics download v1.7.1: ok');
+console.log('final trust cache + full-library resolver + iframe ad badge + diagnostics download v1.7.5: ok');
