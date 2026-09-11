@@ -3,13 +3,16 @@
   if (window.__AMPULA_PLAYBACK_NAVIGATION_178__) return;
   window.__AMPULA_PLAYBACK_NAVIGATION_178__ = true;
 
-  const VERSION = '1.7.8';
+  const VERSION = '1.7.9';
   const SHUFFLE_KEY = 'winampmusic.playback.shuffle.v1';
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
   const shuffleButton = document.getElementById('shuffleButton');
+  const playButton = document.getElementById('playButton');
+  const status = document.getElementById('status');
   const artist = document.getElementById('nowArtist');
   let intent = null;
   let shuffleEnabled = false;
+  let pendingPlaybackIntent = false;
 
   try { shuffleEnabled = localStorage.getItem(SHUFFLE_KEY) === '1'; } catch {}
 
@@ -40,6 +43,22 @@
     return line;
   }
 
+  function normalizePendingPlaybackControl() {
+    if (!playButton) return;
+    const buttonText = clean(playButton.textContent);
+    const statusText = clean(status?.textContent).toUpperCase();
+    if (buttonText === '…') {
+      pendingPlaybackIntent = true;
+      playButton.dataset.pendingPlayback = '1';
+      playButton.textContent = '⏸';
+      return;
+    }
+    if (/^(PLAYING|PAUSED)$/.test(statusText) || /ERROR|UNAVAILABLE|NO SOURCE|INVALID/.test(statusText)) {
+      pendingPlaybackIntent = false;
+      delete playButton.dataset.pendingPlayback;
+    }
+  }
+
   function render() {
     if (shuffleButton) {
       shuffleButton.setAttribute('aria-pressed', shuffleEnabled ? 'true' : 'false');
@@ -50,6 +69,7 @@
     const line = ensureModeLine();
     const text = shuffleEnabled ? 'SHUFFLE · ON · NEXT · RANDOM' : 'SHUFFLE · OFF · ORDER · SEQUENTIAL';
     if (line && clean(line.textContent) !== text) line.textContent = text;
+    normalizePendingPlaybackControl();
   }
 
   function setShuffleEnabled(value) {
@@ -76,6 +96,19 @@
     return candidates[slot];
   }
 
+  function cancelPendingPlayback(event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    pendingPlaybackIntent = false;
+    if (playButton) {
+      delete playButton.dataset.pendingPlayback;
+      playButton.textContent = '▶';
+    }
+    try { window.ampMusicYouTube150?.suspend?.(); } catch {}
+    if (status) status.textContent = 'PAUSED';
+    setIntent({ type: 'pause' });
+  }
+
   function captureIntent(event) {
     const target = event.target?.closest?.('button, .track-main');
     if (!target) return;
@@ -94,6 +127,7 @@
     }
     if (target.id === 'nextButton') setIntent({ type: 'next' });
     else if (target.id === 'prevButton') setIntent({ type: 'previous' });
+    else if (target.id === 'playButton' && pendingPlaybackIntent) cancelPendingPlayback(event);
     else if (target.id === 'playButton') setIntent({ type: 'play' });
   }
 
@@ -103,6 +137,14 @@
   if (host) {
     const observer = new MutationObserver(() => queueMicrotask(render));
     observer.observe(host, { childList: true });
+  }
+  if (playButton) {
+    const observer = new MutationObserver(() => queueMicrotask(normalizePendingPlaybackControl));
+    observer.observe(playButton, { childList: true, characterData: true, subtree: true });
+  }
+  if (status) {
+    const observer = new MutationObserver(() => queueMicrotask(normalizePendingPlaybackControl));
+    observer.observe(status, { childList: true, characterData: true, subtree: true });
   }
   window.addEventListener('pageshow', render);
   window.addEventListener('focus', render);
@@ -114,9 +156,10 @@
     isShuffleEnabled,
     setShuffleEnabled,
     chooseShuffleIndex,
+    isPendingPlaybackIntent: () => pendingPlaybackIntent,
     refresh: render,
   };
 
   render();
-  console.info('[ÁmpulaMP] playback navigation 1.7.8 ready · exact selection · explicit Shuffle state');
+  console.info('[ÁmpulaMP] playback navigation 1.7.9 ready · latest intent wins · exact selection · explicit Shuffle state');
 })();
