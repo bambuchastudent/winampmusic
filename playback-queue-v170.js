@@ -3,14 +3,16 @@
   if (window.__AMPULA_PLAYBACK_QUEUE_170__) return;
   window.__AMPULA_PLAYBACK_QUEUE_170__ = true;
 
-  const VERSION = '1.7.1';
+  const VERSION = '1.7.5';
+  const MODE = 'full-library';
   const LIBRARY_KEY = 'winampmusic.library.v1';
-  const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const RESOLVER_VERSION = 'music-only-v1.6.4';
   const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
-  const PLAYABLE_AHEAD = 2;
-  const SCAN_LIMIT = 12;
+  const PLAYABLE_AHEAD = Number.POSITIVE_INFINITY;
+  const SCAN_LIMIT = Number.POSITIVE_INFINITY;
+  const QUEUE_WAIT_MS = 120000;
+  const POLL_MS = 250;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
   const inflight = new Map();
 
@@ -84,12 +86,12 @@
     return rows[index];
   }
 
-  async function resolveAndCache(index, sourceTrack) {
+  function startResolveAndCache(index, sourceTrack) {
     const rows = readLibrary();
     const track = rows[index] || sourceTrack;
-    if (!track) return null;
-    if (isReady(track)) return track;
-    if (!isKnownSongOrigin(track)) return VIDEO_ID_RE.test(clean(track.id)) ? track : null;
+    if (!track) return Promise.resolve(null);
+    if (isReady(track)) return Promise.resolve(track);
+    if (!isKnownSongOrigin(track)) return Promise.resolve(VIDEO_ID_RE.test(clean(track.id)) ? track : null);
 
     const key = recordingKey(track);
     if (inflight.has(key)) return inflight.get(key);
@@ -109,53 +111,66 @@
     return job;
   }
 
-  async function ensurePlayableAhead(index, count = PLAYABLE_AHEAD) {
-    const initial = readLibrary();
-    if (initial.length < 2) return { playable: 0, checked: 0 };
-    const safeIndex = ((Number(index) % initial.length) + initial.length) % initial.length;
-    const max = Math.min(SCAN_LIMIT, initial.length - 1);
-    let playable = 0;
-    let checked = 0;
-    for (let offset = 1; offset <= max && playable < count; offset += 1) {
-      const rows = readLibrary();
-      const targetIndex = (safeIndex + offset) % rows.length;
-      const track = rows[targetIndex];
-      checked += 1;
-      const ready = isReady(track) ? track : await resolveAndCache(targetIndex, track);
-      if (ready && isReady(ready)) playable += 1;
-    }
-    return { playable, checked };
+  async function resolveAndCache(index, sourceTrack) {
+    return startResolveAndCache(index, sourceTrack);
   }
 
-  function isAutomaticEndAdvance(requestedIndex, rows) {
-    if (!rows.length) return false;
-    const saved = Number(localStorage.getItem(CURRENT_KEY));
-    if (!Number.isInteger(saved) || saved < 0 || saved >= rows.length) return false;
-    const expected = (saved + 1) % rows.length;
-    const safeRequested = ((Number(requestedIndex) % rows.length) + rows.length) % rows.length;
-    const status = clean(document.getElementById('status')?.textContent);
-    const playText = clean(document.getElementById('playButton')?.textContent);
-    return safeRequested === expected && /^PLAYING$/i.test(status) && !playText.includes('⏸');
+  function startFullResolution(index) {
+    try {
+      const promise = window.ampulaPlaybackPrefetch165?.resolveAll?.(index);
+      if (promise?.catch) promise.catch(() => {});
+    } catch {}
+  }
+
+  async function ensurePlayableAhead(index) {
+    startFullResolution(index);
+    const rows = readLibrary();
+    return {
+      playable: rows.filter(isReady).length,
+      checked: Math.max(0, rows.length - 1),
+      mode: MODE,
+    };
+  }
+
+  function nextReadyIndex(rows, afterIndex, attempted) {
+    if (!rows.length) return -1;
+    const safeIndex = ((Number(afterIndex) % rows.length) + rows.length) % rows.length;
+    if (isReady(rows[safeIndex]) && !attempted.has(safeIndex)) return safeIndex;
+    for (let offset = 1; offset < rows.length; offset += 1) {
+      const index = (safeIndex + offset) % rows.length;
+      if (!attempted.has(index) && isReady(rows[index])) return index;
+    }
+    return -1;
   }
 
   async function playNextAvailable(afterIndex, originalPlayIndex) {
     const initial = readLibrary();
-    if (initial.length < 2) return false;
+    if (!initial.length) return false;
     const safeIndex = ((Number(afterIndex) % initial.length) + initial.length) % initial.length;
-    const max = Math.min(SCAN_LIMIT, initial.length - 1);
-    for (let offset = 1; offset <= max; offset += 1) {
+    const attempted = new Set();
+    startFullResolution(safeIndex);
+    const deadline = Date.now() + QUEUE_WAIT_MS;
+
+    while (true) {
       const rows = readLibrary();
-      const targetIndex = (safeIndex + offset) % rows.length;
-      const track = rows[targetIndex];
-      const ready = isReady(track) ? track : await resolveAndCache(targetIndex, track);
-      if (!ready || !isReady(ready)) continue;
-      const result = await originalPlayIndex(targetIndex);
-      if (result === false) continue;
-      queueMicrotask(() => { void ensurePlayableAhead(targetIndex, PLAYABLE_AHEAD); });
-      return result;
+      if (!rows.length) return false;
+      const targetIndex = nextReadyIndex(rows, safeIndex, attempted);
+      if (targetIndex >= 0) {
+        attempted.add(targetIndex);
+        const result = await originalPlayIndex(targetIndex);
+        if (result !== false) {
+          startFullResolution(targetIndex);
+          return result;
+        }
+        continue;
+      }
+
+      if (Date.now() >= deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, POLL_MS));
     }
+
     const status = document.getElementById('status');
-    if (status) status.textContent = `NO PLAYABLE TRACK IN NEXT ${max} · ORIGIN PRESERVED`;
+    if (status) status.textContent = 'NO PLAYABLE TRACK YET · RESOLUTION CONTINUES';
     return false;
   }
 
@@ -166,15 +181,13 @@
       const rows = readLibrary();
       if (!rows.length) return current(index);
       const safeIndex = ((Number(index) % rows.length) + rows.length) % rows.length;
-      const automatic = isAutomaticEndAdvance(safeIndex, rows);
       const track = rows[safeIndex];
-      const ready = isReady(track) ? track : await resolveAndCache(safeIndex, track);
-      if (!ready || !isReady(ready)) {
-        if (automatic) return playNextAvailable(safeIndex, current);
-        return false;
+      if (!isReady(track)) {
+        void startResolveAndCache(safeIndex, track);
+        return playNextAvailable(safeIndex, current);
       }
       const result = await current(safeIndex);
-      queueMicrotask(() => { void ensurePlayableAhead(safeIndex, PLAYABLE_AHEAD); });
+      startFullResolution(safeIndex);
       return result;
     };
     Object.defineProperty(wrapped, '__ampulaPlaybackQueue170', { value: true });
@@ -188,13 +201,16 @@
 
   window.ampulaPlaybackQueue170 = {
     version: VERSION,
+    mode: MODE,
     playableAhead: PLAYABLE_AHEAD,
     scanLimit: SCAN_LIMIT,
+    queueWaitMs: QUEUE_WAIT_MS,
     finalTrustVersion: FINAL_TRUST_VERSION,
     isReady,
     resolveAndCache,
     ensurePlayableAhead,
+    playNextAvailable,
     installQueueBridge,
   };
-  console.info(`[ÁmpulaMP] rolling playback queue ${VERSION} ready · ${PLAYABLE_AHEAD} playable ahead · final trust ${FINAL_TRUST_VERSION}`);
+  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
 })();
