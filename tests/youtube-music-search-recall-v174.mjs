@@ -10,10 +10,15 @@ const swSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 assert.match(headerSource, /apple-music-import-v064\.js\?v=174/);
 assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/);
-assert.ok(
-  headerSource.indexOf('resolver-trust-v167.js') < headerSource.indexOf('resolver-music-recall-v174.js') &&
-  headerSource.indexOf('resolver-music-recall-v174.js') < headerSource.indexOf('track-diagnostics-v164.js'),
-  'runtime order must be matcher → final trust → music recall → diagnostics',
+assert.match(
+  headerSource,
+  /function loadResolverMusicRecall[\s\S]*?resolver-music-recall-v174\.js\?v=174[\s\S]*?loadTrackDiagnostics/,
+  'music recall must hand off to diagnostics after it loads',
+);
+assert.match(
+  headerSource,
+  /function loadResolverTrust[\s\S]*?loadResolverMusicRecall/,
+  'final trust must load music recall before diagnostics',
 );
 assert.match(swSource, /ampmusic-v1\.7\.4/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
