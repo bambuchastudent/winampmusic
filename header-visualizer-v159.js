@@ -1,12 +1,36 @@
 (() => {
   'use strict';
 
+  function loadAdIndicator() {
+    if (document.querySelector('script[data-ampula-ad-indicator-170]')) return;
+    const script = document.createElement('script');
+    script.src = './ad-indicator-v170.js?v=170';
+    script.async = true;
+    script.setAttribute('data-ampula-ad-indicator-170', '1');
+    document.head.appendChild(script);
+  }
+
+  function loadPlaybackQueue() {
+    if (document.querySelector('script[data-ampula-playback-queue-170]')) return;
+    const script = document.createElement('script');
+    script.src = './playback-queue-v170.js?v=170';
+    script.async = true;
+    script.setAttribute('data-ampula-playback-queue-170', '1');
+    document.head.appendChild(script);
+  }
+
   function loadPlaybackPrefetch() {
-    if (document.querySelector('script[data-ampula-playback-prefetch-165]')) return;
+    const existing = document.querySelector('script[data-ampula-playback-prefetch-165]');
+    if (existing) {
+      if (window.__AMPULA_PLAYBACK_PREFETCH_165__) loadPlaybackQueue();
+      else existing.addEventListener('load', loadPlaybackQueue, { once: true });
+      return;
+    }
     const script = document.createElement('script');
     script.src = './playback-prefetch-v165.js?v=167';
     script.async = true;
     script.setAttribute('data-ampula-playback-prefetch-165', '1');
+    script.addEventListener('load', loadPlaybackQueue, { once: true });
     document.head.appendChild(script);
   }
 
@@ -40,6 +64,7 @@
     document.head.appendChild(script);
   }
 
+  loadAdIndicator();
   loadResolverTrust();
 
   const spectrum = document.getElementById('headerSpectrum');
