@@ -3,10 +3,11 @@
   if (window.__AMPULA_PLAYBACK_QUEUE_170__) return;
   window.__AMPULA_PLAYBACK_QUEUE_170__ = true;
 
-  const VERSION = '1.7.0';
+  const VERSION = '1.7.1';
   const LIBRARY_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
-  const TRUST_VERSION = 'music-only-v1.6.4';
+  const RESOLVER_VERSION = 'music-only-v1.6.4';
+  const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const PLAYABLE_AHEAD = 2;
   const SCAN_LIMIT = 12;
@@ -55,7 +56,7 @@
   function isReady(track) {
     if (!track || !VIDEO_ID_RE.test(clean(track.id))) return false;
     if (!isKnownSongOrigin(track)) return true;
-    return clean(track.youtubeMatchResolverVersion) === TRUST_VERSION;
+    return clean(track.youtubeMatchFinalTrustVersion) === FINAL_TRUST_VERSION;
   }
 
   function persistResolved(resolved, fallbackIndex) {
@@ -72,7 +73,8 @@
       title: clean(rows[index]?.title || resolved.title),
       artist: clean(rows[index]?.artist || resolved.artist),
       youtubeMatchId: clean(resolved.youtubeMatchId || resolved.id),
-      youtubeMatchResolverVersion: clean(resolved.youtubeMatchResolverVersion || TRUST_VERSION),
+      youtubeMatchResolverVersion: clean(resolved.youtubeMatchResolverVersion || RESOLVER_VERSION),
+      youtubeMatchFinalTrustVersion: FINAL_TRUST_VERSION,
       playbackProvider: clean(resolved.playbackProvider || 'youtube'),
       badges: [...new Set([...(Array.isArray(rows[index]?.badges) ? rows[index].badges : []), ...(Array.isArray(resolved.badges) ? resolved.badges : []), 'YouTube match'])],
     };
@@ -93,7 +95,7 @@
     if (inflight.has(key)) return inflight.get(key);
     const job = (async () => {
       let resolved = null;
-      if (!VIDEO_ID_RE.test(clean(track.id)) && typeof window.ampulaPlaybackPrefetch165?.resolveAhead === 'function') {
+      if (typeof window.ampulaPlaybackPrefetch165?.resolveAhead === 'function') {
         resolved = await window.ampulaPlaybackPrefetch165.resolveAhead(index, track);
       }
       if (!resolved) {
@@ -188,10 +190,11 @@
     version: VERSION,
     playableAhead: PLAYABLE_AHEAD,
     scanLimit: SCAN_LIMIT,
+    finalTrustVersion: FINAL_TRUST_VERSION,
     isReady,
     resolveAndCache,
     ensurePlayableAhead,
     installQueueBridge,
   };
-  console.info(`[ÁmpulaMP] rolling playback queue ${VERSION} ready · ${PLAYABLE_AHEAD} playable ahead`);
+  console.info(`[ÁmpulaMP] rolling playback queue ${VERSION} ready · ${PLAYABLE_AHEAD} playable ahead · final trust ${FINAL_TRUST_VERSION}`);
 })();
