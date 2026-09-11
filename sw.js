@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.6';
-const CACHE = 'winampmusic-shell-v176-skip-unresolved-release-lifecycle';
+const BUILD = 'ampmusic-v1.7.8';
+const CACHE = 'winampmusic-shell-v178-deterministic-navigation';
 const CORE = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const CORE = [
   './apple-touch-icon.png',
   './fast-player-v141.js',
   './fast-release-v150.js',
+  './playback-navigation-v178.js',
   './fast-import-v150.js',
   './telegram-text-import-v1.js',
   './apple-music-import-v064.js',
