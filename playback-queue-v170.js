@@ -3,9 +3,10 @@
   if (window.__AMPULA_PLAYBACK_QUEUE_170__) return;
   window.__AMPULA_PLAYBACK_QUEUE_170__ = true;
 
-  const VERSION = '1.7.5';
+  const VERSION = '1.7.6';
   const MODE = 'full-library';
   const LIBRARY_KEY = 'winampmusic.library.v1';
+  const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const RESOLVER_VERSION = 'music-only-v1.6.4';
   const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
@@ -27,6 +28,11 @@
 
   function writeLibrary(rows) {
     try { localStorage.setItem(LIBRARY_KEY, JSON.stringify(rows)); } catch {}
+  }
+
+  function readCurrentIndex(length) {
+    const value = Number(localStorage.getItem(CURRENT_KEY));
+    return Number.isInteger(value) && value >= 0 && value < length ? value : -1;
   }
 
   function recordingKey(track) {
@@ -132,29 +138,34 @@
     };
   }
 
-  function nextReadyIndex(rows, afterIndex, attempted) {
+  function nextReadyIndex(rows, startIndex, attempted, excludedIndex = -1, direction = 1) {
     if (!rows.length) return -1;
-    const safeIndex = ((Number(afterIndex) % rows.length) + rows.length) % rows.length;
-    if (isReady(rows[safeIndex]) && !attempted.has(safeIndex)) return safeIndex;
-    for (let offset = 1; offset < rows.length; offset += 1) {
-      const index = (safeIndex + offset) % rows.length;
-      if (!attempted.has(index) && isReady(rows[index])) return index;
+    const safeIndex = ((Number(startIndex) % rows.length) + rows.length) % rows.length;
+    const step = direction < 0 ? -1 : 1;
+    for (let offset = 0; offset < rows.length; offset += 1) {
+      const index = (safeIndex + (step * offset) + (rows.length * 2)) % rows.length;
+      if (index === excludedIndex || attempted.has(index)) continue;
+      if (isReady(rows[index])) return index;
     }
     return -1;
   }
 
-  async function playNextAvailable(afterIndex, originalPlayIndex) {
+  async function playNextAvailable(startIndex, originalPlayIndex, options = {}) {
     const initial = readLibrary();
     if (!initial.length) return false;
-    const safeIndex = ((Number(afterIndex) % initial.length) + initial.length) % initial.length;
+    const safeIndex = ((Number(startIndex) % initial.length) + initial.length) % initial.length;
+    const excludedIndex = Number.isInteger(options.excludedIndex) ? options.excludedIndex : -1;
+    const direction = options.direction < 0 ? -1 : 1;
     const attempted = new Set();
     startFullResolution(safeIndex);
+    const status = document.getElementById('status');
+    if (status) status.textContent = direction < 0 ? 'SKIPPING UNRESOLVED · FINDING PREVIOUS…' : 'SKIPPING UNRESOLVED · FINDING NEXT…';
     const deadline = Date.now() + QUEUE_WAIT_MS;
 
     while (true) {
       const rows = readLibrary();
       if (!rows.length) return false;
-      const targetIndex = nextReadyIndex(rows, safeIndex, attempted);
+      const targetIndex = nextReadyIndex(rows, safeIndex, attempted, excludedIndex, direction);
       if (targetIndex >= 0) {
         attempted.add(targetIndex);
         const result = await originalPlayIndex(targetIndex);
@@ -169,7 +180,6 @@
       await new Promise((resolve) => setTimeout(resolve, POLL_MS));
     }
 
-    const status = document.getElementById('status');
     if (status) status.textContent = 'NO PLAYABLE TRACK YET · RESOLUTION CONTINUES';
     return false;
   }
@@ -181,10 +191,14 @@
       const rows = readLibrary();
       if (!rows.length) return current(index);
       const safeIndex = ((Number(index) % rows.length) + rows.length) % rows.length;
+      const previousIndex = readCurrentIndex(rows.length);
+      const backwardTarget = previousIndex >= 0 ? (previousIndex - 1 + rows.length) % rows.length : -1;
+      const direction = safeIndex === backwardTarget ? -1 : 1;
+      const excludedIndex = previousIndex >= 0 && safeIndex !== previousIndex ? previousIndex : -1;
       const track = rows[safeIndex];
       if (!isReady(track)) {
         void startResolveAndCache(safeIndex, track);
-        return playNextAvailable(safeIndex, current);
+        return playNextAvailable(safeIndex, current, { excludedIndex, direction });
       }
       const result = await current(safeIndex);
       startFullResolution(safeIndex);
@@ -212,5 +226,5 @@
     playNextAvailable,
     installQueueBridge,
   };
-  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
+  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · unresolved rows skipped · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
 })();

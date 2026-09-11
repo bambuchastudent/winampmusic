@@ -14,10 +14,12 @@ on:
       - 'sw.js'
       - 'tests/playback-safety-v171.mjs'
       - 'tests/playback-queue-ad-v170.mjs'
+      - 'tests/skip-unresolved-playback-v176.mjs'
       - 'tests/playback-prefetch-v165.mjs'
       - 'tests/stable-v150.mjs'
       - 'openspec/changes/final-trust-cache-ad-diagnostics-v1.7.1/**'
       - 'openspec/changes/rolling-playback-queue-v1.7.0/**'
+      - 'openspec/changes/skip-unresolved-playback-v1.7.6/**'
       - '.github/workflows/playback-queue-v170.yml'
 
 permissions:
@@ -44,13 +46,16 @@ jobs:
           node --check header-visualizer-v159.js
           node --check tests/playback-safety-v171.mjs
           node --check tests/playback-queue-ad-v170.mjs
+          node --check tests/skip-unresolved-playback-v176.mjs
       - name: Install test runtime
         run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
       - name: Final trust cache + ad + diagnostics regression
         run: node tests/playback-safety-v171.mjs
       - name: Rolling queue and ad indicator regression
         run: node tests/playback-queue-ad-v170.mjs
-      - name: Two-track prefetch regression
+      - name: Skip unresolved Next/ENDED regression
+        run: node tests/skip-unresolved-playback-v176.mjs
+      - name: Full-library prefetch regression
         run: node tests/playback-prefetch-v165.mjs
       - name: Stable PWA regression
         run: node tests/stable-v150.mjs

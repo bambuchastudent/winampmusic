@@ -13,7 +13,7 @@ assert.match(header, /diagnostics-download-v171\.js\?v=175/);
 assert.match(header, /playback-miss-v173\.js\?v=175/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
 assert.match(header, /playback-prefetch-v165\.js\?v=175/);
-assert.match(header, /playback-queue-v170\.js\?v=175/);
+assert.match(header, /playback-queue-v170\.js\?v=176/);
 assert.match(header, /data-ampula-track-diagnostics-164|ampulaTrackDiagnostics164/);
 assert.match(trustGate, /Final trust gate rejected/);
 
@@ -46,4 +46,4 @@ assert.match(resolverTest, /rWWNZigf7PA/);
 assert.match(resolverTest, /Madigan/);
 assert.match(resolverTest, /The News/);
 
-console.log('Track diagnostics + final trust gate + full-library runtime contract: OK');
+console.log('Track diagnostics + final trust gate + queue runtime v1.7.6 contract: OK');

@@ -13,7 +13,7 @@
   function loadPlaybackQueue() {
     if (document.querySelector('script[data-ampula-playback-queue-170]')) return;
     const script = document.createElement('script');
-    script.src = './playback-queue-v170.js?v=175';
+    script.src = './playback-queue-v170.js?v=176';
     script.async = true;
     script.setAttribute('data-ampula-playback-queue-170', '1');
     document.head.appendChild(script);

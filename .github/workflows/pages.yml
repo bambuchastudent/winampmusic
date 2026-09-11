@@ -49,6 +49,8 @@ jobs:
 
   deploy:
     needs: verify
+    outputs:
+      revision: ${{ steps.revision.outputs.revision }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -120,11 +122,13 @@ jobs:
           fi
 
       - name: Stamp footer build revision
+        id: revision
         env:
           TZ: Europe/Madrid
         run: |
-          revision="$(date +'%y%m%d%H%M')"
-          node scripts/stamp-build-revision.mjs index.html "$revision"
+          revision="r$(date +'%y%m%d%H%M')"
+          node scripts/stamp-build-revision.mjs index.html "${revision#r}"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -139,3 +143,63 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+  release:
+    if: github.event_name == 'push'
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create revision tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVISION: ${{ needs.deploy.outputs.revision }}
+        run: |
+          set -euo pipefail
+          test -n "$REVISION"
+
+          if gh release view "$REVISION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $REVISION already exists; nothing to do."
+            exit 0
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$REVISION" >/dev/null 2>&1; then
+            echo "::error::Tag $REVISION already exists without a matching GitHub Release."
+            exit 1
+          fi
+
+          pr_number="$(gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '.[0].number // empty')"
+
+          if [ -n "$pr_number" ]; then
+            gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json number,title,body,url > release-pr.json
+            jq -r '"## Published\n\n### [#\(.number) — \(.title)](\(.url))\n\n" + ((.body // "") | if length > 0 then . else "_No PR description supplied._" end)' release-pr.json > release-notes.md
+          else
+            {
+              echo '## Published'
+              echo
+              git log -1 --pretty='%B'
+            } > release-notes.md
+          fi
+
+          cat >> release-notes.md <<EOF
+
+          ## Deployment
+
+          - Revision: \`$REVISION\`
+          - Commit: \`$GITHUB_SHA\`
+          - Pages: https://bambuchastudent.github.io/winampmusic/
+          EOF
+
+          gh release create "$REVISION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "ÁmpulaMP $REVISION" \
+            --notes-file release-notes.md
