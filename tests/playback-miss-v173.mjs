@@ -97,7 +97,7 @@ assert.equal(Object.values(rejectedStore)[0].ids[0], BAD_ID, 'rejected candidate
 const metadata = w.ampulaPlaybackMiss173.metadataWithRejected({
   title: 'The News', artist: 'Madigan', durationMs: 279000,
 });
-assert.deepEqual(metadata.excludeYoutubeIds, [BAD_ID], 'subsequent matcher calls must receive rejected IDs');
+assert.deepEqual(Array.from(metadata.excludeYoutubeIds), [BAD_ID], 'subsequent matcher calls must receive rejected IDs');
 
 const replacementRows = JSON.parse(w.localStorage.getItem(LIBRARY_KEY));
 replacementRows[0] = {
