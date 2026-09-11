@@ -1,0 +1,37 @@
+name: Playback navigation v1.7.8
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'playback-navigation-v178.js'
+      - 'playback-queue-v170.js'
+      - 'fast-background-v150.js'
+      - 'fast-release-v150.js'
+      - 'sw.js'
+      - 'tests/playback-order-shuffle-continuity-v178.mjs'
+      - 'openspec/changes/playback-order-shuffle-continuity-v1.7.8/**'
+      - '.github/workflows/playback-navigation-v178.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+      - name: Install test runtime
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Syntax check regression
+        run: node --check tests/playback-order-shuffle-continuity-v178.mjs
+      - name: Playback order, Shuffle state, and tab continuity regression
+        run: node tests/playback-order-shuffle-continuity-v178.mjs
