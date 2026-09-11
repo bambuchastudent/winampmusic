@@ -1,0 +1,34 @@
+name: Playback navigation v1.7.10
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'playback-queue-v170.js'
+      - 'sw.js'
+      - 'tests/skip-unresolved-foreground-v1710.mjs'
+      - 'openspec/changes/skip-unresolved-foreground-v1.7.10/**'
+      - '.github/workflows/playback-navigation-v1710.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+      - name: Install test runtime
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Syntax check regression
+        run: node --check tests/skip-unresolved-foreground-v1710.mjs
+      - name: Foreground unresolved skip regression
+        run: node tests/skip-unresolved-foreground-v1710.mjs
