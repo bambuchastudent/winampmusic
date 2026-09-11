@@ -72,6 +72,22 @@ function makeDom(rows, currentIndex, resolveAll) {
 
 {
   const rows = [
+    ready('aaaaaaaaaaa', '40 Current', 's40'),
+    unresolved('41 Missing', 's41'),
+    unresolved('42 Missing too', 's42'),
+    ready('ddddddddddd', '43 Ready', 's43'),
+  ];
+  const ctx = makeDom(rows, 0, async () => []);
+  const result = await ctx.window.playIndex(1);
+  assert.equal(result, 'played:3', 'Next/ENDED must skip any number of consecutive unresolved rows and play 43');
+  assert.deepEqual(ctx.calls, [3], '41 and 42 must be skipped without replaying current 40');
+  assert.equal(JSON.parse(ctx.window.localStorage.getItem(KEY))[1].title, '41 Missing');
+  assert.equal(JSON.parse(ctx.window.localStorage.getItem(KEY))[2].title, '42 Missing too');
+  ctx.dom.window.close();
+}
+
+{
+  const rows = [
     ready('aaaaaaaaaaa', 'Earlier Ready', 's0'),
     unresolved('Previous Missing', 's1'),
     ready('bbbbbbbbbbb', 'Current', 's2'),
