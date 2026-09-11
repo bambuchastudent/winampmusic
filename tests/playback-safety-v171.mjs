@@ -20,7 +20,9 @@ assert.match(headerSource, /diagnostics-download-v171\.js\?v=173/);
 assert.match(headerSource, /ad-indicator-v170\.js\?v=173/);
 assert.match(headerSource, /playback-queue-v170\.js\?v=173/);
 assert.match(headerSource, /playback-miss-v173\.js\?v=173/);
-assert.match(swSource, /ampmusic-v1\.7\.3/);
+assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/);
+assert.match(swSource, /ampmusic-v1\.7\.4/);
+assert.match(swSource, /resolver-music-recall-v174\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /diagnostics-download-v171\.js/);
 
