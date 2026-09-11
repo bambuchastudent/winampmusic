@@ -22,7 +22,7 @@ assert.match(headerSource, /ad-indicator-v170\.js\?v=175/);
 assert.match(headerSource, /playback-queue-v170\.js\?v=176/);
 assert.match(headerSource, /playback-miss-v173\.js\?v=175/);
 assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(swSource, /ampmusic-v1\.7\.8/);
+assert.match(swSource, /ampmusic-v1\.7\.9/);
 assert.match(swSource, /playback-navigation-v178\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
@@ -132,4 +132,4 @@ assert.equal(menuButtons[1].dataset.downloadDiagnostics, '1');
 d.ampulaDiagnosticsDownload171.stop();
 downloadDom.window.close();
 
-console.log('final trust cache + full-library resolver + iframe ad badge + diagnostics download v1.7.8: ok');
+console.log('final trust cache + full-library resolver + iframe ad badge + diagnostics download v1.7.9: ok');
