@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.5';
-const CACHE = 'winampmusic-shell-v175-full-library-resolution';
+const BUILD = 'ampmusic-v1.7.6';
+const CACHE = 'winampmusic-shell-v176-skip-unresolved-release-lifecycle';
 const CORE = [
   './',
   './index.html',
