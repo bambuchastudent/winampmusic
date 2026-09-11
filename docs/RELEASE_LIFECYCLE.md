@@ -8,7 +8,15 @@ A successful Pages deployment chooses one Madrid-time revision in the form `rYYM
 2. a Git tag named `rYYMMDDHHMM` targeting the deployed commit;
 3. a GitHub Release named `ÁmpulaMP rYYMMDDHHMM`.
 
-The Release page contains a **Published** section. For a normal PR merge it includes the merged PR title, link and PR body, followed by deployment metadata (revision, commit SHA and the Pages URL). A non-PR push falls back to the deployed commit message.
+For a normal PR merge, the Release page starts with a compact typed summary:
+
+- `feature/` or `feat/` → **Feature**;
+- `fix/`, `bugfix/` or `hotfix/` → **Bugfix**;
+- every other branch → **Maintenance**.
+
+That heading is followed by a one-line summary taken from the first Markdown bullet in the PR body, falling back to the PR title when no bullet exists. The goal is to make the first screen answer “what kind of release is this?” and “what changed?” without losing traceability.
+
+The detailed **Published** section follows the short summary and keeps the merged PR title, link and full PR body. The final **Deployment** section keeps the revision, commit SHA and Pages URL. A non-PR push falls back to the deployed commit title/body and is classified as Maintenance.
 
 Tag and Release creation runs only after the Pages deployment succeeds. A failed verification/deployment is therefore never marked as a production release.
 
