@@ -1,4 +1,4 @@
-name: Rolling playback queue v1.7.0
+name: Playback safety v1.7.1
 
 on:
   pull_request:
@@ -6,13 +6,17 @@ on:
     paths:
       - 'playback-queue-v170.js'
       - 'ad-indicator-v170.js'
+      - 'diagnostics-download-v171.js'
       - 'playback-prefetch-v165.js'
       - 'track-diagnostics-v164.js'
       - 'header-visualizer-v159.js'
+      - 'stable-v150.js'
       - 'sw.js'
+      - 'tests/playback-safety-v171.mjs'
       - 'tests/playback-queue-ad-v170.mjs'
       - 'tests/playback-prefetch-v165.mjs'
       - 'tests/stable-v150.mjs'
+      - 'openspec/changes/final-trust-cache-ad-diagnostics-v1.7.1/**'
       - 'openspec/changes/rolling-playback-queue-v1.7.0/**'
       - '.github/workflows/playback-queue-v170.yml'
 
@@ -36,13 +40,17 @@ jobs:
         run: |
           node --check playback-queue-v170.js
           node --check ad-indicator-v170.js
+          node --check diagnostics-download-v171.js
           node --check header-visualizer-v159.js
+          node --check tests/playback-safety-v171.mjs
           node --check tests/playback-queue-ad-v170.mjs
       - name: Install test runtime
         run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Final trust cache + ad + diagnostics regression
+        run: node tests/playback-safety-v171.mjs
       - name: Rolling queue and ad indicator regression
         run: node tests/playback-queue-ad-v170.mjs
-      - name: Existing two-track prefetch regression
+      - name: Two-track prefetch regression
         run: node tests/playback-prefetch-v165.mjs
       - name: Stable PWA regression
         run: node tests/stable-v150.mjs

@@ -102,19 +102,21 @@ for (const [name, source] of [
   assert.match(source, /findYouTubeMatch/, `${name} must consume the guarded public matcher API`);
 }
 
-assert.match(headerSource, /resolver-trust-v167\.js\?v=167/);
-assert.match(headerSource, /track-diagnostics-v164\.js\?v=167/);
-assert.match(headerSource, /playback-prefetch-v165\.js\?v=167/);
+assert.match(headerSource, /resolver-trust-v167\.js\?v=171/);
+assert.match(headerSource, /track-diagnostics-v164\.js\?v=171/);
+assert.match(headerSource, /diagnostics-download-v171\.js\?v=171/);
+assert.match(headerSource, /playback-prefetch-v165\.js\?v=171/);
 assert.ok(
   headerSource.indexOf('loadResolverTrust();') < headerSource.indexOf("const spectrum"),
   'trust loader must start before optional header behavior',
 );
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
-assert.match(swSource, /winampmusic-shell-v170-playback-queue/);
-assert.match(swSource, /ampmusic-v1\.7\.0/);
+assert.match(swSource, /winampmusic-shell-v171-final-trust/);
+assert.match(swSource, /ampmusic-v1\.7\.1/);
 assert.match(swSource, /playback-queue-v170\.js/);
 assert.match(swSource, /ad-indicator-v170\.js/);
+assert.match(swSource, /diagnostics-download-v171\.js/);
 
 console.log('resolver final trust gate v1.6.7: ok');
 dom.window.close();

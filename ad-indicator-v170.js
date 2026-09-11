@@ -3,11 +3,13 @@
   if (window.__AMPULA_AD_INDICATOR_170__) return;
   window.__AMPULA_AD_INDICATOR_170__ = true;
 
-  const VERSION = '1.7.0';
+  const VERSION = '1.7.1';
   const LIBRARY_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
+  const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const MIN_DURATION_DELTA = 16;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
+  let youtubeWire = {};
 
   function parseClock(value) {
     const parts = clean(value).split(':').map(Number);
@@ -34,6 +36,11 @@
     }
   }
 
+  function currentIndex() {
+    const index = Number(localStorage.getItem(CURRENT_KEY));
+    return Number.isInteger(index) && index >= 0 ? index : -1;
+  }
+
   function isCanonicalOrigin(track) {
     const badges = Array.isArray(track?.badges) ? track.badges.map(clean) : [];
     const source = clean(track?.originUrl || track?.sourceUrl);
@@ -42,6 +49,10 @@
       badges.includes('Spotify') || badges.includes('Apple Music') ||
       /(?:open\.spotify\.com|music\.apple\.com)/i.test(source)
     );
+  }
+
+  function isFinalTrusted(track) {
+    return isCanonicalOrigin(track) && clean(track?.youtubeMatchFinalTrustVersion) === FINAL_TRUST_VERSION;
   }
 
   function ensureUi() {
@@ -82,20 +93,85 @@
     return indicator;
   }
 
+  function finite(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function diagnosticsWire() {
+    const index = currentIndex();
+    if (index < 0) return {};
+    try {
+      return window.ampulaTrackDiagnostics164?.payloadForIndex?.(index)?.playback?.youtubeWire || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function activeWire() {
+    const fallback = diagnosticsWire();
+    return {
+      videoId: clean(youtubeWire.videoId || fallback.videoId),
+      title: clean(youtubeWire.title || fallback.title),
+      author: clean(youtubeWire.author || fallback.author),
+      playerState: Number.isFinite(Number(youtubeWire.playerState)) ? Number(youtubeWire.playerState) : finite(fallback.playerState, NaN),
+      currentTime: Number.isFinite(Number(youtubeWire.currentTime)) ? Number(youtubeWire.currentTime) : finite(fallback.currentTime, 0),
+      duration: Number.isFinite(Number(youtubeWire.duration)) ? Number(youtubeWire.duration) : finite(fallback.duration, 0),
+    };
+  }
+
+  function handleYouTubeMessage(event) {
+    if (!/youtube(?:-nocookie)?\.com$/i.test(String(event.origin || '').replace(/^https?:\/\//, ''))) return;
+    let data = event.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch { return; }
+    }
+    if (!data || data.event !== 'infoDelivery' || !data.info) return;
+    const info = data.info;
+    youtubeWire = {
+      ...youtubeWire,
+      videoId: clean(info.videoData?.video_id || youtubeWire.videoId),
+      title: clean(info.videoData?.title || youtubeWire.title),
+      author: clean(info.videoData?.author || youtubeWire.author),
+      playerState: Number.isFinite(Number(info.playerState)) ? Number(info.playerState) : youtubeWire.playerState,
+      currentTime: Number.isFinite(Number(info.currentTime)) ? Number(info.currentTime) : youtubeWire.currentTime,
+      duration: Number.isFinite(Number(info.duration)) ? Number(info.duration) : youtubeWire.duration,
+    };
+    sync();
+  }
+
   function sync() {
     const indicator = ensureUi();
     if (!indicator) return false;
     const track = readCurrentTrack();
-    const canonicalDuration = Math.max(0, Number(track?.duration || 0));
-    const elapsed = parseClock(document.getElementById('elapsed')?.textContent);
-    const reportedDuration = parseClock(document.getElementById('duration')?.textContent);
     const status = clean(document.getElementById('status')?.textContent);
     const playText = clean(document.getElementById('playButton')?.textContent);
     const playing = /^PLAYING$/i.test(status) || playText.includes('⏸');
-    const durationLooksLikeAd = canonicalDuration > 0 && reportedDuration >= 3 &&
-      Math.abs(reportedDuration - canonicalDuration) > MIN_DURATION_DELTA;
-    const detected = Boolean(playing && isCanonicalOrigin(track) && durationLooksLikeAd);
 
+    if (!playing || !isFinalTrusted(track)) {
+      indicator.hidden = true;
+      indicator.textContent = '';
+      indicator.removeAttribute('aria-label');
+      return false;
+    }
+
+    const expectedId = clean(track?.youtubeMatchId || track?.id);
+    const canonicalDuration = Math.max(0, Number(track?.duration || 0));
+    const wire = activeWire();
+    const wireId = clean(wire.videoId);
+    const wireDuration = Math.max(0, Number(wire.duration || 0));
+    const wireCurrent = Math.max(0, Number(wire.currentTime || 0));
+    const wirePlaying = Number(wire.playerState) === 1 || playing;
+    const idLooksLikeAd = Boolean(expectedId && wireId && wireId !== expectedId);
+    const durationLooksLikeAd = canonicalDuration > 0 && wireDuration >= 3 &&
+      Math.abs(wireDuration - canonicalDuration) > MIN_DURATION_DELTA;
+
+    const reportedDuration = parseClock(document.getElementById('duration')?.textContent);
+    const elapsed = parseClock(document.getElementById('elapsed')?.textContent);
+    const domDurationLooksLikeAd = !wireDuration && canonicalDuration > 0 && reportedDuration >= 3 &&
+      Math.abs(reportedDuration - canonicalDuration) > MIN_DURATION_DELTA;
+
+    const detected = Boolean(wirePlaying && (idLooksLikeAd || durationLooksLikeAd || domDurationLooksLikeAd));
     if (!detected) {
       indicator.hidden = true;
       indicator.textContent = '';
@@ -103,10 +179,12 @@
       return false;
     }
 
-    const remaining = Math.max(0, reportedDuration - elapsed);
+    const total = wireDuration || reportedDuration;
+    const current = wireDuration ? wireCurrent : elapsed;
+    const remaining = Math.max(0, total - current);
     indicator.hidden = false;
     indicator.textContent = `AD ${formatTime(remaining)}`;
-    indicator.setAttribute('aria-label', `YouTube advertisement, ${formatTime(remaining)} remaining, ${formatTime(reportedDuration)} total`);
+    indicator.setAttribute('aria-label', `YouTube advertisement, ${formatTime(remaining)} remaining, ${formatTime(total)} total`);
     return true;
   }
 
@@ -115,14 +193,20 @@
     const node = document.getElementById(id);
     if (node) observer.observe(node, { childList: true, subtree: true, characterData: true });
   }
+  window.addEventListener('message', handleYouTubeMessage);
   sync();
   const timer = setInterval(sync, 500);
 
   window.ampulaAdIndicator170 = {
     version: VERSION,
+    finalTrustVersion: FINAL_TRUST_VERSION,
     minDurationDelta: MIN_DURATION_DELTA,
     parseClock,
     sync,
-    stop() { clearInterval(timer); observer.disconnect(); },
+    stop() {
+      clearInterval(timer);
+      observer.disconnect();
+      window.removeEventListener('message', handleYouTubeMessage);
+    },
   };
 })();

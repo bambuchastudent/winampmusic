@@ -4,7 +4,7 @@
   function loadAdIndicator() {
     if (document.querySelector('script[data-ampula-ad-indicator-170]')) return;
     const script = document.createElement('script');
-    script.src = './ad-indicator-v170.js?v=170';
+    script.src = './ad-indicator-v170.js?v=171';
     script.async = true;
     script.setAttribute('data-ampula-ad-indicator-170', '1');
     document.head.appendChild(script);
@@ -13,7 +13,7 @@
   function loadPlaybackQueue() {
     if (document.querySelector('script[data-ampula-playback-queue-170]')) return;
     const script = document.createElement('script');
-    script.src = './playback-queue-v170.js?v=170';
+    script.src = './playback-queue-v170.js?v=171';
     script.async = true;
     script.setAttribute('data-ampula-playback-queue-170', '1');
     document.head.appendChild(script);
@@ -27,25 +27,40 @@
       return;
     }
     const script = document.createElement('script');
-    script.src = './playback-prefetch-v165.js?v=167';
+    script.src = './playback-prefetch-v165.js?v=171';
     script.async = true;
     script.setAttribute('data-ampula-playback-prefetch-165', '1');
     script.addEventListener('load', loadPlaybackQueue, { once: true });
     document.head.appendChild(script);
   }
 
-  function loadTrackDiagnostics() {
-    const existing = document.querySelector('script[data-ampula-track-diagnostics-164]');
+  function loadDiagnosticsDownload() {
+    const existing = document.querySelector('script[data-ampula-diagnostics-download-171]');
     if (existing) {
-      if (window.__AMPULA_TRACK_DIAGNOSTICS_164__) loadPlaybackPrefetch();
+      if (window.__AMPULA_DIAGNOSTICS_DOWNLOAD_171__) loadPlaybackPrefetch();
       else existing.addEventListener('load', loadPlaybackPrefetch, { once: true });
       return;
     }
     const script = document.createElement('script');
-    script.src = './track-diagnostics-v164.js?v=167';
+    script.src = './diagnostics-download-v171.js?v=171';
+    script.async = true;
+    script.setAttribute('data-ampula-diagnostics-download-171', '1');
+    script.addEventListener('load', loadPlaybackPrefetch, { once: true });
+    document.head.appendChild(script);
+  }
+
+  function loadTrackDiagnostics() {
+    const existing = document.querySelector('script[data-ampula-track-diagnostics-164]');
+    if (existing) {
+      if (window.__AMPULA_TRACK_DIAGNOSTICS_164__) loadDiagnosticsDownload();
+      else existing.addEventListener('load', loadDiagnosticsDownload, { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = './track-diagnostics-v164.js?v=171';
     script.async = true;
     script.setAttribute('data-ampula-track-diagnostics-164', '1');
-    script.addEventListener('load', loadPlaybackPrefetch, { once: true });
+    script.addEventListener('load', loadDiagnosticsDownload, { once: true });
     document.head.appendChild(script);
   }
 
@@ -57,7 +72,7 @@
       return;
     }
     const script = document.createElement('script');
-    script.src = './resolver-trust-v167.js?v=167';
+    script.src = './resolver-trust-v167.js?v=171';
     script.async = true;
     script.setAttribute('data-ampula-resolver-trust-167', '1');
     script.addEventListener('load', loadTrackDiagnostics, { once: true });

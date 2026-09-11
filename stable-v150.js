@@ -30,7 +30,7 @@
   async function registerPwa() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      await navigator.serviceWorker.register('./sw.js?v=162', { updateViaCache: 'none' });
+      await navigator.serviceWorker.register('./sw.js?v=171', { updateViaCache: 'none' });
     } catch (error) {
       console.warn('[AmpMusic] PWA registration failed', error);
     }
@@ -82,7 +82,6 @@
     });
   }
 
-  // Remove the previous visible Spotify Embed experiment before the unified entry boots.
   try { localStorage.removeItem('ampula.spotifySource.v1'); } catch {}
   document.getElementById('spotifySourcePanel')?.remove();
 
@@ -114,12 +113,10 @@
       });
   }, true);
 
-  // Register after the FAST shell is interactive. The inherited FAST runtime still
-  // performs one delayed stale-worker cleanup, so re-register once after that window.
   if (document.readyState === 'complete') registerPwa();
   else window.addEventListener('load', registerPwa, { once: true });
   setTimeout(registerPwa, 3200);
 
   loadOriginPlaybackBridge();
-  console.info('[AmpMusic] stable 1.6.2 bridge ready');
+  console.info('[AmpMusic] stable 1.7.1 bridge ready');
 })();

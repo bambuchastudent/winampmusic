@@ -3,9 +3,10 @@
   if (window.__AMPULA_PLAYBACK_PREFETCH_165__) return;
   window.__AMPULA_PLAYBACK_PREFETCH_165__ = true;
 
-  const VERSION = '1.6.5';
+  const VERSION = '1.7.1';
   const PREFETCH_COUNT = 2;
-  const TRUST_VERSION = 'music-only-v1.6.4';
+  const RESOLVER_VERSION = 'music-only-v1.6.4';
+  const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const LIBRARY_KEY = 'winampmusic.library.v1';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -41,10 +42,7 @@
 
   function needsPrefetchResolution(track) {
     if (!track || !isKnownSongOrigin(track) || !clean(track.title)) return false;
-    // Prefetch is deliberately limited to unresolved rows. A valid-looking stale YouTube
-    // id is revalidated only when it becomes current, where the v1.6.4 safe bridge can
-    // keep FAST's in-memory playback state and persisted state in lock-step.
-    return !VIDEO_ID_RE.test(clean(track.id));
+    return !VIDEO_ID_RE.test(clean(track.id)) || clean(track.youtubeMatchFinalTrustVersion) !== FINAL_TRUST_VERSION;
   }
 
   function loadMatcher() {
@@ -64,7 +62,7 @@
       const done = () => { clearTimeout(timer); setTimeout(finish, 0); };
       if (!script) {
         script = document.createElement('script');
-        script.src = './apple-music-import-v064.js?v=165';
+        script.src = './apple-music-import-v064.js?v=171';
         script.async = true;
         script.dataset.playbackPrefetchMatcher = '1';
         document.head.appendChild(script);
@@ -100,13 +98,14 @@
           durationMs: Math.max(0, Number(originalTrack.duration || 0) * 1000),
         }, controller.signal);
         const id = clean(candidate?.id);
-        if (!VIDEO_ID_RE.test(id)) return null;
+        const finalTrustVersion = clean(candidate?.finalTrustVersion);
+        if (!VIDEO_ID_RE.test(id) || finalTrustVersion !== FINAL_TRUST_VERSION) return null;
 
         const library = readLibrary();
         const currentIndex = findCurrentIndex(library, originalTrack, index);
         if (currentIndex < 0) return null;
         const current = library[currentIndex];
-        // If another path resolved the row while prefetch was in flight, do not replace it.
+        // If another path resolved the row with final trust while prefetch was in flight, do not replace it.
         if (!needsPrefetchResolution(current)) return current;
         const resolved = {
           ...current,
@@ -114,12 +113,12 @@
           title: clean(current.title || originalTrack.title),
           artist: clean(current.artist || originalTrack.artist),
           youtubeMatchId: id,
-          youtubeMatchResolverVersion: TRUST_VERSION,
+          youtubeMatchResolverVersion: RESOLVER_VERSION,
+          youtubeMatchFinalTrustVersion: finalTrustVersion,
           playbackProvider: 'youtube',
           badges: [...new Set([...(Array.isArray(current.badges) ? current.badges : []), 'YouTube match'])],
         };
 
-        // Newly imported unresolved rows can be adopted safely by FAST's in-memory library.
         try { window.importTracks?.([resolved]); } catch {}
         const latest = readLibrary();
         const latestIndex = findCurrentIndex(latest, originalTrack, currentIndex);
@@ -130,7 +129,7 @@
         window.ampMusicOriginPlayback151?.refresh?.();
         return resolved;
       } catch (error) {
-        if (error?.name !== 'AbortError') console.debug('[ÁmpulaMP prefetch] no trusted match', clean(error?.message));
+        if (error?.name !== 'AbortError') console.debug('[ÁmpulaMP prefetch] no final-trusted match', clean(error?.message));
         return null;
       } finally {
         clearTimeout(timer);
@@ -173,10 +172,11 @@
   window.ampulaPlaybackPrefetch165 = {
     version: VERSION,
     count: PREFETCH_COUNT,
+    finalTrustVersion: FINAL_TRUST_VERSION,
     needsPrefetchResolution,
     resolveAhead,
     prefetchFollowing,
     installPlayBridge,
   };
-  console.info(`[ÁmpulaMP] playback resolver prefetch ${VERSION} ready · ${PREFETCH_COUNT} ahead`);
+  console.info(`[ÁmpulaMP] playback resolver prefetch ${VERSION} ready · ${PREFETCH_COUNT} ahead · final trust ${FINAL_TRUST_VERSION}`);
 })();

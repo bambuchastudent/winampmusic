@@ -7,12 +7,13 @@ const adSource = readFileSync(new URL('../ad-indicator-v170.js', import.meta.url
 const header = readFileSync(new URL('../header-visualizer-v159.js', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
-assert.match(header, /ad-indicator-v170\.js\?v=170/);
-assert.match(header, /playback-queue-v170\.js\?v=170/);
-assert.ok(header.indexOf("script.addEventListener('load', loadPlaybackQueue") >= 0, 'rolling queue must load after legacy prefetch');
-assert.match(sw, /ampmusic-v1\.7\.0/);
+assert.match(header, /ad-indicator-v170\.js\?v=171/);
+assert.match(header, /playback-queue-v170\.js\?v=171/);
+assert.ok(header.indexOf("script.addEventListener('load', loadPlaybackQueue") >= 0, 'rolling queue must load after prefetch');
+assert.match(sw, /ampmusic-v1\.7\.1/);
 assert.match(sw, /playback-queue-v170\.js/);
 assert.match(sw, /ad-indicator-v170\.js/);
+assert.match(sw, /diagnostics-download-v171\.js/);
 
 const queueDom = new JSDOM(`<!doctype html><body>
   <div id="status">PLAYING</div>
@@ -24,9 +25,10 @@ const queueDom = new JSDOM(`<!doctype html><body>
 const { window } = queueDom;
 const KEY = 'winampmusic.library.v1';
 const CURRENT = 'winampmusic.fast.current.v1';
-const TRUST = 'music-only-v1.6.4';
+const RESOLVER = 'music-only-v1.6.4';
+const FINAL = 'music-only-v1.6.7';
 const library = [
-  { id: 'aaaaaaaaaaa', title: 'Current', artist: 'Artist 0', spotifyTrackId: 's0', duration: 200, badges: ['Spotify', 'Origin'], youtubeMatchResolverVersion: TRUST },
+  { id: 'aaaaaaaaaaa', title: 'Current', artist: 'Artist 0', spotifyTrackId: 's0', duration: 200, badges: ['Spotify', 'Origin'], youtubeMatchResolverVersion: RESOLVER, youtubeMatchFinalTrustVersion: FINAL },
   { id: 'U-blocked', title: 'God Shaped Hole', artist: 'Youri Lentjes', spotifyTrackId: 's1', duration: 180, badges: ['Spotify', 'Origin'] },
   { id: 'U-two', title: 'Playable Two', artist: 'Artist 2', spotifyTrackId: 's2', duration: 202, badges: ['Spotify', 'Origin'] },
   { id: 'U-three', title: 'Playable Three', artist: 'Artist 3', spotifyTrackId: 's3', duration: 203, badges: ['Spotify', 'Origin'] },
@@ -44,8 +46,6 @@ window.playIndex = async (index) => {
 window.renderLibrary = () => {};
 window.ampMusicOriginPlayback151 = { refresh() {} };
 window.importTracks = (incoming) => {
-  // Match FAST's live adoption behavior: the id becomes playable immediately, while
-  // the queue must restore the full resolver metadata back into persistent cache.
   const rows = JSON.parse(window.localStorage.getItem(KEY) || '[]');
   for (const item of incoming) {
     const index = rows.findIndex((row) => row.spotifyTrackId && row.spotifyTrackId === item.spotifyTrackId);
@@ -62,25 +62,26 @@ const ids = new Map([
 ]);
 const resolverCalls = [];
 window.ampulaPlaybackPrefetch165 = {
-  resolveAhead: async (index, track) => {
+  resolveAhead: async (_index, track) => {
     resolverCalls.push(`prefetch:${track.title}`);
     const id = ids.get(track.title);
     if (!id) return null;
-    return { ...track, id, youtubeMatchId: id, youtubeMatchResolverVersion: TRUST, playbackProvider: 'youtube', badges: [...track.badges, 'YouTube match'] };
+    return { ...track, id, youtubeMatchId: id, youtubeMatchResolverVersion: RESOLVER, youtubeMatchFinalTrustVersion: FINAL, playbackProvider: 'youtube', badges: [...track.badges, 'YouTube match'] };
   },
 };
 window.ampulaTrackDiagnostics164 = {
-  trustVersion: TRUST,
+  trustVersion: RESOLVER,
   resolveTrusted: async (_index, track) => {
     resolverCalls.push(`trusted:${track.title}`);
     const id = ids.get(track.title);
-    return id ? { ...track, id, youtubeMatchId: id, youtubeMatchResolverVersion: TRUST, playbackProvider: 'youtube' } : null;
+    return id ? { ...track, id, youtubeMatchId: id, youtubeMatchResolverVersion: RESOLVER, playbackProvider: 'youtube' } : null;
   },
 };
 
 window.eval(queueSource);
 assert.equal(window.ampulaPlaybackQueue170.playableAhead, 2);
 assert.equal(window.ampulaPlaybackQueue170.scanLimit, 12);
+assert.equal(window.ampulaPlaybackQueue170.finalTrustVersion, FINAL);
 
 const automaticResult = await window.playIndex(1);
 assert.equal(automaticResult, 'played:2', 'ended playback must skip an unresolved row and continue to the next playable track');
@@ -91,16 +92,16 @@ assert.equal(saved[1].id, 'U-blocked', 'failed origin row must remain unresolved
 assert.equal(saved[2].id, 'bbbbbbbbbbb');
 assert.equal(saved[3].id, 'ccccccccccc');
 assert.equal(saved[4].id, 'ddddddddddd');
-assert.equal(saved[2].youtubeMatchResolverVersion, TRUST, 'resolved playback must stay trusted in persistent cache');
-assert.equal(saved[3].youtubeMatchResolverVersion, TRUST);
-assert.equal(saved[4].youtubeMatchResolverVersion, TRUST);
+assert.equal(saved[2].youtubeMatchFinalTrustVersion, FINAL, 'resolved playback must stay final-trusted in persistent cache');
+assert.equal(saved[3].youtubeMatchFinalTrustVersion, FINAL);
+assert.equal(saved[4].youtubeMatchFinalTrustVersion, FINAL);
 
 const callsBeforeCachedPlay = resolverCalls.filter((call) => call.includes('Playable Three')).length;
 window.document.getElementById('status').textContent = 'PAUSED';
 window.document.getElementById('playButton').textContent = '▶';
 await window.playIndex(3);
 const callsAfterCachedPlay = resolverCalls.filter((call) => call.includes('Playable Three')).length;
-assert.equal(callsAfterCachedPlay, callsBeforeCachedPlay, 'cached resolved rows must not be resolved again');
+assert.equal(callsAfterCachedPlay, callsBeforeCachedPlay, 'final-trusted cached rows must not be resolved again');
 
 window.localStorage.setItem(CURRENT, '0');
 const callsBeforeManualFailure = innerCalls.length;
@@ -122,7 +123,7 @@ const adDom = new JSDOM(`<!doctype html><head></head><body>
 });
 const adWindow = adDom.window;
 adWindow.localStorage.setItem(KEY, JSON.stringify([
-  { id: 'abcdefghijk', title: 'Song', artist: 'Artist', duration: 180, spotifyTrackId: 'spotify-1', badges: ['Spotify', 'Origin'], youtubeMatchResolverVersion: TRUST },
+  { id: 'abcdefghijk', youtubeMatchId: 'abcdefghijk', title: 'Song', artist: 'Artist', duration: 180, spotifyTrackId: 'spotify-1', badges: ['Spotify', 'Origin'], youtubeMatchResolverVersion: RESOLVER, youtubeMatchFinalTrustVersion: FINAL },
 ]));
 adWindow.localStorage.setItem(CURRENT, '0');
 adWindow.eval(adSource);
@@ -136,9 +137,9 @@ assert.equal(indicator.previousElementSibling.id, 'status', 'ad timer must be on
 
 adWindow.document.getElementById('duration').textContent = '3:00';
 adWindow.document.getElementById('elapsed').textContent = '0:10';
-assert.equal(adWindow.ampulaAdIndicator170.sync(), false, 'indicator must disappear when the canonical track duration is active');
+assert.equal(adWindow.ampulaAdIndicator170.sync(), false, 'indicator must disappear when canonical track playback is active');
 assert.equal(indicator.hidden, true);
 adWindow.ampulaAdIndicator170.stop();
 adDom.window.close();
 
-console.log('rolling resolver queue + compact ad timer v1.7.0: ok');
+console.log('rolling resolver queue + compact ad timer v1.7.1: ok');
