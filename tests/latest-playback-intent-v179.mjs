@@ -4,7 +4,6 @@ import { JSDOM } from 'jsdom';
 
 const navigationSource = fs.readFileSync('playback-navigation-v178.js', 'utf8');
 const queueSource = fs.readFileSync('playback-queue-v170.js', 'utf8');
-const fastPlayerSource = fs.readFileSync('fast-player-v141.js', 'utf8');
 
 const KEY = 'winampmusic.library.v1';
 const CURRENT = 'winampmusic.fast.current.v1';
@@ -58,7 +57,7 @@ window.importTracks = (items) => {
 let releaseThree;
 const threeResolved = new Promise((resolve) => { releaseThree = resolve; });
 window.ampulaPlaybackPrefetch165 = {
-  resolveAhead: async (index, track) => {
+  resolveAhead: async (index) => {
     if (index === 2) return threeResolved;
     return null;
   },
@@ -73,12 +72,17 @@ window.playIndex = async (index) => {
   return `played:${index}`;
 };
 
+let suspendCalls = 0;
+window.ampMusicYouTube150 = { suspend() { suspendCalls += 1; } };
+
 window.eval(navigationSource);
 window.eval(queueSource);
 
 const rowThree = window.document.querySelector('.track-main[data-index="2"]');
 const rowFive = window.document.querySelector('.track-main[data-index="4"]');
 const nextButton = window.document.getElementById('nextButton');
+const playButton = window.document.getElementById('playButton');
+const status = window.document.getElementById('status');
 
 rowThree.addEventListener('click', () => { void window.playIndex(2); });
 rowFive.addEventListener('click', () => { void window.playIndex(4); });
@@ -109,10 +113,18 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 assert.deepEqual(played, [4, 6], 'row 5 -> unresolved row 6 -> row 7 must be deterministic with Shuffle OFF');
 assert.equal(window.localStorage.getItem(CURRENT), '6');
 
+// Base player may briefly emit an ellipsis while loading; navigation must normalize it to a real Pause affordance.
+status.textContent = 'LOADING PLAYER…';
+playButton.textContent = '…';
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(playButton.textContent, '⏸', 'pending playback must display Pause, not an ellipsis-only control');
+assert.equal(window.ampulaPlaybackNavigation178.isPendingPlaybackIntent(), true);
+playButton.click();
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(suspendCalls, 1, 'Pause during startup cancels the pending provider request');
+assert.equal(playButton.textContent, '▶');
+assert.equal(status.textContent, 'PAUSED');
+assert.equal(window.ampulaPlaybackNavigation178.isPendingPlaybackIntent(), false);
+
 dom.window.close();
-
-// The transport control must never become an ellipsis-only loading glyph.
-assert.doesNotMatch(fastPlayerSource, /ui\.play\.textContent\s*=\s*['"]…['"]/, 'pending playback must show Pause instead of an ellipsis-only transport');
-assert.match(fastPlayerSource, /pendingPlaybackIntent|intendedPlayback/, 'base player must track pending playback intent so Pause can cancel startup');
-
 console.log('latest playback intent v1.7.9: ok');
