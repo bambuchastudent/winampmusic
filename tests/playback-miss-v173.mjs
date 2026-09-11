@@ -17,7 +17,9 @@ assert.match(matcherSource, /excludeYoutubeIds/, 'matcher must accept excluded p
 assert.match(matcherSource, /excludedIds\.has\(candidate\.id\)/, 'excluded IDs must be removed before ranking');
 assert.match(trustSource, /metadataWithRejected/, 'final trust wrapper must inject local rejection metadata');
 assert.match(headerSource, /playback-miss-v173\.js\?v=173/, 'runtime must load MISS control');
-assert.match(swSource, /ampmusic-v1\.7\.3/);
+assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/, 'MISS recovery must hand off to music-specific recall after final trust');
+assert.match(swSource, /ampmusic-v1\.7\.4/);
+assert.match(swSource, /resolver-music-recall-v174\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 
 const dom = new JSDOM(`<!doctype html><head></head><body>
