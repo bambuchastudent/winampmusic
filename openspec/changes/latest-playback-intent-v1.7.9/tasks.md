@@ -6,5 +6,5 @@
 - [x] Add latest-intent generation guard to playback queue.
 - [x] Make pending startup expose/cancel through Pause.
 - [x] Bump PWA/runtime cache to v1.7.9.
-- [ ] Run targeted and full CI.
+- [x] Run targeted and full CI.
 - [ ] Merge to develop and verify Pages/release.
