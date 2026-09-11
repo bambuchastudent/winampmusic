@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.4';
-const CACHE = 'winampmusic-shell-v174-resolver-music-recall';
+const BUILD = 'ampmusic-v1.7.5';
+const CACHE = 'winampmusic-shell-v175-full-library-resolution';
 const CORE = [
   './',
   './index.html',

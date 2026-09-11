@@ -30,7 +30,7 @@
   async function registerPwa() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      await navigator.serviceWorker.register('./sw.js?v=174', { updateViaCache: 'none' });
+      await navigator.serviceWorker.register('./sw.js?v=175', { updateViaCache: 'none' });
     } catch (error) {
       console.warn('[AmpMusic] PWA registration failed', error);
     }
@@ -74,7 +74,7 @@
       script.addEventListener('load', ready, { once: true });
       script.addEventListener('error', () => { clearTimeout(timeout); reject(new Error('Spotify origin module failed to load')); }, { once: true });
       if (!existing) {
-        script.src = './spotify-origin-import-v162.js?v=162';
+        script.src = './spotify-origin-import-v162.js?v=175';
         script.async = true;
         script.dataset.ampSpotifyOrigin162 = '1';
         document.head.appendChild(script);
@@ -118,5 +118,5 @@
   setTimeout(registerPwa, 3200);
 
   loadOriginPlaybackBridge();
-  console.info('[AmpMusic] stable 1.7.4 bridge ready');
+  console.info('[AmpMusic] stable 1.7.5 bridge ready');
 })();

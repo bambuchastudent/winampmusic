@@ -12,6 +12,7 @@ const dom = new JSDOM(`<!doctype html><body>
 </body>`, { url: 'https://bambuchastudent.github.io/winampmusic/', runScripts: 'outside-only' });
 const { window } = dom;
 const STORAGE_KEY = 'winampmusic.library.v1';
+const FINAL = 'music-only-v1.6.7';
 
 function localId(title, artist) {
   return `U-${String(title).toLowerCase()}-${String(artist).toLowerCase()}`;
@@ -44,7 +45,7 @@ const candidates = new Map([
 window.winampMusicAppleImport = {
   findYouTubeMatch: async ({ title, artist, durationMs }) => {
     matcherCalls += 1;
-    return { id: candidates.get(title), title, artist, duration: Math.round(durationMs / 1000) };
+    return { id: candidates.get(title), title, artist, duration: Math.round(durationMs / 1000), finalTrustVersion: FINAL };
   },
 };
 window.fetch = async (url) => {
@@ -93,32 +94,38 @@ assert.equal(window.document.querySelector('#spotifySourcePanel'), null, 'Spotif
 assert.equal(window.document.querySelector('iframe[src*="spotify"]'), null, 'Spotify must not render an iframe');
 
 const resolution = await result.resolution;
-assert.equal(resolution.matched, 0, 'normal import must not resolve the whole playlist');
+assert.equal(resolution.matched, 2, 'normal import must resolve the complete imported playlist in background');
 assert.equal(resolution.total, 2);
-assert.equal(resolution.strategy, 'on-demand+2-ahead');
-assert.equal(matcherCalls, 0, 'normal metadata import must not call YouTube matcher when play=false');
+assert.equal(resolution.strategy, 'background-all+on-demand');
+assert.equal(matcherCalls, 2, 'every unresolved Spotify row must be offered to the playback matcher');
 library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
-assert.match(library[0].id, /^U-/);
-assert.match(library[1].id, /^U-/);
+assert.equal(library[0].id, 'abcdefghijk');
+assert.equal(library[1].id, 'lmnopqrstuv');
+assert.equal(library[0].youtubeMatchFinalTrustVersion, FINAL);
+assert.equal(library[1].youtubeMatchFinalTrustVersion, FINAL);
+assert.equal(library[0].title, 'Better Call Saul Main Title', 'Spotify title must survive YouTube resolution');
+assert.equal(library[0].artist, 'Dave Porter', 'Spotify artist must survive YouTube resolution');
+assert.equal(library[1].title, 'Address Unknown');
+assert.equal(library[1].artist, 'The Ink Spots');
 assert.ok(states.some((state) => state.phase === 'imported'));
 assert.ok(states.some((state) => state.phase === 'done'));
 
 const manual = await api.resolveInBackground(result.metadata.tracks);
-assert.equal(manual.matched, 2, 'explicit compatibility API may still resolve all tracks');
-assert.equal(matcherCalls, 2);
+assert.equal(manual.matched, 2, 'explicit compatibility API still resolves the complete track set');
+assert.equal(matcherCalls, 4);
 library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
 assert.equal(library[0].id, 'abcdefghijk');
 assert.equal(library[0].youtubeMatchId, 'abcdefghijk');
 assert.equal(library[0].youtubeMatchResolverVersion, 'music-only-v1.6.4');
+assert.equal(library[0].youtubeMatchFinalTrustVersion, FINAL);
 assert.equal(library[0].playbackProvider, 'youtube');
-assert.equal(library[0].title, 'Better Call Saul Main Title', 'Spotify title must survive YouTube resolution');
-assert.equal(library[0].artist, 'Dave Porter', 'Spotify artist must survive YouTube resolution');
-assert.equal(library[1].id, 'lmnopqrstuv');
+assert.equal(library[0].title, 'Better Call Saul Main Title', 'Spotify title must survive repeated YouTube resolution');
+assert.equal(library[0].artist, 'Dave Porter', 'Spotify artist must survive repeated YouTube resolution');
 
 const again = await api.importPlaylist('https://open.spotify.com/playlist/3A4l0emm89zzee5bzE7E0L', { play: false });
 await again.resolution;
 library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
 assert.equal(library.length, 2, 're-import must not duplicate Spotify-origin tracks');
 
-console.log('spotify metadata-only lazy origin import contract: ok');
+console.log('spotify full-library background origin import contract: ok');
 dom.window.close();

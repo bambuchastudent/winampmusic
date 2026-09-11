@@ -3,7 +3,7 @@
   if (window.__AMPULA_SPOTIFY_ORIGIN_162__) return;
   window.__AMPULA_SPOTIFY_ORIGIN_162__ = true;
 
-  const VERSION = '1.7.2';
+  const VERSION = '1.7.5';
   const STORAGE_KEY = 'winampmusic.library.v1';
   const LEGACY_SOURCE_KEY = 'ampula.spotifySource.v1';
   const DATA_API = 'https://spotify.xwolf.space/api/playlist/';
@@ -12,11 +12,13 @@
   const PRIMARY_TIMEOUT_MS = 6500;
   const TOKEN_TIMEOUT_MS = 4500;
   const SPOTIFY_TIMEOUT_MS = 6000;
+  const RESOLVE_TIMEOUT_MS = 120000;
   const SPOTIFY_PAGE_SIZE = 50;
   const MAX_SPOTIFY_TRACKS = 500;
   const PLAYLIST_ID_RE = /^[A-Za-z0-9]{16,40}$/;
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const TRUST_VERSION = 'music-only-v1.6.4';
+  const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const KNOWN_ALIASES = new Map([
     ['https://share.google/T0seuEuCz8Wdpksp3', '3A4l0emm89zzee5bzE7E0L'],
   ]);
@@ -256,11 +258,11 @@
         settled = true;
         resolve(window.winampMusicAppleImport?.findYouTubeMatch || null);
       };
-      const timer = setTimeout(finish, 3500);
+      const timer = setTimeout(finish, 15000);
       const done = () => { clearTimeout(timer); finish(); };
       if (!script) {
         script = document.createElement('script');
-        script.src = './apple-music-import-v064.js?v=165';
+        script.src = './apple-music-import-v064.js?v=175';
         script.async = true;
         script.dataset.spotifyOriginMatcher = '1';
         document.head.appendChild(script);
@@ -275,11 +277,13 @@
 
   function mergeResolved(track, candidate) {
     if (!VIDEO_ID_RE.test(clean(candidate?.id))) return false;
+    if (clean(candidate?.finalTrustVersion) !== FINAL_TRUST_VERSION) return false;
     const resolved = {
       ...track,
       id: clean(candidate.id),
       youtubeMatchId: clean(candidate.id),
       youtubeMatchResolverVersion: TRUST_VERSION,
+      youtubeMatchFinalTrustVersion: FINAL_TRUST_VERSION,
       playbackProvider: 'youtube',
       badges: ['Spotify', 'Origin', 'YouTube match'],
     };
@@ -295,6 +299,7 @@
       id: clean(candidate.id),
       youtubeMatchId: clean(candidate.id),
       youtubeMatchResolverVersion: TRUST_VERSION,
+      youtubeMatchFinalTrustVersion: FINAL_TRUST_VERSION,
       playbackProvider: 'youtube',
       badges: [...new Set([...(Array.isArray(library[index].badges) ? library[index].badges : []), 'Spotify', 'Origin', 'YouTube match'])],
     };
@@ -306,7 +311,7 @@
   async function resolveOne(track, matcher) {
     if (typeof matcher !== 'function') return false;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5500);
+    const timer = setTimeout(() => controller.abort(), RESOLVE_TIMEOUT_MS);
     try {
       const candidate = await matcher({
         title: track.title,
@@ -321,7 +326,7 @@
     }
   }
 
-  // Compatibility API only. Normal playlist import no longer calls this function.
+  // Compatibility API: also follows the new all-tracks / long-budget policy.
   async function resolveInBackground(tracks, onProgress) {
     const matcher = await loadMatcher();
     if (typeof matcher !== 'function') return { matched: 0, total: tracks.length };
@@ -334,10 +339,10 @@
         if (await resolveOne(tracks[index], matcher)) matched += 1;
         done += 1;
         onProgress?.({ done, matched, total: tracks.length });
-        await new Promise((resolve) => setTimeout(resolve, 40));
+        await new Promise((resolve) => setTimeout(resolve, 20));
       }
     };
-    await Promise.all([worker(), worker()]);
+    await Promise.all(Array.from({ length: Math.min(4, Math.max(1, tracks.length)) }, () => worker()));
     window.ampMusicOriginPlayback151?.refresh?.();
     return { matched, total: tracks.length };
   }
@@ -365,22 +370,29 @@
       if (generation !== activeImport) return { handled: true, stale: true };
       importMetadata(metadata.tracks);
       options.input && (options.input.value = '');
-      onStatus({ phase: 'imported', message: `Spotify · ${metadata.tracks.length} tracks imported · resolve on playback · 2 ahead` });
+      onStatus({ phase: 'imported', message: `Spotify · ${metadata.tracks.length} tracks imported · resolving full library` });
 
       const firstIndex = firstImportedIndex(metadata.tracks[0]);
-      if (options.play !== false && firstIndex >= 0) {
-        setTimeout(() => {
-          window.playIndex?.(firstIndex);
-          void window.ampulaPlaybackPrefetch165?.prefetchFollowing?.(firstIndex, 2);
-        }, 0);
-      }
-
-      const resolution = Promise.resolve({
-        matched: 0,
-        total: metadata.tracks.length,
-        strategy: 'on-demand+2-ahead',
+      const startIndex = firstIndex >= 0 ? firstIndex : 0;
+      const resolution = Promise.resolve().then(async () => {
+        if (typeof window.ampulaPlaybackPrefetch165?.resolveAll === 'function') {
+          const results = await window.ampulaPlaybackPrefetch165.resolveAll(startIndex);
+          return {
+            matched: Array.isArray(results) ? results.filter(Boolean).length : 0,
+            total: metadata.tracks.length,
+            strategy: 'background-all+on-demand',
+          };
+        }
+        const fallback = await resolveInBackground(metadata.tracks);
+        return { ...fallback, strategy: 'background-all+on-demand' };
       });
-      onStatus({ phase: 'done', message: `Spotify origin · ${metadata.tracks.length} tracks · resolve on playback · 2 ahead` });
+
+      setTimeout(() => {
+        void window.ampulaPlaybackPrefetch165?.resolveAll?.(startIndex);
+        if (options.play !== false && firstIndex >= 0) window.playIndex?.(firstIndex);
+      }, 0);
+
+      onStatus({ phase: 'done', message: `Spotify origin · ${metadata.tracks.length} tracks · resolving all in background` });
       return { handled: true, parsed, metadata, resolution };
     } catch (error) {
       if (generation !== activeImport) return { handled: true, stale: true };
@@ -427,5 +439,5 @@
     importPlaylist,
     resolveInBackground,
   };
-  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready · resilient metadata import · on-demand resolver`);
+  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready · resilient metadata import · full-library resolver`);
 })();
