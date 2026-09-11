@@ -194,10 +194,11 @@
       const previousIndex = readCurrentIndex(rows.length);
       const backwardTarget = previousIndex >= 0 ? (previousIndex - 1 + rows.length) % rows.length : -1;
       const direction = safeIndex === backwardTarget ? -1 : 1;
+      const excludedIndex = previousIndex >= 0 && safeIndex !== previousIndex ? previousIndex : -1;
       const track = rows[safeIndex];
       if (!isReady(track)) {
         void startResolveAndCache(safeIndex, track);
-        return playNextAvailable(safeIndex, current, { excludedIndex: previousIndex, direction });
+        return playNextAvailable(safeIndex, current, { excludedIndex, direction });
       }
       const result = await current(safeIndex);
       startFullResolution(safeIndex);
