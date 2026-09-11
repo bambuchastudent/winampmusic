@@ -7,9 +7,10 @@ const header = fs.readFileSync('header-visualizer-v159.js', 'utf8');
 const trustGate = fs.readFileSync('resolver-trust-v167.js', 'utf8');
 const resolverTest = fs.readFileSync('tests/youtube-music-resolver-v163.mjs', 'utf8');
 
-assert.match(header, /resolver-trust-v167\.js\?v=171/);
-assert.match(header, /track-diagnostics-v164\.js\?v=171/);
-assert.match(header, /diagnostics-download-v171\.js\?v=171/);
+assert.match(header, /resolver-trust-v167\.js\?v=173/);
+assert.match(header, /track-diagnostics-v164\.js\?v=173/);
+assert.match(header, /diagnostics-download-v171\.js\?v=173/);
+assert.match(header, /playback-miss-v173\.js\?v=173/);
 assert.match(header, /data-ampula-track-diagnostics-164|ampulaTrackDiagnostics164/);
 assert.match(trustGate, /Final trust gate rejected/);
 
