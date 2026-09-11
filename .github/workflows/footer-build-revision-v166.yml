@@ -4,18 +4,24 @@ on:
   pull_request:
     paths:
       - '.github/workflows/pages.yml'
+      - '.github/workflows/cleanup-merged-branches.yml'
       - '.github/workflows/footer-build-revision-v166.yml'
       - 'scripts/stamp-build-revision.mjs'
       - 'tests/footer-build-revision-v166.mjs'
+      - 'tests/release-lifecycle-v176.mjs'
       - 'openspec/changes/footer-build-revision-v1.6.6/**'
+      - 'openspec/changes/release-lifecycle-v1.7.6/**'
   push:
     branches: [develop]
     paths:
       - '.github/workflows/pages.yml'
+      - '.github/workflows/cleanup-merged-branches.yml'
       - '.github/workflows/footer-build-revision-v166.yml'
       - 'scripts/stamp-build-revision.mjs'
       - 'tests/footer-build-revision-v166.mjs'
+      - 'tests/release-lifecycle-v176.mjs'
       - 'openspec/changes/footer-build-revision-v1.6.6/**'
+      - 'openspec/changes/release-lifecycle-v1.7.6/**'
 
 permissions:
   contents: read
@@ -32,3 +38,5 @@ jobs:
         run: node --check scripts/stamp-build-revision.mjs
       - name: Footer build revision contract
         run: node tests/footer-build-revision-v166.mjs
+      - name: Release lifecycle contract
+        run: node tests/release-lifecycle-v176.mjs
