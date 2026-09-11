@@ -3,15 +3,21 @@
   if (window.__AMPULA_PLAYBACK_PREFETCH_165__) return;
   window.__AMPULA_PLAYBACK_PREFETCH_165__ = true;
 
-  const VERSION = '1.7.1';
-  const PREFETCH_COUNT = 2;
+  const VERSION = '1.7.5';
+  const MODE = 'full-library';
+  const WORKER_COUNT = 4;
+  const RESOLVE_TIMEOUT_MS = 120000;
   const RESOLVER_VERSION = 'music-only-v1.6.4';
   const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const LIBRARY_KEY = 'winampmusic.library.v1';
+  const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
   const inflight = new Map();
   let matcherPromise = null;
+  let fullResolvePromise = null;
+  let rerunRequested = false;
+  let rerunStartIndex = 0;
 
   function readLibrary() {
     try {
@@ -58,11 +64,11 @@
         settled = true;
         resolve(typeof window.winampMusicAppleImport?.findYouTubeMatch === 'function' ? window.winampMusicAppleImport.findYouTubeMatch : null);
       };
-      const timer = setTimeout(finish, 4200);
+      const timer = setTimeout(finish, 15000);
       const done = () => { clearTimeout(timer); setTimeout(finish, 0); };
       if (!script) {
         script = document.createElement('script');
-        script.src = './apple-music-import-v064.js?v=171';
+        script.src = './apple-music-import-v064.js?v=175';
         script.async = true;
         script.dataset.playbackPrefetchMatcher = '1';
         document.head.appendChild(script);
@@ -90,7 +96,7 @@
       const matcher = await loadMatcher();
       if (typeof matcher !== 'function') return null;
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6500);
+      const timer = setTimeout(() => controller.abort(), RESOLVE_TIMEOUT_MS);
       try {
         const candidate = await matcher({
           title: clean(originalTrack.title),
@@ -105,7 +111,6 @@
         const currentIndex = findCurrentIndex(library, originalTrack, index);
         if (currentIndex < 0) return null;
         const current = library[currentIndex];
-        // If another path resolved the row with final trust while prefetch was in flight, do not replace it.
         if (!needsPrefetchResolution(current)) return current;
         const resolved = {
           ...current,
@@ -129,7 +134,7 @@
         window.ampMusicOriginPlayback151?.refresh?.();
         return resolved;
       } catch (error) {
-        if (error?.name !== 'AbortError') console.debug('[ÁmpulaMP prefetch] no final-trusted match', clean(error?.message));
+        if (error?.name !== 'AbortError') console.debug('[ÁmpulaMP resolver] no final-trusted match', clean(error?.message));
         return null;
       } finally {
         clearTimeout(timer);
@@ -140,18 +145,63 @@
     return job;
   }
 
-  async function prefetchFollowing(index, count = PREFETCH_COUNT) {
-    const library = readLibrary();
-    if (library.length < 2) return [];
-    const safeIndex = ((Number(index) % library.length) + library.length) % library.length;
+  function orderedTargets(library, startIndex = 0) {
+    if (!library.length) return [];
+    const safeStart = ((Number(startIndex) % library.length) + library.length) % library.length;
     const targets = [];
-    const limit = Math.min(Math.max(0, Number(count) || 0), Math.max(0, library.length - 1));
-    for (let offset = 1; offset <= limit; offset += 1) {
-      const targetIndex = (safeIndex + offset) % library.length;
+    for (let offset = 0; offset < library.length; offset += 1) {
+      const targetIndex = (safeStart + offset) % library.length;
       const track = library[targetIndex];
       if (needsPrefetchResolution(track)) targets.push([targetIndex, track]);
     }
-    return Promise.allSettled(targets.map(([targetIndex, track]) => resolveAhead(targetIndex, track)));
+    return targets;
+  }
+
+  async function resolveAll(startIndex = 0) {
+    if (fullResolvePromise) {
+      rerunRequested = true;
+      rerunStartIndex = startIndex;
+      return fullResolvePromise;
+    }
+
+    const library = readLibrary();
+    const targets = orderedTargets(library, startIndex);
+    if (!targets.length) return [];
+    let cursor = 0;
+    const results = new Array(targets.length);
+
+    const worker = async () => {
+      while (cursor < targets.length) {
+        const slot = cursor++;
+        const [targetIndex, track] = targets[slot];
+        try {
+          results[slot] = await resolveAhead(targetIndex, track);
+        } catch {
+          results[slot] = null;
+        }
+      }
+    };
+
+    fullResolvePromise = Promise.all(
+      Array.from({ length: Math.min(WORKER_COUNT, targets.length) }, () => worker())
+    ).then(() => results);
+
+    try {
+      return await fullResolvePromise;
+    } finally {
+      fullResolvePromise = null;
+      if (rerunRequested) {
+        const nextStart = rerunStartIndex;
+        rerunRequested = false;
+        rerunStartIndex = 0;
+        setTimeout(() => { void resolveAll(nextStart); }, 0);
+      }
+    }
+  }
+
+  // Historical compatibility name. The policy is intentionally no longer positional.
+  function prefetchFollowing(index) {
+    return resolveAll(index);
   }
 
   function installPlayBridge() {
@@ -159,7 +209,7 @@
     if (typeof current !== 'function' || current.__ampulaPrefetch165) return false;
     const wrapped = (index) => {
       const result = current(index);
-      queueMicrotask(() => { void prefetchFollowing(index, PREFETCH_COUNT); });
+      queueMicrotask(() => { void resolveAll(index); });
       return result;
     };
     Object.defineProperty(wrapped, '__ampulaPrefetch165', { value: true });
@@ -168,15 +218,46 @@
     return true;
   }
 
+  function installImportBridge() {
+    const current = window.importTracks;
+    if (typeof current !== 'function' || current.__ampulaResolveAll175) return false;
+    const wrapped = (...args) => {
+      const result = current.apply(window, args);
+      queueMicrotask(() => {
+        const saved = Number(localStorage.getItem(CURRENT_KEY));
+        void resolveAll(Number.isInteger(saved) && saved >= 0 ? saved : 0);
+      });
+      return result;
+    };
+    Object.defineProperty(wrapped, '__ampulaResolveAll175', { value: true });
+    Object.defineProperty(wrapped, '__ampulaWrappedImportTracks', { value: current });
+    window.importTracks = wrapped;
+    return true;
+  }
+
   installPlayBridge();
+  installImportBridge();
+  for (const delay of [80, 300, 1000]) setTimeout(installImportBridge, delay);
+
   window.ampulaPlaybackPrefetch165 = {
     version: VERSION,
-    count: PREFETCH_COUNT,
+    mode: MODE,
+    count: Number.POSITIVE_INFINITY,
+    workerCount: WORKER_COUNT,
+    resolveTimeoutMs: RESOLVE_TIMEOUT_MS,
     finalTrustVersion: FINAL_TRUST_VERSION,
     needsPrefetchResolution,
     resolveAhead,
+    resolveAll,
     prefetchFollowing,
     installPlayBridge,
+    installImportBridge,
   };
-  console.info(`[ÁmpulaMP] playback resolver prefetch ${VERSION} ready · ${PREFETCH_COUNT} ahead · final trust ${FINAL_TRUST_VERSION}`);
+
+  setTimeout(() => {
+    const saved = Number(localStorage.getItem(CURRENT_KEY));
+    void resolveAll(Number.isInteger(saved) && saved >= 0 ? saved : 0);
+  }, 0);
+
+  console.info(`[ÁmpulaMP] playback resolver ${VERSION} ready · full library · ${WORKER_COUNT} workers · ${RESOLVE_TIMEOUT_MS / 1000}s budget · final trust ${FINAL_TRUST_VERSION}`);
 })();
