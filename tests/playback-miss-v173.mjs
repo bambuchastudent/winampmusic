@@ -16,9 +16,9 @@ const BAD_ID = 'vuJwrcKQ7Sg';
 assert.match(matcherSource, /excludeYoutubeIds/, 'matcher must accept excluded playback IDs');
 assert.match(matcherSource, /excludedIds\.has\(candidate\.id\)/, 'excluded IDs must be removed before ranking');
 assert.match(trustSource, /metadataWithRejected/, 'final trust wrapper must inject local rejection metadata');
-assert.match(headerSource, /playback-miss-v173\.js\?v=173/, 'runtime must load MISS control');
-assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/, 'MISS recovery must hand off to music-specific recall after final trust');
-assert.match(swSource, /ampmusic-v1\.7\.4/);
+assert.match(headerSource, /playback-miss-v173\.js\?v=175/, 'runtime must load MISS control');
+assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/, 'MISS recovery must hand off to deep music recall after final trust');
+assert.match(swSource, /ampmusic-v1\.7\.5/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 
@@ -119,4 +119,4 @@ assert.equal(button.textContent, 'MISS · 1', 'replacement playback should show 
 w.ampulaPlaybackMiss173.stop();
 dom.window.close();
 
-console.log('manual playback MISS v1.7.3: ok');
+console.log('manual playback MISS + v1.7.5 deep recall contract: ok');
