@@ -9,7 +9,7 @@ const spotify = readFileSync(new URL('../spotify-origin-import-v162.js', import.
 assert.match(header, /apple-music-import-v064\.js\?v=175/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
 assert.match(header, /playback-prefetch-v165\.js\?v=175/);
-assert.match(header, /playback-queue-v170\.js\?v=175/);
+assert.match(header, /playback-queue-v170\.js\?v=176/);
 assert.match(spotify, /strategy: 'background-all\+on-demand'/);
 assert.doesNotMatch(spotify, /resolve on playback · 2 ahead/);
 assert.match(source, /youtubeMatchFinalTrustVersion/);
