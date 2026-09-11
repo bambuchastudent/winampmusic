@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const pages = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
 const cleanup = readFileSync(new URL('../.github/workflows/cleanup-merged-branches.yml', import.meta.url), 'utf8');
-const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+const docs = readFileSync(new URL('../docs/RELEASE_LIFECYCLE.md', import.meta.url), 'utf8');
 
 assert.match(pages, /id: revision[\s\S]*revision="r\$\(date \+'%y%m%d%H%M'\)"/, 'Pages deploy must choose one rYYMMDDHHMM revision');
 assert.match(pages, /node scripts\/stamp-build-revision\.mjs index\.html "\$\{revision#r\}"/, 'footer must be stamped from the same revision used for release');
@@ -21,7 +21,9 @@ assert.match(cleanup, /contents: write/, 'cleanup needs branch deletion permissi
 assert.match(cleanup, /git\/refs\/heads\/\$\{HEAD_REF\}/, 'cleanup must delete the merged head ref');
 assert.match(cleanup, /develop\|main\|master/, 'cleanup must protect trunk branch names');
 
-assert.match(readme, /successful Pages deployment creates a matching `rYYMMDDHHMM` Git tag and GitHub Release/i);
-assert.match(readme, /merged same-repository feature branches are deleted automatically/i);
+assert.match(docs, /successful Pages deployment chooses one Madrid-time revision/i);
+assert.match(docs, /Git tag named `rYYMMDDHHMM`/i);
+assert.match(docs, /GitHub Release named `ÁmpulaMP rYYMMDDHHMM`/i);
+assert.match(docs, /Merged same-repository feature branches are deleted automatically/i);
 
 console.log('release lifecycle v1.7.6: ok');
