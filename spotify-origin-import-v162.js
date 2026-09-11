@@ -3,10 +3,17 @@
   if (window.__AMPULA_SPOTIFY_ORIGIN_162__) return;
   window.__AMPULA_SPOTIFY_ORIGIN_162__ = true;
 
-  const VERSION = '1.6.5';
+  const VERSION = '1.7.2';
   const STORAGE_KEY = 'winampmusic.library.v1';
   const LEGACY_SOURCE_KEY = 'ampula.spotifySource.v1';
   const DATA_API = 'https://spotify.xwolf.space/api/playlist/';
+  const TOKEN_API = 'https://spotify.xwolf.space/api/token';
+  const SPOTIFY_API = 'https://api.spotify.com/v1';
+  const PRIMARY_TIMEOUT_MS = 6500;
+  const TOKEN_TIMEOUT_MS = 4500;
+  const SPOTIFY_TIMEOUT_MS = 6000;
+  const SPOTIFY_PAGE_SIZE = 50;
+  const MAX_SPOTIFY_TRACKS = 500;
   const PLAYLIST_ID_RE = /^[A-Za-z0-9]{16,40}$/;
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const TRUST_VERSION = 'music-only-v1.6.4';
@@ -17,6 +24,7 @@
   const $ = (id) => document.getElementById(id);
   let matcherPromise = null;
   let activeImport = 0;
+  let activeImportController = null;
 
   function parsePlaylist(value) {
     const text = clean(value).replace(/\/$/, '');
@@ -78,7 +86,7 @@
       const artist = clean(track?.artist || track?.artists?.map?.((item) => item?.name).filter(Boolean).join(', '));
       const durationMs = Math.max(0, Number(track?.duration_ms || track?.durationMs || 0));
       if (!title) return null;
-      const spotifyTrackUrl = clean(track?.url) || (spotifyTrackId ? `https://open.spotify.com/track/${spotifyTrackId}` : '');
+      const spotifyTrackUrl = clean(track?.url || track?.external_urls?.spotify) || (spotifyTrackId ? `https://open.spotify.com/track/${spotifyTrackId}` : '');
       return {
         title,
         artist,
@@ -100,16 +108,114 @@
     return { playlistTitle, playlistOwner, tracks };
   }
 
-  async function fetchPlaylist(parsed, signal) {
-    const response = await fetch(`${DATA_API}${encodeURIComponent(parsed.playlistId)}`, {
+  function timeoutError(timeoutMs) {
+    const error = new Error(`request timed out after ${timeoutMs}ms`);
+    error.name = 'TimeoutError';
+    return error;
+  }
+
+  async function fetchJsonBounded(url, { signal, timeoutMs, headers = {} } = {}) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const controller = new AbortController();
+    let timedOut = false;
+    const relayAbort = () => controller.abort();
+    signal?.addEventListener('abort', relayAbort, { once: true });
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, Math.max(1, Number(timeoutMs) || SPOTIFY_TIMEOUT_MS));
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        cache: 'no-store',
+        headers: { Accept: 'application/json', ...headers },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      if (timedOut) throw timeoutError(timeoutMs);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', relayAbort);
+    }
+  }
+
+  async function fetchPrimaryPlaylist(parsed, signal) {
+    const payload = await fetchJsonBounded(`${DATA_API}${encodeURIComponent(parsed.playlistId)}`, {
       signal,
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
+      timeoutMs: PRIMARY_TIMEOUT_MS,
     });
-    if (!response.ok) throw new Error(`Spotify metadata HTTP ${response.status}`);
-    const payload = await response.json();
     if (payload?.success === false) throw new Error(clean(payload?.error) || 'Spotify metadata unavailable');
     return normalizePayload(parsed, payload);
+  }
+
+  function spotifyWebTrack(entry) {
+    const track = entry?.track || entry?.item || entry;
+    if (!track || typeof track !== 'object') return null;
+    const id = clean(track.id || track.uri?.split?.(':')?.at?.(-1));
+    const title = clean(track.name || track.title);
+    if (!title) return null;
+    const artists = Array.isArray(track.artists) ? track.artists : [];
+    const artist = clean(track.artist || artists.map((item) => item?.name).filter(Boolean).join(', '));
+    return {
+      id,
+      title,
+      artist,
+      artists,
+      duration_ms: Math.max(0, Number(track.duration_ms || track.durationMs || 0)),
+      url: clean(track.external_urls?.spotify) || (id ? `https://open.spotify.com/track/${id}` : ''),
+    };
+  }
+
+  async function fetchSpotifyWebApiPlaylist(parsed, signal) {
+    const tokenPayload = await fetchJsonBounded(TOKEN_API, { signal, timeoutMs: TOKEN_TIMEOUT_MS });
+    const token = clean(tokenPayload?.access_token || tokenPayload?.accessToken || tokenPayload?.token);
+    if (!token) throw new Error('Spotify anonymous token unavailable');
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const playlistUrl = `${SPOTIFY_API}/playlists/${encodeURIComponent(parsed.playlistId)}`;
+    const playlist = await fetchJsonBounded(playlistUrl, { signal, timeoutMs: SPOTIFY_TIMEOUT_MS, headers });
+    const playlistTitle = clean(playlist?.name || playlist?.title) || 'Spotify playlist';
+    const playlistOwner = clean(playlist?.owner?.display_name || playlist?.owner?.displayName || playlist?.owner?.id || playlist?.owner);
+
+    const tracks = [];
+    let offset = 0;
+    while (offset < MAX_SPOTIFY_TRACKS) {
+      const url = new URL(`${SPOTIFY_API}/playlists/${encodeURIComponent(parsed.playlistId)}/tracks`);
+      url.searchParams.set('limit', String(SPOTIFY_PAGE_SIZE));
+      url.searchParams.set('offset', String(offset));
+      const page = await fetchJsonBounded(url.toString(), { signal, timeoutMs: SPOTIFY_TIMEOUT_MS, headers });
+      const items = Array.isArray(page?.items) ? page.items : [];
+      if (!items.length) break;
+      for (const item of items) {
+        const track = spotifyWebTrack(item);
+        if (track) tracks.push(track);
+        if (tracks.length >= MAX_SPOTIFY_TRACKS) break;
+      }
+      offset += items.length;
+      const total = Math.max(0, Number(page?.total || 0));
+      if (tracks.length >= MAX_SPOTIFY_TRACKS || !page?.next || (total && offset >= total) || items.length < SPOTIFY_PAGE_SIZE) break;
+    }
+
+    return normalizePayload(parsed, {
+      playlist: {
+        id: parsed.playlistId,
+        name: playlistTitle,
+        owner: playlistOwner,
+        tracks,
+      },
+    });
+  }
+
+  async function fetchPlaylist(parsed, signal, onFallback) {
+    try {
+      return await fetchPrimaryPlaylist(parsed, signal);
+    } catch (primaryError) {
+      if (signal?.aborted) throw primaryError;
+      onFallback?.(primaryError);
+      return fetchSpotifyWebApiPlaylist(parsed, signal);
+    }
   }
 
   function patchProvenance(track) {
@@ -247,12 +353,15 @@
     const parsed = parsePlaylist(value);
     if (!parsed) return { handled: false };
     const generation = ++activeImport;
+    activeImportController?.abort();
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    activeImportController = controller;
     const onStatus = options.onStatus || (() => {});
     onStatus({ phase: 'reading', message: 'Reading Spotify playlist…' });
     try {
-      const metadata = await fetchPlaylist(parsed, controller.signal);
+      const metadata = await fetchPlaylist(parsed, controller.signal, () => {
+        if (generation === activeImport) onStatus({ phase: 'retrying', message: 'Spotify metadata retry…' });
+      });
       if (generation !== activeImport) return { handled: true, stale: true };
       importMetadata(metadata.tracks);
       options.input && (options.input.value = '');
@@ -274,12 +383,13 @@
       onStatus({ phase: 'done', message: `Spotify origin · ${metadata.tracks.length} tracks · resolve on playback · 2 ahead` });
       return { handled: true, parsed, metadata, resolution };
     } catch (error) {
-      if (error?.name === 'AbortError') onStatus({ phase: 'error', message: 'Spotify playlist read timed out' });
+      if (generation !== activeImport) return { handled: true, stale: true };
+      if (error?.name === 'TimeoutError') onStatus({ phase: 'error', message: 'Spotify playlist read timed out' });
       else onStatus({ phase: 'error', message: 'Could not read Spotify playlist' });
       console.warn('[ÁmpulaMP] Spotify origin import failed', error);
       return { handled: true, error };
     } finally {
-      clearTimeout(timeout);
+      if (activeImportController === controller) activeImportController = null;
     }
   }
 
@@ -313,8 +423,9 @@
   window.ampulaSpotifyOrigin162 = {
     parsePlaylist,
     fetchPlaylist,
+    fetchSpotifyWebApiPlaylist,
     importPlaylist,
     resolveInBackground,
   };
-  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready · on-demand resolver`);
+  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready · resilient metadata import · on-demand resolver`);
 })();

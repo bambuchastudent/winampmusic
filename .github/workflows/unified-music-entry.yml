@@ -13,10 +13,12 @@ on:
       - 'tests/unified-music-entry.mjs'
       - 'tests/spotify-playlist-source.mjs'
       - 'tests/spotify-origin-import-v162.mjs'
+      - 'tests/spotify-import-fallback-v172.mjs'
       - 'tests/spotify-origin-playback-v162.mjs'
       - 'openspec/changes/unified-music-entry-v1.5/**'
       - 'openspec/changes/spotify-origin-youtube-fallback-v1.6.2/**'
       - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
+      - 'openspec/changes/spotify-import-fallback-v1.7.2/**'
       - '.github/workflows/unified-music-entry.yml'
   push:
     branches: [develop]
@@ -31,10 +33,12 @@ on:
       - 'tests/unified-music-entry.mjs'
       - 'tests/spotify-playlist-source.mjs'
       - 'tests/spotify-origin-import-v162.mjs'
+      - 'tests/spotify-import-fallback-v172.mjs'
       - 'tests/spotify-origin-playback-v162.mjs'
       - 'openspec/changes/unified-music-entry-v1.5/**'
       - 'openspec/changes/spotify-origin-youtube-fallback-v1.6.2/**'
       - 'openspec/changes/on-demand-resolve-prefetch-v1.6.5/**'
+      - 'openspec/changes/spotify-import-fallback-v1.7.2/**'
       - '.github/workflows/unified-music-entry.yml'
 
 permissions:
@@ -60,6 +64,7 @@ jobs:
           node --check spotify-origin-import-v162.js
           node --check origin-playback-v151.js
           node --check stable-v150.js
+          node --check tests/spotify-import-fallback-v172.mjs
           node --check scripts/run-node-tests.mjs
       - name: Install targeted test runtime
         run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
@@ -69,12 +74,15 @@ jobs:
             tests/unified-music-entry.mjs \
             tests/spotify-playlist-source.mjs \
             tests/spotify-origin-import-v162.mjs \
+            tests/spotify-import-fallback-v172.mjs \
             tests/spotify-origin-playback-v162.mjs
       - name: Check metadata-only Spotify wiring
         run: |
           grep -q "'./spotify-origin-import-v162.js'" sw.js
           grep -q 'spotify-origin-import-v162.js?v=162' stable-v150.js
           grep -q 'spotify.xwolf.space/api/playlist/' spotify-origin-import-v162.js
+          grep -q 'spotify.xwolf.space/api/token' spotify-origin-import-v162.js
+          grep -q 'api.spotify.com/v1' spotify-origin-import-v162.js
           grep -q 'Origin ·' origin-playback-v151.js
           grep -q 'Spotify' origin-playback-v151.js
           ! grep -q "'./spotify-playlist-embed-v160.js'" sw.js
