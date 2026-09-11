@@ -10,7 +10,7 @@ const swSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 assert.match(headerSource, /apple-music-import-v064\.js\?v=175/);
 assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(swSource, /ampmusic-v1\.7\.5/);
+assert.match(swSource, /ampmusic-v1\.7\.6/);
 assert.match(recallSource, /TRACK_SEARCH_BUDGET_MS\s*=\s*120000/);
 assert.match(recallSource, /REQUEST_TIMEOUT_MS\s*=\s*12000/);
 assert.match(recallSource, /\/nextpage\/search/);
@@ -101,4 +101,4 @@ assert.ok(requests.some((value) => value.startsWith('/nextpage/search?') && valu
 assert.ok(requests.some((value) => value.startsWith('/search?') && value.includes('filter=videos')), 'generic video discovery remains available');
 
 dom.window.close();
-console.log('deep YouTube music recall v1.7.5: OK');
+console.log('deep YouTube music recall + queue runtime v1.7.6: OK');
