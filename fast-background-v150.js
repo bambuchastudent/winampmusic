@@ -173,7 +173,10 @@
   const observer = new MutationObserver(() => {
     const text = stateText();
     if (text === 'PLAYING') intendedPlaying = true;
-    if (text === 'PAUSED') intendedPlaying = false;
+    // Browsers may pause the embedded provider while a tab is hidden. Keep the
+    // last explicit playback intent in that case; Media Session pause already
+    // clears intendedPlaying synchronously via requestPause().
+    if (text === 'PAUSED' && document.visibilityState !== 'hidden') intendedPlaying = false;
     syncMetadata();
     syncPlaybackState();
   });
@@ -198,5 +201,5 @@
     syncPosition();
   }, 1500);
 
-  console.info('[ÁmpulaMP] background 1.5.0 ready');
+  console.info('[ÁmpulaMP] background 1.7.8 ready · hidden suspension preserves playback intent');
 })();

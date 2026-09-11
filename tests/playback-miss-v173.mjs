@@ -18,7 +18,8 @@ assert.match(matcherSource, /excludedIds\.has\(candidate\.id\)/, 'excluded IDs m
 assert.match(trustSource, /metadataWithRejected/, 'final trust wrapper must inject local rejection metadata');
 assert.match(headerSource, /playback-miss-v173\.js\?v=175/, 'runtime must load MISS control');
 assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/, 'MISS recovery must hand off to deep music recall after final trust');
-assert.match(swSource, /ampmusic-v1\.7\.6/);
+assert.match(swSource, /ampmusic-v1\.7\.8/);
+assert.match(swSource, /playback-navigation-v178\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 
@@ -119,4 +120,4 @@ assert.equal(button.textContent, 'MISS · 1', 'replacement playback should show 
 w.ampulaPlaybackMiss173.stop();
 dom.window.close();
 
-console.log('manual playback MISS + v1.7.6 queue/deep recall contract: ok');
+console.log('manual playback MISS + v1.7.8 queue/deep recall contract: ok');

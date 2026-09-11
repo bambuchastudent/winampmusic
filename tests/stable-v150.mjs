@@ -8,12 +8,13 @@ const stableSource = fs.readFileSync('stable-v150.js', 'utf8');
 const sw = fs.readFileSync('sw.js', 'utf8');
 
 assert.match(index, /stable-v150\.js\?v=150/);
-assert.match(sw, /ampmusic-v1\.7\.6/);
+assert.match(sw, /ampmusic-v1\.7\.8/);
 assert.match(sw, /fast-player-v141\.js/);
 assert.match(sw, /stable-v150\.js/);
 assert.match(sw, /spotify-origin-import-v162\.js/);
 assert.match(sw, /resolver-trust-v167\.js/);
 assert.match(sw, /resolver-music-recall-v174\.js/);
+assert.match(sw, /playback-navigation-v178\.js/);
 assert.match(sw, /playback-queue-v170\.js/);
 assert.match(sw, /playback-miss-v173\.js/);
 assert.match(sw, /ad-indicator-v170\.js/);

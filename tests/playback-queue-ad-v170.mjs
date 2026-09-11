@@ -10,7 +10,8 @@ const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 assert.match(header, /ad-indicator-v170\.js\?v=175/);
 assert.match(header, /playback-queue-v170\.js\?v=176/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(sw, /ampmusic-v1\.7\.6/);
+assert.match(sw, /ampmusic-v1\.7\.8/);
+assert.match(sw, /playback-navigation-v178\.js/);
 assert.match(sw, /resolver-music-recall-v174\.js/);
 assert.match(sw, /playback-queue-v170\.js/);
 
@@ -68,7 +69,7 @@ window.document.getElementById('status').textContent = 'PAUSED';
 window.document.getElementById('playButton').textContent = '▶';
 window.localStorage.setItem(CURRENT, '0');
 const manualResult = await window.playIndex(1);
-assert.equal(manualResult, 'played:2', 'manual selection of an unresolved row must not strand playback when a later row is playable');
+assert.equal(manualResult, 'played:2', 'direct queue continuation without a track-click intent still skips an unresolved row');
 assert.deepEqual(innerCalls, [2, 2]);
 queueDom.window.close();
 
@@ -133,4 +134,4 @@ assert.equal(indicator.hidden, true);
 adWindow.ampulaAdIndicator170.stop();
 adDom.window.close();
 
-console.log('full-library queue continuation + compact ad timer v1.7.6: ok');
+console.log('full-library queue continuation + compact ad timer v1.7.8: ok');

@@ -3,7 +3,7 @@
   if (window.__AMPULA_PLAYBACK_QUEUE_170__) return;
   window.__AMPULA_PLAYBACK_QUEUE_170__ = true;
 
-  const VERSION = '1.7.6';
+  const VERSION = '1.7.8';
   const MODE = 'full-library';
   const LIBRARY_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
@@ -184,19 +184,62 @@
     return false;
   }
 
+  function navigationState() {
+    return window.ampulaPlaybackNavigation178 || null;
+  }
+
+  function isExplicitSelection(intent, requestedIndex) {
+    return intent?.type === 'track' && Number(intent.index) === requestedIndex;
+  }
+
+  function isForwardContinuation(intent, requestedIndex, previousIndex, length) {
+    if (previousIndex < 0 || !length) return false;
+    if (intent?.type === 'track' || intent?.type === 'previous' || intent?.type === 'play') return false;
+    const nextIndex = (previousIndex + 1) % length;
+    return requestedIndex === nextIndex && (!intent || intent.type === 'next');
+  }
+
+  async function playExplicitSelection(index, track, originalPlayIndex) {
+    const status = document.getElementById('status');
+    if (status) status.textContent = 'SELECTED TRACK UNRESOLVED · RESOLVING…';
+    const resolved = await resolveAndCache(index, track);
+    const rows = readLibrary();
+    const selected = rows[index] || resolved;
+    if (isReady(selected)) {
+      const result = await originalPlayIndex(index);
+      startFullResolution(index);
+      return result;
+    }
+    startFullResolution(index);
+    if (status) status.textContent = 'SELECTED TRACK UNRESOLVED · RESOLUTION CONTINUES';
+    return false;
+  }
+
   function installQueueBridge() {
     const current = window.playIndex;
     if (typeof current !== 'function' || current.__ampulaPlaybackQueue170) return false;
     const wrapped = async (index) => {
       const rows = readLibrary();
       if (!rows.length) return current(index);
-      const safeIndex = ((Number(index) % rows.length) + rows.length) % rows.length;
+      const requestedIndex = ((Number(index) % rows.length) + rows.length) % rows.length;
       const previousIndex = readCurrentIndex(rows.length);
+      const navigation = navigationState();
+      const intent = navigation?.currentIntent?.() || null;
+      const explicitSelection = isExplicitSelection(intent, requestedIndex);
+      let safeIndex = requestedIndex;
+
+      if (!explicitSelection && isForwardContinuation(intent, requestedIndex, previousIndex, rows.length) && navigation?.isShuffleEnabled?.()) {
+        const shuffledIndex = navigation.chooseShuffleIndex?.(rows, previousIndex, isReady);
+        if (Number.isInteger(shuffledIndex) && shuffledIndex >= 0) safeIndex = shuffledIndex;
+      }
+
       const backwardTarget = previousIndex >= 0 ? (previousIndex - 1 + rows.length) % rows.length : -1;
       const direction = safeIndex === backwardTarget ? -1 : 1;
       const excludedIndex = previousIndex >= 0 && safeIndex !== previousIndex ? previousIndex : -1;
       const track = rows[safeIndex];
+
       if (!isReady(track)) {
+        if (explicitSelection) return playExplicitSelection(safeIndex, track, current);
         void startResolveAndCache(safeIndex, track);
         return playNextAvailable(safeIndex, current, { excludedIndex, direction });
       }
@@ -226,5 +269,5 @@
     playNextAvailable,
     installQueueBridge,
   };
-  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · unresolved rows skipped · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
+  console.info(`[ÁmpulaMP] playback queue ${VERSION} ready · exact manual selection · unresolved continuation skip · full-library scan · ${QUEUE_WAIT_MS / 1000}s recovery window · final trust ${FINAL_TRUST_VERSION}`);
 })();

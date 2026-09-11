@@ -140,10 +140,19 @@
   });
   if (document.head) appleAdapterObserver.observe(document.head, { childList: true });
 
+  function loadPlaybackNavigation() {
+    if (window.__AMPULA_PLAYBACK_NAVIGATION_178__ || document.querySelector('script[data-ampula-playback-navigation-178]')) return;
+    const script = document.createElement('script');
+    script.src = './playback-navigation-v178.js?v=178';
+    script.async = true;
+    script.setAttribute('data-ampula-playback-navigation-178', '1');
+    document.head.appendChild(script);
+  }
+
   function loadBackground() {
     if (document.querySelector('script[data-amp-background-150]')) return;
     const script = document.createElement('script');
-    script.src = './fast-background-v150.js?v=150';
+    script.src = './fast-background-v150.js?v=178';
     script.async = true;
     script.setAttribute('data-amp-background-150', '1');
     document.head.appendChild(script);
@@ -158,11 +167,12 @@
     document.head.appendChild(script);
   }
 
+  loadPlaybackNavigation();
   loadAppleResolution();
   setTimeout(loadPlaybackContinuity, 0);
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 });
   else setTimeout(loadBackground, 900);
 
   window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
-  console.info('[AmpMusic] release 1.5.0 adapter ready');
+  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.8');
 })();
