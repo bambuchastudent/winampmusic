@@ -98,8 +98,21 @@ const metadata = w.ampulaPlaybackMiss173.metadataWithRejected({
   title: 'The News', artist: 'Madigan', durationMs: 279000,
 });
 assert.deepEqual(metadata.excludeYoutubeIds, [BAD_ID], 'subsequent matcher calls must receive rejected IDs');
+
+const replacementRows = JSON.parse(w.localStorage.getItem(LIBRARY_KEY));
+replacementRows[0] = {
+  ...replacementRows[0],
+  id: 's1b8Q5avQZs',
+  youtubeMatchId: 's1b8Q5avQZs',
+  youtubeMatchResolverVersion: 'music-only-v1.6.4',
+  youtubeMatchFinalTrustVersion: 'music-only-v1.6.7',
+  playbackProvider: 'youtube',
+  badges: [...replacementRows[0].badges, 'YouTube match'],
+};
+w.localStorage.setItem(LIBRARY_KEY, JSON.stringify(replacementRows));
+w.localStorage.setItem(CURRENT_KEY, '0');
 w.ampulaPlaybackMiss173.sync();
-assert.equal(button.textContent, 'MISS · 1');
+assert.equal(button.textContent, 'MISS · 1', 'replacement playback should show prior rejection count');
 
 w.ampulaPlaybackMiss173.stop();
 dom.window.close();
