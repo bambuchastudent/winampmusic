@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 
-const source = readFileSync(new URL('../apple-music-import-v064.js', import.meta.url), 'utf8');
+const matcherSource = readFileSync(new URL('../apple-music-import-v064.js', import.meta.url), 'utf8');
+const trustSource = readFileSync(new URL('../resolver-trust-v167.js', import.meta.url), 'utf8');
+const recallSource = readFileSync(new URL('../resolver-music-recall-v174.js', import.meta.url), 'utf8');
 
 function response(payload, status = 200) {
   return {
@@ -65,7 +67,10 @@ window.fetch = async (input) => {
   return response({ error: 'not found' }, 404);
 };
 
-window.eval(source);
+window.eval(matcherSource);
+window.eval(trustSource);
+window.eval(recallSource);
+
 const metadata = { title: 'The News', artist: 'Madigan', durationMs: 279000 };
 const candidate = await window.winampMusicAppleImport.findYouTubeMatch(
   metadata,
@@ -73,6 +78,7 @@ const candidate = await window.winampMusicAppleImport.findYouTubeMatch(
 );
 
 assert.equal(candidate.id, 's1b8Q5avQZs', 'YouTube Music song search must recover the exact music recording');
+assert.equal(candidate.finalTrustVersion, 'music-only-v1.6.7', 'fallback must pass the same final trust boundary');
 assert.ok(filters.includes('videos'), 'ordinary video search remains part of discovery');
 assert.ok(filters.includes('music_songs'), 'resolver must also query the YouTube Music songs surface');
 
