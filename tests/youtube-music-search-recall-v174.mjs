@@ -5,6 +5,18 @@ import { JSDOM } from 'jsdom';
 const matcherSource = readFileSync(new URL('../apple-music-import-v064.js', import.meta.url), 'utf8');
 const trustSource = readFileSync(new URL('../resolver-trust-v167.js', import.meta.url), 'utf8');
 const recallSource = readFileSync(new URL('../resolver-music-recall-v174.js', import.meta.url), 'utf8');
+const headerSource = readFileSync(new URL('../header-visualizer-v159.js', import.meta.url), 'utf8');
+const swSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+
+assert.match(headerSource, /apple-music-import-v064\.js\?v=174/);
+assert.match(headerSource, /resolver-music-recall-v174\.js\?v=174/);
+assert.ok(
+  headerSource.indexOf('resolver-trust-v167.js') < headerSource.indexOf('resolver-music-recall-v174.js') &&
+  headerSource.indexOf('resolver-music-recall-v174.js') < headerSource.indexOf('track-diagnostics-v164.js'),
+  'runtime order must be matcher → final trust → music recall → diagnostics',
+);
+assert.match(swSource, /ampmusic-v1\.7\.4/);
+assert.match(swSource, /resolver-music-recall-v174\.js/);
 
 function response(payload, status = 200) {
   return {
