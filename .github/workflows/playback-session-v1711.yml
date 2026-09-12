@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [develop]
     paths:
+      - 'playback-bridge-guard-v1711.js'
       - 'track-diagnostics-v164.js'
       - 'playback-queue-v170.js'
       - 'ad-indicator-v170.js'
@@ -34,6 +35,9 @@ jobs:
       - name: Install test runtime
         run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
       - name: Syntax check regression
-        run: node --check tests/repeated-skip-ad-session-v1711.mjs
+        run: |
+          node --check playback-bridge-guard-v1711.js
+          node --check ad-indicator-v170.js
+          node --check tests/repeated-skip-ad-session-v1711.mjs
       - name: Repeated skip, AD state, and session regression
         run: node tests/repeated-skip-ad-session-v1711.mjs
