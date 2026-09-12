@@ -3,7 +3,7 @@
   if (window.__AMPULA_SPOTIFY_ORIGIN_162__) return;
   window.__AMPULA_SPOTIFY_ORIGIN_162__ = true;
 
-  const VERSION = '1.7.5';
+  const VERSION = '1.7.12';
   const STORAGE_KEY = 'winampmusic.library.v1';
   const LEGACY_SOURCE_KEY = 'ampula.spotifySource.v1';
   const DATA_API = 'https://spotify.xwolf.space/api/playlist/';
@@ -15,6 +15,7 @@
   const RESOLVE_TIMEOUT_MS = 120000;
   const SPOTIFY_PAGE_SIZE = 50;
   const MAX_SPOTIFY_TRACKS = 500;
+  const PRIMARY_TRACK_BOUNDARY = 100;
   const PLAYLIST_ID_RE = /^[A-Za-z0-9]{16,40}$/;
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const TRUST_VERSION = 'music-only-v1.6.4';
@@ -110,6 +111,26 @@
     return { playlistTitle, playlistOwner, tracks };
   }
 
+  function primaryTrackTotal(payload) {
+    const playlist = payload?.playlist || payload?.data?.playlist || {};
+    const values = [
+      playlist?.total,
+      playlist?.totalTracks,
+      playlist?.trackCount,
+      playlist?.tracksTotal,
+      payload?.total,
+      payload?.totalTracks,
+      payload?.trackCount,
+    ].map(Number).filter((value) => Number.isFinite(value) && value > 0);
+    return values.length ? Math.max(...values) : 0;
+  }
+
+  function primaryMayBeTruncated(payload, metadata) {
+    const readable = metadata?.tracks?.length || 0;
+    const hintedTotal = primaryTrackTotal(payload);
+    return hintedTotal > readable || readable === PRIMARY_TRACK_BOUNDARY;
+  }
+
   function timeoutError(timeoutMs) {
     const error = new Error(`request timed out after ${timeoutMs}ms`);
     error.name = 'TimeoutError';
@@ -149,7 +170,11 @@
       timeoutMs: PRIMARY_TIMEOUT_MS,
     });
     if (payload?.success === false) throw new Error(clean(payload?.error) || 'Spotify metadata unavailable');
-    return normalizePayload(parsed, payload);
+    const metadata = normalizePayload(parsed, payload);
+    return {
+      metadata,
+      mayBeTruncated: primaryMayBeTruncated(payload, metadata),
+    };
   }
 
   function spotifyWebTrack(entry) {
@@ -211,13 +236,29 @@
   }
 
   async function fetchPlaylist(parsed, signal, onFallback) {
+    let primary;
     try {
-      return await fetchPrimaryPlaylist(parsed, signal);
+      primary = await fetchPrimaryPlaylist(parsed, signal);
     } catch (primaryError) {
       if (signal?.aborted) throw primaryError;
       onFallback?.(primaryError);
       return fetchSpotifyWebApiPlaylist(parsed, signal);
     }
+
+    if (!primary.mayBeTruncated) return primary.metadata;
+    onFallback?.(new Error(`Spotify primary metadata may be truncated at ${primary.metadata.tracks.length} tracks`));
+    try {
+      const completed = await fetchSpotifyWebApiPlaylist(parsed, signal);
+      if (completed.tracks.length >= primary.metadata.tracks.length) return completed;
+      console.warn('[ÁmpulaMP] Spotify metadata completion returned fewer tracks; keeping primary rows', {
+        primary: primary.metadata.tracks.length,
+        completed: completed.tracks.length,
+      });
+    } catch (completionError) {
+      if (signal?.aborted) throw completionError;
+      console.warn('[ÁmpulaMP] Spotify metadata completion unavailable; keeping primary rows', completionError);
+    }
+    return primary.metadata;
   }
 
   function patchProvenance(track) {
@@ -439,5 +480,5 @@
     importPlaylist,
     resolveInBackground,
   };
-  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready · resilient metadata import · full-library resolver`);
+  console.info(`[ÁmpulaMP] Spotify origin ${VERSION} ready · resilient complete metadata import · full-library resolver`);
 })();
