@@ -20,7 +20,7 @@ assert.match(sw, /playback-queue-v170\.js/);
 assert.match(sw, /playback-miss-v173\.js/);
 assert.match(sw, /ad-indicator-v170\.js/);
 assert.match(sw, /diagnostics-download-v171\.js/);
-assert.match(stableSource, /spotify-origin-import-v162\.js\?v=175/);
+assert.match(stableSource, /spotify-origin-import-v162\.js\?v=1712/);
 
 const stripped = index
   .replace('<script src="./fast-player-v141.js?v=150"></script>', '')
