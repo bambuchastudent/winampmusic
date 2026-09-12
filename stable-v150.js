@@ -74,7 +74,7 @@
       script.addEventListener('load', ready, { once: true });
       script.addEventListener('error', () => { clearTimeout(timeout); reject(new Error('Spotify origin module failed to load')); }, { once: true });
       if (!existing) {
-        script.src = './spotify-origin-import-v162.js?v=175';
+        script.src = './spotify-origin-import-v162.js?v=1712';
         script.async = true;
         script.dataset.ampSpotifyOrigin162 = '1';
         document.head.appendChild(script);
@@ -118,5 +118,5 @@
   setTimeout(registerPwa, 3200);
 
   loadOriginPlaybackBridge();
-  console.info('[AmpMusic] stable 1.7.6 bridge ready');
+  console.info('[AmpMusic] stable 1.7.6 bridge ready · Spotify origin 1.7.12');
 })();
