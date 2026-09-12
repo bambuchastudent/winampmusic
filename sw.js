@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.9';
-const CACHE = 'winampmusic-shell-v179-latest-intent';
+const BUILD = 'ampmusic-v1.7.11';
+const CACHE = 'winampmusic-shell-v1711-skip-ad-session';
 const CORE = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const CORE = [
   './fast-player-v141.js',
   './fast-release-v150.js',
   './playback-navigation-v178.js',
+  './playback-bridge-guard-v1711.js',
   './fast-import-v150.js',
   './telegram-text-import-v1.js',
   './apple-music-import-v064.js',
