@@ -81,7 +81,7 @@ jobs:
       - name: Check full-library Spotify wiring
         run: |
           grep -q "'./spotify-origin-import-v162.js'" sw.js
-          grep -q 'spotify-origin-import-v162.js?v=175' stable-v150.js
+          grep -q 'spotify-origin-import-v162.js?v=1712' stable-v150.js
           grep -q "strategy: 'background-all+on-demand'" spotify-origin-import-v162.js
           grep -q 'RESOLVE_TIMEOUT_MS = 120000' spotify-origin-import-v162.js
           grep -q 'spotify.xwolf.space/api/playlist/' spotify-origin-import-v162.js
