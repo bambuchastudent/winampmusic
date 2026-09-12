@@ -61,6 +61,7 @@ window.ampMusicOriginPlayback151 = { refresh() {} };
 window.ampulaPlaybackPrefetch165 = { resolveAll: async () => [] };
 
 const requests = [];
+let failCompletion = false;
 window.fetch = async (input) => {
   const url = new URL(String(input));
   requests.push(url.toString());
@@ -82,6 +83,7 @@ window.fetch = async (input) => {
   }
 
   if (url.hostname === 'spotify.xwolf.space' && url.pathname === '/api/token') {
+    if (failCompletion) return { ok: false, status: 503, json: async () => ({ error: 'unavailable' }) };
     return { ok: true, json: async () => ({ access_token: 'anonymous-test-token' }) };
   }
 
@@ -130,7 +132,7 @@ assert.equal(result.error, undefined);
 assert.equal(result.metadata.tracks.length, TOTAL, 'a successful 100-row primary response must be completed to all 160 tracks');
 await result.resolution;
 
-const library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+let library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
 assert.equal(library.length, TOTAL, 'all Spotify-origin recordings must be imported');
 assert.equal(library[0].title, 'Track 1');
 assert.equal(library[99].title, 'Track 100');
@@ -148,5 +150,23 @@ assert.deepEqual(pageOffsets, [0, 50, 100, 150], 'completion must paginate throu
 assert.ok(requests.some((value) => value === 'https://spotify.xwolf.space/api/token'), 'capped primary metadata must trigger completion path');
 assert.ok(states.some((state) => state.phase === 'imported' && /160 tracks imported/.test(state.message)));
 
-console.log('Spotify complete playlist v1.7.12: 100-row primary -> 160 rows imported');
+// A capped primary response is still useful if the completion service is temporarily unavailable.
+window.localStorage.removeItem(STORAGE_KEY);
+requests.length = 0;
+failCompletion = true;
+const degradedStates = [];
+const degraded = await api.importPlaylist(`https://open.spotify.com/playlist/${PLAYLIST_ID}`, {
+  play: false,
+  onStatus: (state) => degradedStates.push(state),
+});
+assert.equal(degraded.handled, true);
+assert.equal(degraded.error, undefined, 'completion failure must not turn readable primary metadata into a hard import failure');
+assert.equal(degraded.metadata.tracks.length, 100, 'readable primary rows remain the graceful fallback');
+await degraded.resolution;
+library = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+assert.equal(library.length, 100);
+assert.equal(library[99].title, 'Track 100');
+assert.ok(degradedStates.some((state) => state.phase === 'imported' && /100 tracks imported/.test(state.message)));
+
+console.log('Spotify complete playlist v1.7.12: 100-row primary -> 160 rows; graceful fallback keeps 100');
 dom.window.close();
