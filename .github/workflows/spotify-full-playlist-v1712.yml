@@ -1,0 +1,49 @@
+name: Spotify full playlist v1.7.12
+
+on:
+  pull_request:
+    paths:
+      - 'spotify-origin-import-v162.js'
+      - 'stable-v150.js'
+      - 'sw.js'
+      - 'tests/spotify-full-playlist-v1712.mjs'
+      - 'tests/spotify-origin-import-v162.mjs'
+      - 'openspec/changes/spotify-full-playlist-v1.7.12/**'
+      - '.github/workflows/spotify-full-playlist-v1712.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'spotify-origin-import-v162.js'
+      - 'stable-v150.js'
+      - 'sw.js'
+      - 'tests/spotify-full-playlist-v1712.mjs'
+      - 'tests/spotify-origin-import-v162.mjs'
+      - 'openspec/changes/spotify-full-playlist-v1.7.12/**'
+      - '.github/workflows/spotify-full-playlist-v1712.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+      - name: Install test runtime
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Syntax check
+        run: |
+          node --check spotify-origin-import-v162.js
+          node --check tests/spotify-full-playlist-v1712.mjs
+      - name: 100-row primary completion regression
+        run: node tests/spotify-full-playlist-v1712.mjs
+      - name: Existing Spotify origin contract
+        run: node tests/spotify-origin-import-v162.mjs
