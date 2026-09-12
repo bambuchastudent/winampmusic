@@ -1,10 +1,19 @@
 (() => {
   'use strict';
 
+  function loadPlaybackBridgeGuard() {
+    if (window.__AMPULA_PLAYBACK_BRIDGE_GUARD_1711__ || document.querySelector('script[data-ampula-playback-bridge-guard-1711]')) return;
+    const script = document.createElement('script');
+    script.src = './playback-bridge-guard-v1711.js?v=1711';
+    script.async = true;
+    script.setAttribute('data-ampula-playback-bridge-guard-1711', '1');
+    document.head.appendChild(script);
+  }
+
   function loadAdIndicator() {
     if (document.querySelector('script[data-ampula-ad-indicator-170]')) return;
     const script = document.createElement('script');
-    script.src = './ad-indicator-v170.js?v=175';
+    script.src = './ad-indicator-v170.js?v=1711';
     script.async = true;
     script.setAttribute('data-ampula-ad-indicator-170', '1');
     document.head.appendChild(script);
@@ -13,7 +22,7 @@
   function loadPlaybackQueue() {
     if (document.querySelector('script[data-ampula-playback-queue-170]')) return;
     const script = document.createElement('script');
-    script.src = './playback-queue-v170.js?v=176';
+    script.src = './playback-queue-v170.js?v=1711';
     script.async = true;
     script.setAttribute('data-ampula-playback-queue-170', '1');
     document.head.appendChild(script);
@@ -57,7 +66,7 @@
       return;
     }
     const script = document.createElement('script');
-    script.src = './track-diagnostics-v164.js?v=175';
+    script.src = './track-diagnostics-v164.js?v=1711';
     script.async = true;
     script.setAttribute('data-ampula-track-diagnostics-164', '1');
     script.addEventListener('load', loadDiagnosticsDownload, { once: true });
@@ -130,6 +139,7 @@
     document.head.appendChild(script);
   }
 
+  loadPlaybackBridgeGuard();
   loadAdIndicator();
   loadMatcherCore();
 
@@ -140,7 +150,7 @@
 
   const sync = () => {
     const byButton = String(playButton?.textContent || '').includes('⏸');
-    const byStatus = /PLAYING/i.test(String(status?.textContent || ''));
+    const byStatus = /PLAYING|\bAD\b/i.test(String(status?.textContent || ''));
     spectrum.dataset.playing = byButton || byStatus ? '1' : '0';
   };
 
