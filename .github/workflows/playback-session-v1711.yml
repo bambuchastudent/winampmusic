@@ -1,0 +1,43 @@
+name: Playback session v1.7.11
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'playback-bridge-guard-v1711.js'
+      - 'track-diagnostics-v164.js'
+      - 'playback-queue-v170.js'
+      - 'ad-indicator-v170.js'
+      - 'fast-player-v141.js'
+      - 'header-visualizer-v159.js'
+      - 'sw.js'
+      - 'README.md'
+      - 'tests/repeated-skip-ad-session-v1711.mjs'
+      - 'openspec/changes/repeated-skip-ad-session-v1.7.11/**'
+      - '.github/workflows/playback-session-v1711.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache npm test runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node22-npm-jsdom26
+      - name: Install test runtime
+        run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Syntax check regression
+        run: |
+          node --check playback-bridge-guard-v1711.js
+          node --check ad-indicator-v170.js
+          node --check tests/repeated-skip-ad-session-v1711.mjs
+      - name: Repeated skip, AD state, and session regression
+        run: node tests/repeated-skip-ad-session-v1711.mjs

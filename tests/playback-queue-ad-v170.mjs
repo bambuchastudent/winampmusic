@@ -7,11 +7,13 @@ const adSource = readFileSync(new URL('../ad-indicator-v170.js', import.meta.url
 const header = readFileSync(new URL('../header-visualizer-v159.js', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
-assert.match(header, /ad-indicator-v170\.js\?v=175/);
-assert.match(header, /playback-queue-v170\.js\?v=176/);
+assert.match(header, /playback-bridge-guard-v1711\.js\?v=1711/);
+assert.match(header, /ad-indicator-v170\.js\?v=1711/);
+assert.match(header, /playback-queue-v170\.js\?v=1711/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(sw, /ampmusic-v1\.7\.9/);
+assert.match(sw, /ampmusic-v1\.7\.11/);
 assert.match(sw, /playback-navigation-v178\.js/);
+assert.match(sw, /playback-bridge-guard-v1711\.js/);
 assert.match(sw, /resolver-music-recall-v174\.js/);
 assert.match(sw, /playback-queue-v170\.js/);
 
@@ -125,6 +127,7 @@ const indicator = adWindow.document.getElementById('ampulaAdIndicator');
 assert.ok(indicator);
 assert.equal(indicator.hidden, false);
 assert.equal(indicator.textContent, 'AD 0:25');
+assert.equal(adWindow.document.getElementById('status').textContent, 'AD');
 assert.ok(indicator.parentElement.classList.contains('screen-status-row'));
 
 adWindow.document.getElementById('duration').textContent = '3:00';
@@ -134,4 +137,4 @@ assert.equal(indicator.hidden, true);
 adWindow.ampulaAdIndicator170.stop();
 adDom.window.close();
 
-console.log('full-library queue continuation + compact ad timer v1.7.9: ok');
+console.log('full-library queue continuation + compact ad timer v1.7.11: ok');

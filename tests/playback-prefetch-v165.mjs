@@ -9,7 +9,8 @@ const spotify = readFileSync(new URL('../spotify-origin-import-v162.js', import.
 assert.match(header, /apple-music-import-v064\.js\?v=175/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
 assert.match(header, /playback-prefetch-v165\.js\?v=175/);
-assert.match(header, /playback-queue-v170\.js\?v=176/);
+assert.match(header, /playback-queue-v170\.js\?v=1711/);
+assert.match(header, /playback-bridge-guard-v1711\.js\?v=1711/);
 assert.match(spotify, /strategy: 'background-all\+on-demand'/);
 assert.doesNotMatch(spotify, /resolve on playback · 2 ahead/);
 assert.match(source, /youtubeMatchFinalTrustVersion/);
@@ -104,5 +105,5 @@ assert.ok(matcherCalls.some((call) => call.title === 'Five'), 'newly imported un
 saved = JSON.parse(window.localStorage.getItem(KEY) || '[]');
 assert.equal(saved.find((row) => row.spotifyTrackId === 's5')?.id, 'ggggggggggg');
 
-console.log('full-library background playback resolver v1.7.5: ok');
+console.log('full-library background playback resolver v1.7.11: ok');
 dom.window.close();

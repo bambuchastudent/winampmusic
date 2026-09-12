@@ -8,12 +8,13 @@ const trustGate = fs.readFileSync('resolver-trust-v167.js', 'utf8');
 const resolverTest = fs.readFileSync('tests/youtube-music-resolver-v163.mjs', 'utf8');
 
 assert.match(header, /resolver-trust-v167\.js\?v=175/);
-assert.match(header, /track-diagnostics-v164\.js\?v=175/);
+assert.match(header, /track-diagnostics-v164\.js\?v=1711/);
 assert.match(header, /diagnostics-download-v171\.js\?v=175/);
 assert.match(header, /playback-miss-v173\.js\?v=175/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
 assert.match(header, /playback-prefetch-v165\.js\?v=175/);
-assert.match(header, /playback-queue-v170\.js\?v=176/);
+assert.match(header, /playback-queue-v170\.js\?v=1711/);
+assert.match(header, /playback-bridge-guard-v1711\.js\?v=1711/);
 assert.match(header, /data-ampula-track-diagnostics-164|ampulaTrackDiagnostics164/);
 assert.match(trustGate, /Final trust gate rejected/);
 
@@ -46,4 +47,4 @@ assert.match(resolverTest, /rWWNZigf7PA/);
 assert.match(resolverTest, /Madigan/);
 assert.match(resolverTest, /The News/);
 
-console.log('Track diagnostics + final trust gate + queue runtime v1.7.6 contract: OK');
+console.log('Track diagnostics + final trust gate + queue runtime v1.7.11 contract: OK');

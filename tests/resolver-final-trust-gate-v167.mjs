@@ -114,10 +114,11 @@ assert.match(headerSource, /apple-music-import-v064\.js\?v=175/);
 assert.match(headerSource, /playback-miss-v173\.js\?v=175/);
 assert.match(headerSource, /resolver-trust-v167\.js\?v=175/);
 assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(headerSource, /track-diagnostics-v164\.js\?v=175/);
+assert.match(headerSource, /track-diagnostics-v164\.js\?v=1711/);
 assert.match(headerSource, /diagnostics-download-v171\.js\?v=175/);
 assert.match(headerSource, /playback-prefetch-v165\.js\?v=175/);
-assert.match(headerSource, /playback-queue-v170\.js\?v=176/);
+assert.match(headerSource, /playback-queue-v170\.js\?v=1711/);
+assert.match(headerSource, /playback-bridge-guard-v1711\.js\?v=1711/);
 assert.ok(
   headerSource.indexOf('loadMatcherCore();') < headerSource.indexOf("const spectrum"),
   'fresh matcher/MISS/trust/recall loader chain must start before optional header behavior',
@@ -126,13 +127,14 @@ assert.match(headerSource, /script\.addEventListener\('load', loadResolverMusicR
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
-assert.match(swSource, /winampmusic-shell-v179-latest-intent/);
-assert.match(swSource, /ampmusic-v1\.7\.9/);
+assert.match(swSource, /winampmusic-shell-v1711-skip-ad-session/);
+assert.match(swSource, /ampmusic-v1\.7\.11/);
 assert.match(swSource, /playback-navigation-v178\.js/);
+assert.match(swSource, /playback-bridge-guard-v1711\.js/);
 assert.match(swSource, /playback-queue-v170\.js/);
 assert.match(swSource, /playback-miss-v173\.js/);
 assert.match(swSource, /ad-indicator-v170\.js/);
 assert.match(swSource, /diagnostics-download-v171\.js/);
 
-console.log('resolver final trust gate v1.6.7 + queue runtime v1.7.9: ok');
+console.log('resolver final trust gate v1.6.7 + queue runtime v1.7.11: ok');
 dom.window.close();

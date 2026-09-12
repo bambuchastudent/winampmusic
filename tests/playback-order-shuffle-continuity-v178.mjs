@@ -9,7 +9,7 @@ const releaseSource = fs.readFileSync('fast-release-v150.js', 'utf8');
 const swSource = fs.readFileSync('sw.js', 'utf8');
 
 assert.match(releaseSource, /playback-navigation-v178\.js\?v=179/, 'release adapter must load latest deterministic navigation runtime');
-assert.match(swSource, /ampmusic-v1\.7\.9/, 'service worker build must advance for latest-intent semantics');
+assert.match(swSource, /ampmusic-v1\.7\.11/, 'service worker build must include current playback semantics');
 assert.match(swSource, /playback-navigation-v178\.js/, 'navigation runtime must be available offline');
 
 const KEY = 'winampmusic.library.v1';
@@ -154,4 +154,4 @@ await new Promise((resolve) => setTimeout(resolve, 320));
 assert.equal(resumeClicks, 1, 'returning to the tab resumes the same intended playback instead of staying stopped');
 backgroundDom.window.close();
 
-console.log('playback order + shuffle state + tab continuity v1.7.9: ok');
+console.log('playback order + shuffle state + tab continuity v1.7.11: ok');
