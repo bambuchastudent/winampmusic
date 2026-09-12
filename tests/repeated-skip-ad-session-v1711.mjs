@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 
+const guardSource = fs.readFileSync('playback-bridge-guard-v1711.js', 'utf8');
 const diagnosticsSource = fs.readFileSync('track-diagnostics-v164.js', 'utf8');
 const queueSource = fs.readFileSync('playback-queue-v170.js', 'utf8');
 const adSource = fs.readFileSync('ad-indicator-v170.js', 'utf8');
@@ -46,8 +47,8 @@ function countMarker(fn, marker) {
   return count;
 }
 
-// Production order: diagnostics installs first, another playback adapter wraps it,
-// queue installs outermost, then diagnostics refreshes again on pageshow / delayed timers.
+// Production order: bridge guard attaches to playIndex first, diagnostics installs,
+// another playback adapter wraps it, queue installs outermost, then diagnostics refreshes.
 const navDom = new JSDOM(`<!doctype html><head></head><body>
   <section class="screen"><div id="status" class="status">PLAYING</div></section>
   <button id="playButton">⏸</button>
@@ -77,6 +78,7 @@ nw.playIndex = async (index) => {
   return `played:${index}`;
 };
 
+nw.eval(guardSource);
 nw.eval(diagnosticsSource);
 const diagnosticsWrapped = nw.playIndex;
 const adapter = async (index) => diagnosticsWrapped(index);
