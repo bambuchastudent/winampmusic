@@ -3,13 +3,15 @@
   if (window.__AMPULA_AD_INDICATOR_170__) return;
   window.__AMPULA_AD_INDICATOR_170__ = true;
 
-  const VERSION = '1.7.1';
+  const VERSION = '1.7.11';
   const LIBRARY_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const FINAL_TRUST_VERSION = 'music-only-v1.6.7';
   const MIN_DURATION_DELTA = 16;
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
   let youtubeWire = {};
+  let adActive = false;
+  let statusBeforeAd = '';
 
   function parseClock(value) {
     const parts = clean(value).split(':').map(Number);
@@ -140,28 +142,51 @@
     sync();
   }
 
+  function applyAdStatus(active) {
+    const statusNode = document.getElementById('status');
+    if (!statusNode) return;
+    const currentStatus = clean(statusNode.textContent);
+    if (active) {
+      if (!adActive) statusBeforeAd = currentStatus && currentStatus !== 'AD' ? currentStatus : '';
+      adActive = true;
+      if (currentStatus !== 'AD') statusNode.textContent = 'AD';
+      return;
+    }
+    if (!adActive) return;
+    adActive = false;
+    if (currentStatus === 'AD') {
+      const playText = clean(document.getElementById('playButton')?.textContent);
+      statusNode.textContent = playText.includes('⏸') ? 'PLAYING' : (statusBeforeAd || 'PAUSED');
+    }
+    statusBeforeAd = '';
+  }
+
+  function clearIndicator(indicator) {
+    indicator.hidden = true;
+    indicator.textContent = '';
+    indicator.removeAttribute('aria-label');
+    applyAdStatus(false);
+  }
+
   function sync() {
     const indicator = ensureUi();
     if (!indicator) return false;
     const track = readCurrentTrack();
-    const status = clean(document.getElementById('status')?.textContent);
-    const playText = clean(document.getElementById('playButton')?.textContent);
-    const playing = /^PLAYING$/i.test(status) || playText.includes('⏸');
-
-    if (!playing || !isFinalTrusted(track)) {
-      indicator.hidden = true;
-      indicator.textContent = '';
-      indicator.removeAttribute('aria-label');
+    if (!isFinalTrusted(track)) {
+      clearIndicator(indicator);
       return false;
     }
 
+    const status = clean(document.getElementById('status')?.textContent);
+    const playText = clean(document.getElementById('playButton')?.textContent);
+    const uiPlaying = /^PLAYING$/i.test(status) || playText.includes('⏸');
     const expectedId = clean(track?.youtubeMatchId || track?.id);
     const canonicalDuration = Math.max(0, Number(track?.duration || 0));
     const wire = activeWire();
     const wireId = clean(wire.videoId);
     const wireDuration = Math.max(0, Number(wire.duration || 0));
     const wireCurrent = Math.max(0, Number(wire.currentTime || 0));
-    const wirePlaying = Number(wire.playerState) === 1 || playing;
+    const wirePlaying = Number(wire.playerState) === 1 || uiPlaying || adActive;
     const idLooksLikeAd = Boolean(expectedId && wireId && wireId !== expectedId);
     const durationLooksLikeAd = canonicalDuration > 0 && wireDuration >= 3 &&
       Math.abs(wireDuration - canonicalDuration) > MIN_DURATION_DELTA;
@@ -173,15 +198,14 @@
 
     const detected = Boolean(wirePlaying && (idLooksLikeAd || durationLooksLikeAd || domDurationLooksLikeAd));
     if (!detected) {
-      indicator.hidden = true;
-      indicator.textContent = '';
-      indicator.removeAttribute('aria-label');
+      clearIndicator(indicator);
       return false;
     }
 
     const total = wireDuration || reportedDuration;
     const current = wireDuration ? wireCurrent : elapsed;
     const remaining = Math.max(0, total - current);
+    applyAdStatus(true);
     indicator.hidden = false;
     indicator.textContent = `AD ${formatTime(remaining)}`;
     indicator.setAttribute('aria-label', `YouTube advertisement, ${formatTime(remaining)} remaining, ${formatTime(total)} total`);
@@ -203,6 +227,7 @@
     minDurationDelta: MIN_DURATION_DELTA,
     parseClock,
     sync,
+    isActive: () => adActive,
     stop() {
       clearInterval(timer);
       observer.disconnect();
