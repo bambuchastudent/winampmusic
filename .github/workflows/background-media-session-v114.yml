@@ -6,8 +6,6 @@ on:
     paths:
       - 'background-media-session-v114.js'
       - 'background-playback-v114.js'
-      - 'playback-navigation-v178.js'
-      - 'playback-navigation-core-v178.js'
       - 'tests/background-media-session-v114.mjs'
       - 'openspec/changes/youtubejs-background-playback/**'
       - 'THIRD_PARTY_NOTICES.md'
@@ -24,6 +22,4 @@ jobs:
           node-version: 22
       - run: node --check background-media-session-v114.js
       - run: node --check background-playback-v114.js
-      - run: node --check playback-navigation-v178.js
-      - run: node --check playback-navigation-core-v178.js
       - run: node tests/background-media-session-v114.mjs
