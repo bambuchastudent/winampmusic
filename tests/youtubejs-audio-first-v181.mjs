@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const index = fs.readFileSync('index.html', 'utf8');
+const loader = fs.readFileSync('fast-release-v150.js', 'utf8');
 const runtime = fs.readFileSync('youtubejs-audio-first-v181.js', 'utf8');
 
-assert.match(index, /youtubejs-audio-first-v181\.js/);
+assert.match(loader, /youtubejs-audio-first-v181\.js/);
 assert.match(runtime, /type:\s*['"]audio['"]/);
 assert.match(runtime, /quality:\s*['"]best['"]/);
 assert.match(runtime, /YOUTUBEJS/);
