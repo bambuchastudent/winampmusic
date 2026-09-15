@@ -1,0 +1,23 @@
+name: Background Media Session v1.14
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'background-media-session-v114.js'
+      - 'tests/background-media-session-v114.mjs'
+      - 'openspec/changes/youtubejs-background-playback/**'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'LICENSE'
+      - '.github/workflows/background-media-session-v114.yml'
+
+jobs:
+  media-session-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --check background-media-session-v114.js
+      - run: node tests/background-media-session-v114.mjs
