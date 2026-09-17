@@ -13,7 +13,7 @@ assert.match(runtime, /attempt/i);
 assert.match(runtime, /videoId/);
 assert.match(runtime, /window\.playIndex/);
 assert.match(runtime, /YOUTUBE UNAVAILABLE/);
-assert.match(runtime, /track\.id\s*=/);
-assert.doesNotMatch(runtime, /track\.(title|artist|origin|sourceUrl)\s*=/);
+assert.match(runtime, /(?:track|freshTrack)\.id\s*=/);
+assert.doesNotMatch(runtime, /(?:track|freshTrack)\.(title|artist|origin|sourceUrl)\s*=/);
 
 console.log('YouTube embed retry contract OK');
