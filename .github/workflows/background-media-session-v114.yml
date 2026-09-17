@@ -6,7 +6,10 @@ on:
     paths:
       - 'background-media-session-v114.js'
       - 'background-playback-v114.js'
+      - 'youtubejs-audio-first-v181.js'
+      - 'fast-release-v150.js'
       - 'tests/background-media-session-v114.mjs'
+      - 'tests/youtubejs-audio-first-v181.mjs'
       - 'openspec/changes/youtubejs-background-playback/**'
       - 'THIRD_PARTY_NOTICES.md'
       - 'LICENSE'
@@ -22,4 +25,6 @@ jobs:
           node-version: 22
       - run: node --check background-media-session-v114.js
       - run: node --check background-playback-v114.js
+      - run: node --check youtubejs-audio-first-v181.js
       - run: node tests/background-media-session-v114.mjs
+      - run: node tests/youtubejs-audio-first-v181.mjs

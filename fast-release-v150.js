@@ -13,166 +13,56 @@
   window.__AMP_MUSIC_RELEASE__ = RELEASE;
   document.documentElement.dataset.ampMusicRelease = RELEASE;
 
-  const readJson = (key, fallback) => {
-    try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
-    catch { return fallback; }
-  };
-
-  function legacyAppleLocalId(trackId) {
-    const value = clean(trackId);
-    if (!/^\d+$/.test(value)) return '';
-    try {
-      const encoded = BigInt(value).toString(36).toUpperCase();
-      return `A${encoded.padStart(10, '0').slice(-10)}`;
-    } catch {
-      return '';
-    }
-  }
-
-  function isAppleTrack(track) {
-    const badges = Array.isArray(track?.badges) ? track.badges.map(clean) : [];
-    return Boolean(clean(track?.appleTrackId)) || badges.includes('Apple Music') || /music\.apple\.com/i.test(clean(track?.sourceUrl));
-  }
-
-  function hasRealYouTubeHandle(track) {
-    const id = clean(track?.id);
-    if (!VIDEO_ID_RE.test(id)) return false;
-    const appleTrackId = clean(track?.appleTrackId);
-    return !(appleTrackId && legacyAppleLocalId(appleTrackId) === id);
-  }
-
-  function syncCurrentTrackId() {
-    const library = readJson(LIBRARY_KEY, []);
-    const index = Number(localStorage.getItem(CURRENT_KEY));
-    if (!Array.isArray(library) || !Number.isInteger(index) || index < 0 || index >= library.length) return;
-    const id = String(library[index]?.id || '').trim();
-    if (!id) return;
-    const state = readJson(PLAYER_STATE_KEY, {});
-    if (state.currentId === id) return;
-    try { localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify({ ...state, currentId: id })); } catch {}
-  }
+  const readJson = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; } catch { return fallback; } };
+  function legacyAppleLocalId(trackId) { const value = clean(trackId); if (!/^\d+$/.test(value)) return ''; try { const encoded = BigInt(value).toString(36).toUpperCase(); return `A${encoded.padStart(10, '0').slice(-10)}`; } catch { return ''; } }
+  function isAppleTrack(track) { const badges = Array.isArray(track?.badges) ? track.badges.map(clean) : []; return Boolean(clean(track?.appleTrackId)) || badges.includes('Apple Music') || /music\.apple\.com/i.test(clean(track?.sourceUrl)); }
+  function hasRealYouTubeHandle(track) { const id = clean(track?.id); if (!VIDEO_ID_RE.test(id)) return false; const appleTrackId = clean(track?.appleTrackId); return !(appleTrackId && legacyAppleLocalId(appleTrackId) === id); }
+  function syncCurrentTrackId() { const library = readJson(LIBRARY_KEY, []); const index = Number(localStorage.getItem(CURRENT_KEY)); if (!Array.isArray(library) || !Number.isInteger(index) || index < 0 || index >= library.length) return; const id = String(library[index]?.id || '').trim(); if (!id) return; const state = readJson(PLAYER_STATE_KEY, {}); if (state.currentId === id) return; try { localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify({ ...state, currentId: id })); } catch {} }
 
   const status = document.getElementById('status');
-  if (status) {
-    new MutationObserver(syncCurrentTrackId).observe(status, { childList: true, characterData: true, subtree: true });
-  }
+  if (status) new MutationObserver(syncCurrentTrackId).observe(status, { childList: true, characterData: true, subtree: true });
   document.getElementById('trackList')?.addEventListener('click', () => queueMicrotask(syncCurrentTrackId));
   syncCurrentTrackId();
 
-  // clean-playback prefers direct audio for Apple-origin tracks. If its proxy
-  // sources fail but the resolver already found a real YouTube id, fall back to
-  // the original YouTube iframe player instead of reporting the track dead.
   const legacyPlayIndex = window.playIndex;
   let directPlayback = window.ampMusicPlayDirectIndex;
-
   function wrapDirectPlayback(value) {
     if (typeof value !== 'function' || value.__ampFullYoutubeFallback162) return value;
     const wrapped = async (index) => {
       let result = false;
       try { result = await value(index); } catch (error) { console.warn('[AmpMusic] direct playback failed', error); }
-      if (result === null) return null; // Superseded requests must not fall back.
+      if (result === null) return null;
       if (result) return true;
-
       const library = readJson(LIBRARY_KEY, []);
       if (!Array.isArray(library) || !library.length) return false;
       const safeIndex = ((Number(index) % library.length) + library.length) % library.length;
       const track = library[safeIndex];
       if (!isAppleTrack(track) || !hasRealYouTubeHandle(track) || typeof legacyPlayIndex !== 'function') return false;
-
-      try {
-        const fallback = await legacyPlayIndex(safeIndex);
-        return fallback !== false;
-      } catch (error) {
-        console.warn('[AmpMusic] YouTube iframe fallback failed', error);
-        return false;
-      }
+      try { const fallback = await legacyPlayIndex(safeIndex); return fallback !== false; } catch (error) { console.warn('[AmpMusic] YouTube iframe fallback failed', error); return false; }
     };
     Object.defineProperty(wrapped, '__ampFullYoutubeFallback162', { value: true });
     return wrapped;
   }
-
   directPlayback = wrapDirectPlayback(directPlayback);
-  try {
-    Object.defineProperty(window, 'ampMusicPlayDirectIndex', {
-      configurable: true,
-      enumerable: true,
-      get: () => directPlayback,
-      set: (value) => { directPlayback = wrapDirectPlayback(value); },
-    });
-  } catch {}
+  try { Object.defineProperty(window, 'ampMusicPlayDirectIndex', { configurable: true, enumerable: true, get: () => directPlayback, set: (value) => { directPlayback = wrapDirectPlayback(value); } }); } catch {}
 
-  function forceAppleResolution() {
-    const resolver = window.ampMusicAppleResolution162;
-    if (!resolver?.patchAll) return;
-    // Older adapters mark the API object itself and can run their load callback
-    // after the v1.6.2 resolver. Clear only our marker, then re-apply the final
-    // adapter after all load-event microtasks have settled.
-    for (const api of [window.winampMusicAppleImport, window.ampMusicAppleAlbum150, window.ampMusicApplePlaylist150]) {
-      try { if (api) delete api.__ampFullResolver162; } catch {}
-    }
-    resolver.patchAll();
-  }
-
-  function scheduleAppleResolution() {
-    setTimeout(forceAppleResolution, 0);
-    setTimeout(forceAppleResolution, 60);
-  }
-
-  function loadAppleResolution() {
-    if (document.querySelector('script[data-amp-apple-resolution-162]')) return;
-    const script = document.createElement('script');
-    script.src = './apple-resolution-v162.js?v=162';
-    script.async = true;
-    script.setAttribute('data-amp-apple-resolution-162', '1');
-    script.addEventListener('load', scheduleAppleResolution, { once: true });
-    document.head.appendChild(script);
-  }
-
-  const appleAdapterObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes || []) {
-        if (node?.tagName !== 'SCRIPT') continue;
-        if (/apple-(?:music-import-v064|album-import-v150|playlist-import-v150)\.js/i.test(node.src || '')) {
-          node.addEventListener('load', scheduleAppleResolution, { once: true });
-        }
-      }
-    }
-  });
+  function forceAppleResolution() { const resolver = window.ampMusicAppleResolution162; if (!resolver?.patchAll) return; for (const api of [window.winampMusicAppleImport, window.ampMusicAppleAlbum150, window.ampMusicApplePlaylist150]) { try { if (api) delete api.__ampFullResolver162; } catch {} } resolver.patchAll(); }
+  function scheduleAppleResolution() { setTimeout(forceAppleResolution, 0); setTimeout(forceAppleResolution, 60); }
+  function loadAppleResolution() { if (document.querySelector('script[data-amp-apple-resolution-162]')) return; const script = document.createElement('script'); script.src = './apple-resolution-v162.js?v=162'; script.async = true; script.setAttribute('data-amp-apple-resolution-162', '1'); script.addEventListener('load', scheduleAppleResolution, { once: true }); document.head.appendChild(script); }
+  const appleAdapterObserver = new MutationObserver((mutations) => { for (const mutation of mutations) for (const node of mutation.addedNodes || []) { if (node?.tagName !== 'SCRIPT') continue; if (/apple-(?:music-import-v064|album-import-v150|playlist-import-v150)\.js/i.test(node.src || '')) node.addEventListener('load', scheduleAppleResolution, { once: true }); } });
   if (document.head) appleAdapterObserver.observe(document.head, { childList: true });
 
-  function loadPlaybackNavigation() {
-    if (window.__AMPULA_PLAYBACK_NAVIGATION_178__ || document.querySelector('script[data-ampula-playback-navigation-178]')) return;
-    const script = document.createElement('script');
-    script.src = './playback-navigation-v178.js?v=179';
-    script.async = true;
-    script.setAttribute('data-ampula-playback-navigation-178', '1');
-    document.head.appendChild(script);
-  }
-
-  function loadBackground() {
-    if (document.querySelector('script[data-amp-background-150]')) return;
-    const script = document.createElement('script');
-    script.src = './fast-background-v150.js?v=178';
-    script.async = true;
-    script.setAttribute('data-amp-background-150', '1');
-    document.head.appendChild(script);
-  }
-
-  function loadPlaybackContinuity() {
-    if (document.querySelector('script[data-amp-playback-continuity-160]')) return;
-    const script = document.createElement('script');
-    script.src = './playback-continuity-v160.js?v=160';
-    script.async = true;
-    script.setAttribute('data-amp-playback-continuity-160', '1');
-    document.head.appendChild(script);
-  }
+  function loadPlaybackNavigation() { if (window.__AMPULA_PLAYBACK_NAVIGATION_178__ || document.querySelector('script[data-ampula-playback-navigation-178]')) return; const script = document.createElement('script'); script.src = './playback-navigation-v178.js?v=179'; script.async = true; script.setAttribute('data-ampula-playback-navigation-178', '1'); document.head.appendChild(script); }
+  function loadBackground() { if (document.querySelector('script[data-amp-background-150]')) return; const script = document.createElement('script'); script.src = './fast-background-v150.js?v=178'; script.async = true; script.setAttribute('data-amp-background-150', '1'); document.head.appendChild(script); }
+  function loadPlaybackContinuity() { if (document.querySelector('script[data-amp-playback-continuity-160]')) return; const script = document.createElement('script'); script.src = './playback-continuity-v160.js?v=160'; script.async = true; script.setAttribute('data-amp-playback-continuity-160', '1'); document.head.appendChild(script); }
+  function loadYoutubeJsAudioFirst() { if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return; const script = document.createElement('script'); script.src = './youtubejs-audio-first-v181.js?v=181'; script.async = true; script.setAttribute('data-ampula-youtubejs-audio-first-181', '1'); document.head.appendChild(script); }
 
   loadPlaybackNavigation();
   loadAppleResolution();
   setTimeout(loadPlaybackContinuity, 0);
-  if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 });
-  else setTimeout(loadBackground, 900);
+  setTimeout(loadYoutubeJsAudioFirst, 120);
+  if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 }); else setTimeout(loadBackground, 900);
 
   window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
-  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9');
+  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.1');
 })();
