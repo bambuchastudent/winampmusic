@@ -56,13 +56,15 @@
   function loadBackground() { if (document.querySelector('script[data-amp-background-150]')) return; const script = document.createElement('script'); script.src = './fast-background-v150.js?v=178'; script.async = true; script.setAttribute('data-amp-background-150', '1'); document.head.appendChild(script); }
   function loadPlaybackContinuity() { if (document.querySelector('script[data-amp-playback-continuity-160]')) return; const script = document.createElement('script'); script.src = './playback-continuity-v160.js?v=160'; script.async = true; script.setAttribute('data-amp-playback-continuity-160', '1'); document.head.appendChild(script); }
   function loadYoutubeJsAudioFirst() { if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return; const script = document.createElement('script'); script.src = './youtubejs-audio-first-v181.js?v=181'; script.async = true; script.setAttribute('data-ampula-youtubejs-audio-first-181', '1'); document.head.appendChild(script); }
+  function loadYoutubeEmbedRetry() { if (document.querySelector('script[data-ampula-youtube-embed-retry-182]')) return; const script = document.createElement('script'); script.src = './youtube-embed-retry-v182.js?v=182'; script.async = true; script.setAttribute('data-ampula-youtube-embed-retry-182', '1'); document.head.appendChild(script); }
 
   loadPlaybackNavigation();
   loadAppleResolution();
   setTimeout(loadPlaybackContinuity, 0);
   setTimeout(loadYoutubeJsAudioFirst, 120);
+  setTimeout(loadYoutubeEmbedRetry, 180);
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 }); else setTimeout(loadBackground, 900);
 
   window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
-  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.1');
+  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.1 · embed retry 1.8.2');
 })();
