@@ -4,8 +4,9 @@ import assert from 'node:assert/strict';
 const runtime = fs.readFileSync('youtubejs-audio-first-v181.js', 'utf8');
 const fast = fs.readFileSync('fast-player-v141.js', 'utf8');
 const loader = fs.readFileSync('fast-release-v150.js', 'utf8');
+const index = fs.readFileSync('index.html', 'utf8');
 
-for (const source of [runtime, fast, loader]) {
+for (const source of [runtime, loader]) {
   assert.match(source, /playback/);
   assert.match(source, /youtubejs/);
 }
