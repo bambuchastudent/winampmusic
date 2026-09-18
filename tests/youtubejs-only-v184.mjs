@@ -17,6 +17,8 @@ assert.match(fast, /if\(!window\.__AMPULA_YOUTUBEJS_ONLY__\)scheduleIdle/);
 
 assert.match(runtime, /YOUTUBEJS_ONLY/);
 assert.match(runtime, /YOUTUBEJS ERROR/);
+assert.match(runtime, /cors\.isomorphic-git\.org/);
+assert.match(runtime, /thingproxy\.freeboard\.io/);
 assert.match(runtime, /test\.cors\.workers\.dev/);
 assert.match(runtime, /corsproxy\.io/);
 assert.match(runtime, /seep\.eu\.org/);
