@@ -17,6 +17,11 @@ assert.match(fast, /if \(!YOUTUBEJS_ONLY\)[\s\S]*ensurePlayer\(\)/);
 
 assert.match(runtime, /YOUTUBEJS_ONLY/);
 assert.match(runtime, /YOUTUBEJS ERROR/);
+assert.match(runtime, /test\.cors\.workers\.dev/);
+assert.match(runtime, /corsproxy\.io/);
+assert.match(runtime, /seep\.eu\.org/);
+assert.match(runtime, /url:\s*format\.url/);
+assert.doesNotMatch(runtime, /audio\.crossOrigin/);
 assert.match(runtime, /if \(YOUTUBEJS_ONLY\)[\s\S]*return false/);
 assert.match(runtime, /stopImmediatePropagation/);
 assert.doesNotMatch(runtime, /track\.(title|artist|origin|sourceUrl)\s*=/);
