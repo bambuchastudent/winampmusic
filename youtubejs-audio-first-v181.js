@@ -55,10 +55,29 @@
     }
   }
 
-  function relayUrls(value) {
+  function requestCandidates(value, headers) {
     const url = value instanceof URL ? value : new URL(String(value));
     if (!isAllowedTarget(url)) throw new Error(`YouTube.js blocked relay target: ${url.hostname}`);
-    return RELAY_BUILDERS.map((build) => build(url));
+    const candidates = [{ label: 'direct', url: url.href, headers: new Headers(headers) }];
+
+    if (/\/youtubei\//.test(url.pathname)) {
+      const googleapis = new URL(url.href);
+      googleapis.hostname = 'youtubei.googleapis.com';
+      const apiKey = headers.get('x-goog-api-key');
+      const googleHeaders = new Headers(headers);
+      if (apiKey) {
+        googleapis.searchParams.set('key', apiKey);
+        googleHeaders.delete('x-goog-api-key');
+      }
+      googleHeaders.delete('x-origin');
+      candidates.push({ label: 'youtubei.googleapis.com', url: googleapis.href, headers: googleHeaders });
+    }
+
+    for (const build of RELAY_BUILDERS) {
+      const relay = build(url);
+      candidates.push({ label: new URL(relay).hostname, url: relay, headers: new Headers(headers) });
+    }
+    return candidates;
   }
 
   async function relayFetch(input, init = {}) {
@@ -77,11 +96,11 @@
     if (method !== 'GET' && method !== 'HEAD') bodyBytes = await source.clone().arrayBuffer();
 
     const failures = [];
-    for (const relay of relayUrls(target)) {
+    for (const candidate of requestCandidates(target, headers)) {
       try {
-        const response = await fetch(relay, {
+        const response = await fetch(candidate.url, {
           method,
-          headers: new Headers(headers),
+          headers: candidate.headers,
           body: bodyBytes ? bodyBytes.slice(0) : undefined,
           cache: 'no-store',
           credentials: 'omit',
@@ -89,9 +108,9 @@
           referrerPolicy: 'no-referrer',
         });
         if (response.ok) return response;
-        failures.push(`${new URL(relay).hostname} HTTP ${response.status}`);
+        failures.push(`${candidate.label} HTTP ${response.status}`);
       } catch (error) {
-        failures.push(`${new URL(relay).hostname} ${errorText(error)}`);
+        failures.push(`${candidate.label} ${errorText(error)}`);
       }
     }
     throw new Error(`all relays failed: ${failures.join(' | ')}`);
@@ -318,7 +337,7 @@
     resolveAudio,
     relayFetch,
     isActive: () => directActive,
-    relays: RELAY_BUILDERS.map((build) => new URL(build(new URL('https://www.youtube.com/'))).hostname),
+    relays: ['direct', 'youtubei.googleapis.com', ...RELAY_BUILDERS.map((build) => new URL(build(new URL('https://www.youtube.com/'))).hostname)],
   };
   function installWithRetry(attempt = 0) {
     if (install()) return;
