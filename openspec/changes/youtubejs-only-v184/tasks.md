@@ -1,0 +1,13 @@
+# Tasks
+
+- [x] Inspect current develop, AGENTS, README, index, playback wrappers, tests, and OpenSpec.
+- [x] Confirm YouTube.js v18 `Innertube.getStreamingData(video_id, options)` upstream API.
+- [x] Add isolation-mode specification and contract test first.
+- [ ] Block iframe player and warmup in FAST during isolation mode.
+- [ ] Make YouTube.js own Play in isolation mode.
+- [ ] Disable iframe fallback/retry in isolation mode.
+- [ ] Surface exact YouTube.js failure status.
+- [ ] Run PR CI.
+- [ ] Merge to develop.
+- [ ] Verify Pages and release.
+- [ ] Production smoke-test YouTube.js-only playback with advancing elapsed time.
