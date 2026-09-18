@@ -6,20 +6,11 @@
   const INITIAL_ROWS = 30;
   const CHUNK_ROWS = 40;
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
-  const REPAIR_SEARCH_INSTANCES = [
-    'https://inv.nadeko.net',
-    'https://invidious.nerdvpn.de',
-    'https://yt.chocolatemoo53.com',
-  ];
+  const REPAIR_SEARCH_INSTANCES=['https://inv.nadeko.net','https://invidious.nerdvpn.de','https://yt.chocolatemoo53.com'];
   const $ = (id) => document.getElementById(id);
   window.__WINAMP_MUSIC_RUNTIME__ = VERSION;
   document.documentElement.dataset.winampRuntime = VERSION;
-  const ui = {
-    status: $('status'), title: $('nowTitle'), artist: $('nowArtist'), elapsed: $('elapsed'),
-    duration: $('duration'), seek: $('seek'), volume: $('volume'), play: $('playButton'),
-    prev: $('prevButton'), next: $('nextButton'), shuffle: $('shuffleButton'), search: $('search'),
-    list: $('trackList'), count: $('trackCount'), empty: $('emptyState'),
-  };
+  const ui={status:$('status'),title:$('nowTitle'),artist:$('nowArtist'),elapsed:$('elapsed'),duration:$('duration'),seek:$('seek'),volume:$('volume'),play:$('playButton'),prev:$('prevButton'),next:$('nextButton'),shuffle:$('shuffleButton'),search:$('search'),list:$('trackList'),count:$('trackCount'),empty:$('emptyState')};
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
   const localRecordingId = (title, artist) => {
     const text = `${title}\u0000${artist}`.toLowerCase();
