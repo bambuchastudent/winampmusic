@@ -9,6 +9,8 @@
   const YOUTUBEJS_ONLY = window.__AMPULA_YOUTUBEJS_ONLY__ === true || new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const MODULE_URL = 'https://esm.sh/youtubei.js@18.0.0/web?bundle';
   const RELAY_BUILDERS = [
+    (url) => `https://cors.isomorphic-git.org/${url.href}`,
+    (url) => `https://thingproxy.freeboard.io/fetch/${url.href}`,
     (url) => `https://test.cors.workers.dev/?${encodeURIComponent(url.href)}`,
     (url) => `https://corsproxy.io/?url=${encodeURIComponent(url.href)}`,
     (url) => `https://seep.eu.org/${url.href}`,
