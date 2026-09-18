@@ -7,6 +7,7 @@
   const INITIAL_ROWS = 30;
   const CHUNK_ROWS = 40;
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+  const YOUTUBEJS_ONLY = new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const REPAIR_SEARCH_INSTANCES = [
     'https://inv.nadeko.net',
     'https://invidious.nerdvpn.de',
@@ -15,7 +16,9 @@
   const $ = (id) => document.getElementById(id);
 
   window.__WINAMP_MUSIC_RUNTIME__ = VERSION;
+  window.__AMPULA_YOUTUBEJS_ONLY__ = YOUTUBEJS_ONLY;
   document.documentElement.dataset.winampRuntime = VERSION;
+  if (YOUTUBEJS_ONLY) document.documentElement.dataset.playbackProvider = 'youtubejs-only';
 
   const ui = {
     status: $('status'), title: $('nowTitle'), artist: $('nowArtist'), elapsed: $('elapsed'),
@@ -167,6 +170,7 @@
   }
 
   function loadYouTubeApi() {
+    if (YOUTUBEJS_ONLY) return Promise.reject(new Error('YouTube iframe disabled by playback=youtubejs'));
     if (window.YT?.Player) return Promise.resolve(window.YT);
     if (youtubePromise) return youtubePromise;
     youtubePromise = new Promise((resolve, reject) => {
@@ -265,6 +269,13 @@
 
   async function playIndex(index) {
     if (!library.length) return setStatus('LIBRARY EMPTY');
+    if (YOUTUBEJS_ONLY) {
+      currentIndex = ((Number(index) % library.length) + library.length) % library.length;
+      updateNowPlaying();
+      ui.play.textContent = '▶';
+      setStatus('YOUTUBEJS ONLY · WAITING FOR ADAPTER');
+      return false;
+    }
     const generation = ++requestId;
     active = true;
     currentIndex = ((Number(index) % library.length) + library.length) % library.length;
@@ -289,6 +300,7 @@
 
   function togglePlayback() {
     if (!library.length) return setStatus('LIBRARY EMPTY');
+    if (YOUTUBEJS_ONLY) return window.playIndex(currentIndex >= 0 ? currentIndex : 0);
     if (!player || !window.YT?.PlayerState || !active || !loadedId) return window.playIndex(currentIndex >= 0 ? currentIndex : 0);
     let state = null; try { state = player.getPlayerState(); } catch {}
     if (state === window.YT.PlayerState.PLAYING || state === window.YT.PlayerState.BUFFERING) { try { player.pauseVideo(); } catch {} }
@@ -381,8 +393,8 @@
   window.ampMusicIsResolved = isResolved;
   window.ampMusicRecordingId = localRecordingId;
 
-  updateNowPlaying(); renderLibrary(); setStatus('READY · FAST');
-  scheduleIdle(() => ensurePlayer().catch(() => {}), 1500);
+  updateNowPlaying(); renderLibrary(); setStatus(YOUTUBEJS_ONLY ? 'READY · YOUTUBEJS ONLY' : 'READY · FAST');
+  if (!YOUTUBEJS_ONLY) scheduleIdle(() => ensurePlayer().catch(() => {}), 1500);
   scheduleIdle(() => {
     if (document.querySelector('script[data-fast-search]')) return;
     const script = document.createElement('script'); script.src = './v059.js?v=150'; script.async = true; script.dataset.fastSearch = '1'; document.head.appendChild(script);
