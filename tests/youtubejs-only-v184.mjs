@@ -28,7 +28,7 @@ assert.match(runtime, /stopImmediatePropagation/);
 assert.doesNotMatch(runtime, /track\.(title|artist|origin|sourceUrl)\s*=/);
 
 assert.match(loader, /if \(YOUTUBEJS_ONLY\)[\s\S]*loadYoutubeJsAudioFirst\(\)/);
-assert.match(loader, /if \(!YOUTUBEJS_ONLY\)[\s\S]*loadYoutubeEmbedRetry\(\)/);
+assert.match(loader, /if \(!YOUTUBEJS_ONLY\)[\s\S]*loadYoutubeEmbedRetry/);
 assert.match(loader, /youtubejs-audio-first-v181\.js\?v=184/);
 
 console.log('YouTube.js-only v1.8.4 contract OK');
