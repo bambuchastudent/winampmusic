@@ -14,6 +14,10 @@ If the adapter has not installed yet, FAST reports `YOUTUBEJS ONLY · WAITING FO
 
 The adapter detects the same query parameter. Its capture handler owns Play even before native audio is active. Resolver/native-media failures produce a visible `YOUTUBEJS ERROR · …` and return false without calling the saved iframe `playIndex`.
 
+InnerTube API traffic uses a short failover chain of public CORS transports during this diagnostic phase. A non-2xx response advances to the next relay and the final visible error includes each relay result. Account cookies and authorization remain stripped.
+
+The resolved signed `googlevideo` media URL is **not** sent through those relays. It is assigned directly to the native `HTMLAudioElement`; normal media-element playback does not require reading the cross-origin response body from JavaScript. This avoids proxying the audio payload and avoids relay file-size/bandwidth limits.
+
 The adapter keeps title/artist/origin untouched.
 
 ## Loader
