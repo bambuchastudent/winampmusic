@@ -1,25 +1,19 @@
 (() => {
   'use strict';
-
   const VERSION = '1.4.1-fast';
   const STORAGE_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const INITIAL_ROWS = 30;
   const CHUNK_ROWS = 40;
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
-  const YOUTUBEJS_ONLY = new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const REPAIR_SEARCH_INSTANCES = [
     'https://inv.nadeko.net',
     'https://invidious.nerdvpn.de',
     'https://yt.chocolatemoo53.com',
   ];
   const $ = (id) => document.getElementById(id);
-
   window.__WINAMP_MUSIC_RUNTIME__ = VERSION;
-  window.__AMPULA_YOUTUBEJS_ONLY__ = YOUTUBEJS_ONLY;
   document.documentElement.dataset.winampRuntime = VERSION;
-  if (YOUTUBEJS_ONLY) document.documentElement.dataset.playbackProvider = 'youtubejs-only';
-
   const ui = {
     status: $('status'), title: $('nowTitle'), artist: $('nowArtist'), elapsed: $('elapsed'),
     duration: $('duration'), seek: $('seek'), volume: $('volume'), play: $('playButton'),
@@ -27,14 +21,12 @@
     list: $('trackList'), count: $('trackCount'), empty: $('emptyState'),
   };
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
-
   const localRecordingId = (title, artist) => {
     const text = `${title}\u0000${artist}`.toLowerCase();
     let a = 0x811c9dc5; let b = 0x1b873593;
     for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; }
     return `U-${a.toString(36).padStart(7, '0')}${(b % 46656).toString(36).padStart(3, '0')}`;
   };
-
   function videoIdFromValue(raw) {
     const value = clean(raw);
     if (VIDEO_ID_RE.test(value)) return value;
@@ -49,7 +41,6 @@
     } catch {}
     return '';
   }
-
   const readLibrary = () => {
     try {
       const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -59,7 +50,6 @@
       }));
     } catch { return []; }
   };
-
   let library = readLibrary();
   let filtered = library.map((_, index) => index);
   let currentIndex = savedIndex();
@@ -73,7 +63,6 @@
   let active = false;
   let loadedId = '';
   const repairAttempts = new Set();
-
   const setStatus = (text) => { ui.status.textContent = text; };
   const isResolved = (track) => VIDEO_ID_RE.test(clean(track?.id));
   const recordingId=(t)=>clean(t?.title)?localRecordingId(clean(t.title),clean(t.artist)):'';
@@ -92,9 +81,7 @@
     const s = total % 60;
     return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
   };
-
   saveLibrary();
-
   function highlightCurrent() {
     ui.list.querySelectorAll('.track').forEach((row) => {
       const index = Number(row.dataset.index);
@@ -103,7 +90,6 @@
       if (marker) marker.textContent = index === currentIndex && playing ? '⏸' : '▶';
     });
   }
-
   function updateNowPlaying() {
     const track = library[currentIndex];
     if (!track) {
@@ -116,7 +102,6 @@
     saveCurrent();
     highlightCurrent();
   }
-
   function makeRow(index) {
     const track = library[index];
     const row = document.createElement('li');
@@ -136,9 +121,7 @@
     row.append(number, main, marker);
     return row;
   }
-
   const scheduleIdle=(callback,timeout=120)=>window.requestIdleCallback?requestIdleCallback(callback,{timeout}):setTimeout(callback,0);
-
   function renderLibrary(indices = filtered) {
     const generation = ++renderGeneration;
     ui.list.replaceChildren();
@@ -162,15 +145,12 @@
     };
     if (cursor < indices.length) scheduleIdle(more);
   }
-
   function filterLibrary() {
     const query = clean(ui.search.value).toLocaleLowerCase();
     filtered = library.flatMap((t, i) => !query || `${t.title} ${t.artist} ${t.playlist || ''}`.toLocaleLowerCase().includes(query) ? [i] : []);
     renderLibrary(filtered);
   }
-
   function loadYouTubeApi() {
-    if (YOUTUBEJS_ONLY) return Promise.reject(new Error('YouTube iframe disabled by playback=youtubejs'));
     if (window.YT?.Player) return Promise.resolve(window.YT);
     if (youtubePromise) return youtubePromise;
     youtubePromise = new Promise((resolve, reject) => {
@@ -190,7 +170,6 @@
     });
     return youtubePromise;
   }
-
   async function findRepairCandidate(track) {
     const query = clean(`${track?.title || ''} ${track?.artist || ''}`);
     if (query.length < 2) return '';
@@ -207,7 +186,6 @@
     }
     return '';
   }
-
   async function repairCurrentTrack() {
     const generation = requestId;
     const track = library[currentIndex];
@@ -223,7 +201,6 @@
     saveLibrary(); renderLibrary(filtered); updateNowPlaying();
     try { loadedId = repairedId; player?.loadVideoById(repairedId); return true; } catch { return false; }
   }
-
   function onPlayerStateChange(event) {
     if (!active) return;
     const state = event?.data;
@@ -232,7 +209,6 @@
     else if (state === window.YT?.PlayerState?.ENDED) { playing = false; ui.play.textContent = '▶'; playRelative(1); }
     highlightCurrent();
   }
-
   async function onPlayerError(event) {
     if (!active) return;
     const generation = requestId;
@@ -246,7 +222,6 @@
     }
     setStatus(`YOUTUBE ERROR ${event?.data ?? ''}`.trim());
   }
-
   function ensurePlayer() {
     if (playerPromise) return playerPromise;
     playerPromise = loadYouTubeApi().then(() => new Promise((resolve, reject) => {
@@ -266,16 +241,9 @@
     })).catch((error) => { playerPromise = null; setStatus('YOUTUBE UNAVAILABLE · TAP AGAIN'); console.warn('[ÁmpulaMP fast]', error); throw error; });
     return playerPromise;
   }
-
   async function playIndex(index) {
     if (!library.length) return setStatus('LIBRARY EMPTY');
-    if (YOUTUBEJS_ONLY) {
-      currentIndex = ((Number(index) % library.length) + library.length) % library.length;
-      updateNowPlaying();
-      ui.play.textContent = '▶';
-      setStatus('YOUTUBEJS ONLY · WAITING FOR ADAPTER');
-      return false;
-    }
+    if(window.__AMPULA_YOUTUBEJS_ONLY__)return false;
     const generation = ++requestId;
     active = true;
     currentIndex = ((Number(index) % library.length) + library.length) % library.length;
@@ -297,24 +265,20 @@
       setStatus('STARTING…'); ready.loadVideoById(safeId);
     } catch { if (generation === requestId) ui.play.textContent = '▶'; }
   }
-
   function togglePlayback() {
     if (!library.length) return setStatus('LIBRARY EMPTY');
-    if (YOUTUBEJS_ONLY) return window.playIndex(currentIndex >= 0 ? currentIndex : 0);
     if (!player || !window.YT?.PlayerState || !active || !loadedId) return window.playIndex(currentIndex >= 0 ? currentIndex : 0);
     let state = null; try { state = player.getPlayerState(); } catch {}
     if (state === window.YT.PlayerState.PLAYING || state === window.YT.PlayerState.BUFFERING) { try { player.pauseVideo(); } catch {} }
     else if (currentIndex >= 0) { setStatus('STARTING…'); try { player.playVideo(); } catch { playIndex(currentIndex); } }
     else playIndex(0);
   }
-
   function savedIndex() {
     const index = Number(localStorage.getItem(CURRENT_KEY));
     return Number.isInteger(index) && index >= 0 && index < library.length ? index : -1;
   }
   function playRelative(delta) { if (library.length) return window.playIndex(Math.max(0, savedIndex()) + delta); }
   function playRandom() { if (!library.length) return; if (library.length === 1) return window.playIndex(0); let index = currentIndex; while (index === currentIndex) index = Math.floor(Math.random() * library.length); window.playIndex(index); }
-
   function startProgress() {
     if (progressTimer) return;
     progressTimer = setInterval(() => {
@@ -326,7 +290,6 @@
       } catch {}
     }, 750);
   }
-
   function importTracks(items) {
     const incoming = Array.isArray(items) ? items : [];
     let added = 0; let adopted = 0;
@@ -346,7 +309,6 @@
     if (added || adopted) { saveLibrary(); filtered = library.map((_, index) => index); renderLibrary(filtered); }
     return { added, total: library.length };
   }
-
   function updateTrackMetadata(videoId, patch = {}) {
     const id = videoIdFromValue(videoId);
     if (!id) return false;
@@ -366,7 +328,6 @@
     if (currentIndex === index) updateNowPlaying();
     return true;
   }
-
   ui.play.addEventListener('click', togglePlayback);
   ui.prev.addEventListener('click', () => playRelative(-1));
   ui.next.addEventListener('click', () => playRelative(1));
@@ -376,7 +337,6 @@
   ui.search.addEventListener('search', filterLibrary, { passive: true });
   ui.volume.addEventListener('input', () => { try { player?.setVolume(Number(ui.volume.value) || 0); } catch {} }, { passive: true });
   ui.seek.addEventListener('change', () => { if (!player) return; try { const total = Number(player.getDuration()) || 0; if (total > 0) player.seekTo((Number(ui.seek.value) / 1000) * total, true); } catch {} });
-
   window.ampMusicYouTube150 = {
     isActive: () => active && Boolean(loadedId),
     suspend() {
@@ -392,18 +352,15 @@
   window.ampMusicVideoIdFromValue = videoIdFromValue;
   window.ampMusicIsResolved = isResolved;
   window.ampMusicRecordingId = localRecordingId;
-
-  updateNowPlaying(); renderLibrary(); setStatus(YOUTUBEJS_ONLY ? 'READY · YOUTUBEJS ONLY' : 'READY · FAST');
-  if (!YOUTUBEJS_ONLY) scheduleIdle(() => ensurePlayer().catch(() => {}), 1500);
+  updateNowPlaying(); renderLibrary(); setStatus('READY · FAST');
+  if(!window.__AMPULA_YOUTUBEJS_ONLY__)scheduleIdle(() => ensurePlayer().catch(() => {}), 1500);
   scheduleIdle(() => {
     if (document.querySelector('script[data-fast-search]')) return;
     const script = document.createElement('script'); script.src = './v059.js?v=150'; script.async = true; script.dataset.fastSearch = '1'; document.head.appendChild(script);
   }, 1800);
-
   setTimeout(() => {
     navigator.serviceWorker?.getRegistrations?.().then((registrations) => Promise.all(registrations.filter((registration) => registration.scope.includes('/winampmusic/')).map((registration) => registration.unregister()))).catch(() => {});
     window.caches?.keys?.().then((keys) => Promise.all(keys.filter((key) => key.startsWith('winampmusic-shell-')).map((key) => window.caches.delete(key)))).catch(() => {});
   }, 2500);
-
   console.info(`[ÁmpulaMP] ${VERSION} ready`, { tracks: library.length });
 })();
