@@ -6,13 +6,17 @@
   const STORAGE_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+  const YOUTUBEJS_ONLY = window.__AMPULA_YOUTUBEJS_ONLY__ === true || new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const MODULE_URL = 'https://esm.sh/youtubei.js@18.0.0/web?bundle';
-  const RELAY_BASE = 'https://seep.eu.org/';
+  const RELAY_BUILDERS = [
+    (url) => `https://test.cors.workers.dev/?${encodeURIComponent(url.href)}`,
+    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url.href)}`,
+    (url) => `https://seep.eu.org/${url.href}`,
+  ];
   const ALLOWED_HOST = /(^|\.)youtube\.com$|^youtubei\.googleapis\.com$|(^|\.)googlevideo\.com$|(^|\.)ytimg\.com$/i;
   const audio = new Audio();
   audio.preload = 'metadata';
   audio.playsInline = true;
-  audio.crossOrigin = 'anonymous';
 
   let innertubePromise = null;
   let directActive = false;
@@ -26,6 +30,7 @@
   const status = (text) => { const el = $('status'); if (el) el.textContent = text; };
   const readLibrary = () => { try { const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
   const savedIndex = () => Number(localStorage.getItem(CURRENT_KEY));
+  const errorText = (error) => clean(error?.message || error || 'unknown error').slice(0, 120);
 
   function setUi(index, track, playing) {
     currentIndex = index;
@@ -50,14 +55,33 @@
     }
   }
 
-  function relayUrl(value) {
+  function requestCandidates(value, headers) {
     const url = value instanceof URL ? value : new URL(String(value));
     if (!isAllowedTarget(url)) throw new Error(`YouTube.js blocked relay target: ${url.hostname}`);
-    return `${RELAY_BASE}${url.href}`;
+    const candidates = [{ label: 'direct', url: url.href, headers: new Headers(headers) }];
+
+    if (/\/youtubei\//.test(url.pathname)) {
+      const googleapis = new URL(url.href);
+      googleapis.hostname = 'youtubei.googleapis.com';
+      const apiKey = headers.get('x-goog-api-key');
+      const googleHeaders = new Headers(headers);
+      if (apiKey) {
+        googleapis.searchParams.set('key', apiKey);
+        googleHeaders.delete('x-goog-api-key');
+      }
+      googleHeaders.delete('x-origin');
+      candidates.push({ label: 'youtubei.googleapis.com', url: googleapis.href, headers: googleHeaders });
+    }
+
+    for (const build of RELAY_BUILDERS) {
+      const relay = build(url);
+      candidates.push({ label: new URL(relay).hostname, url: relay, headers: new Headers(headers) });
+    }
+    return candidates;
   }
 
   async function relayFetch(input, init = {}) {
-    const source = input instanceof Request ? input : new Request(input, init);
+    const source = input instanceof Request ? new Request(input, init) : new Request(input, init);
     const target = new URL(source.url);
     if (!isAllowedTarget(target)) throw new Error(`YouTube.js blocked request target: ${target.hostname}`);
 
@@ -67,22 +91,29 @@
       'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest'
     ]) headers.delete(header);
 
-    const method = String(init.method || source.method || 'GET').toUpperCase();
-    let body;
-    if (method !== 'GET' && method !== 'HEAD') {
-      if (init.body != null) body = init.body;
-      else body = await source.clone().arrayBuffer();
-    }
+    const method = String(source.method || 'GET').toUpperCase();
+    let bodyBytes = null;
+    if (method !== 'GET' && method !== 'HEAD') bodyBytes = await source.clone().arrayBuffer();
 
-    return fetch(relayUrl(target), {
-      method,
-      headers,
-      body,
-      cache: 'no-store',
-      credentials: 'omit',
-      redirect: 'follow',
-      referrerPolicy: 'no-referrer',
-    });
+    const failures = [];
+    for (const candidate of requestCandidates(target, headers)) {
+      try {
+        const response = await fetch(candidate.url, {
+          method,
+          headers: candidate.headers,
+          body: bodyBytes ? bodyBytes.slice(0) : undefined,
+          cache: 'no-store',
+          credentials: 'omit',
+          redirect: 'follow',
+          referrerPolicy: 'no-referrer',
+        });
+        if (response.ok) return response;
+        failures.push(`${candidate.label} HTTP ${response.status}`);
+      } catch (error) {
+        failures.push(`${candidate.label} ${errorText(error)}`);
+      }
+    }
+    throw new Error(`all relays failed: ${failures.join(' | ')}`);
   }
 
   function installInterpreter(Platform) {
@@ -110,7 +141,7 @@
     const format = await yt.getStreamingData(videoId, { type: 'audio', quality: 'best' });
     if (!format?.url) throw new Error('YouTube.js returned no audio URL');
     return {
-      url: relayUrl(format.url),
+      url: format.url,
       mimeType: clean(format.mime_type || format.mimeType),
       bitrate: Number(format.bitrate) || 0,
     };
@@ -184,6 +215,11 @@
     audio.removeAttribute('src');
     audio.load();
     clearPrimeUrl();
+    if (YOUTUBEJS_ONLY) {
+      status(`YOUTUBEJS ERROR · ${errorText(reason)}`);
+      console.error('[ÁmpulaMP] YouTube.js-only playback failed', reason);
+      return false;
+    }
     status('YOUTUBE · FALLBACK');
     console.warn('[ÁmpulaMP] YouTube.js audio fallback', reason);
     return originalPlayIndex(index);
@@ -191,11 +227,17 @@
 
   async function playAudioFirst(index) {
     const library = readLibrary();
-    if (!library.length) return originalPlayIndex(index);
+    if (!library.length) {
+      if (YOUTUBEJS_ONLY) { status('YOUTUBEJS ERROR · LIBRARY EMPTY'); return false; }
+      return originalPlayIndex(index);
+    }
     const normalized = ((Number(index) % library.length) + library.length) % library.length;
     const track = library[normalized];
     const videoId = clean(track?.id);
-    if (!VIDEO_ID_RE.test(videoId)) return originalPlayIndex(index);
+    if (!VIDEO_ID_RE.test(videoId)) {
+      if (YOUTUBEJS_ONLY) { status('YOUTUBEJS ERROR · NO YOUTUBE ID'); return false; }
+      return originalPlayIndex(index);
+    }
 
     const request = ++generation;
     primeAudio();
@@ -231,9 +273,23 @@
     window.playIndex = playAudioFirst;
 
     $('playButton')?.addEventListener('click', (event) => {
+      if (YOUTUBEJS_ONLY) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (directActive) {
+          if (audio.paused) void audio.play(); else audio.pause();
+          return;
+        }
+        const rows = readLibrary();
+        if (!rows.length) { status('YOUTUBEJS ERROR · LIBRARY EMPTY'); return; }
+        const saved = savedIndex();
+        const index = Number.isInteger(saved) && saved >= 0 && saved < rows.length ? saved : 0;
+        void playAudioFirst(index);
+        return;
+      }
       if (!directActive) return;
       event.stopImmediatePropagation();
-      if (audio.paused) audio.play(); else audio.pause();
+      if (audio.paused) void audio.play(); else audio.pause();
     }, true);
     $('volume')?.addEventListener('input', () => {
       if (directActive) audio.volume = Math.max(0, Math.min(1, Number($('volume').value) / 100));
@@ -276,11 +332,17 @@
   });
 
   window.ampulaYouTubeJsAudio181 = {
+    onlyMode: YOUTUBEJS_ONLY,
     audio,
     resolveAudio,
     relayFetch,
     isActive: () => directActive,
-    relay: RELAY_BASE,
+    relays: ['direct', 'youtubei.googleapis.com', ...RELAY_BUILDERS.map((build) => new URL(build(new URL('https://www.youtube.com/'))).hostname)],
   };
-  if (!install()) window.addEventListener('DOMContentLoaded', install, { once: true });
+  function installWithRetry(attempt = 0) {
+    if (install()) return;
+    if (attempt < 80) setTimeout(() => installWithRetry(attempt + 1), 50);
+  }
+  if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', () => installWithRetry(), { once: true });
+  else installWithRetry();
 })();

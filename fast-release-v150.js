@@ -8,6 +8,7 @@
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const PLAYER_STATE_KEY = 'winampmusic.player.v1';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+  const YOUTUBEJS_ONLY = window.__AMPULA_YOUTUBEJS_ONLY__ === true || new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
   window.__AMP_MUSIC_RELEASE__ = RELEASE;
@@ -29,6 +30,7 @@
   function wrapDirectPlayback(value) {
     if (typeof value !== 'function' || value.__ampFullYoutubeFallback162) return value;
     const wrapped = async (index) => {
+      if (YOUTUBEJS_ONLY) return false;
       let result = false;
       try { result = await value(index); } catch (error) { console.warn('[AmpMusic] direct playback failed', error); }
       if (result === null) return null;
@@ -55,16 +57,17 @@
   function loadPlaybackNavigation() { if (window.__AMPULA_PLAYBACK_NAVIGATION_178__ || document.querySelector('script[data-ampula-playback-navigation-178]')) return; const script = document.createElement('script'); script.src = './playback-navigation-v178.js?v=179'; script.async = true; script.setAttribute('data-ampula-playback-navigation-178', '1'); document.head.appendChild(script); }
   function loadBackground() { if (document.querySelector('script[data-amp-background-150]')) return; const script = document.createElement('script'); script.src = './fast-background-v150.js?v=178'; script.async = true; script.setAttribute('data-amp-background-150', '1'); document.head.appendChild(script); }
   function loadPlaybackContinuity() { if (document.querySelector('script[data-amp-playback-continuity-160]')) return; const script = document.createElement('script'); script.src = './playback-continuity-v160.js?v=160'; script.async = true; script.setAttribute('data-amp-playback-continuity-160', '1'); document.head.appendChild(script); }
-  function loadYoutubeJsAudioFirst() { if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return; const script = document.createElement('script'); script.src = './youtubejs-audio-first-v181.js?v=183'; script.async = true; script.setAttribute('data-ampula-youtubejs-audio-first-181', '1'); document.head.appendChild(script); }
+  function loadYoutubeJsAudioFirst() { if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return; const script = document.createElement('script'); script.src = './youtubejs-audio-first-v181.js?v=184'; script.async = true; script.setAttribute('data-ampula-youtubejs-audio-first-181', '1'); document.head.appendChild(script); }
   function loadYoutubeEmbedRetry() { if (document.querySelector('script[data-ampula-youtube-embed-retry-182]')) return; const script = document.createElement('script'); script.src = './youtube-embed-retry-v182.js?v=182'; script.async = true; script.setAttribute('data-ampula-youtube-embed-retry-182', '1'); document.head.appendChild(script); }
 
   loadPlaybackNavigation();
   loadAppleResolution();
   setTimeout(loadPlaybackContinuity, 0);
-  setTimeout(loadYoutubeJsAudioFirst, 120);
-  setTimeout(loadYoutubeEmbedRetry, 180);
+  if (YOUTUBEJS_ONLY) loadYoutubeJsAudioFirst();
+  else setTimeout(loadYoutubeJsAudioFirst, 120);
+  if (!YOUTUBEJS_ONLY) setTimeout(loadYoutubeEmbedRetry, 180);
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 }); else setTimeout(loadBackground, 900);
 
   window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
-  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.3 · embed retry 1.8.2');
+  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.4 · embed retry 1.8.2');
 })();
