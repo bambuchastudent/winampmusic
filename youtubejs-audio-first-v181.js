@@ -6,6 +6,7 @@
   const STORAGE_KEY = 'winampmusic.library.v1';
   const CURRENT_KEY = 'winampmusic.fast.current.v1';
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+  const YOUTUBEJS_ONLY = window.__AMPULA_YOUTUBEJS_ONLY__ === true || new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const MODULE_URL = 'https://esm.sh/youtubei.js@18.0.0/web?bundle';
   const RELAY_BASE = 'https://seep.eu.org/';
   const ALLOWED_HOST = /(^|\.)youtube\.com$|^youtubei\.googleapis\.com$|(^|\.)googlevideo\.com$|(^|\.)ytimg\.com$/i;
@@ -26,6 +27,7 @@
   const status = (text) => { const el = $('status'); if (el) el.textContent = text; };
   const readLibrary = () => { try { const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
   const savedIndex = () => Number(localStorage.getItem(CURRENT_KEY));
+  const errorText = (error) => clean(error?.message || error || 'unknown error').slice(0, 120);
 
   function setUi(index, track, playing) {
     currentIndex = index;
@@ -184,6 +186,11 @@
     audio.removeAttribute('src');
     audio.load();
     clearPrimeUrl();
+    if (YOUTUBEJS_ONLY) {
+      status(`YOUTUBEJS ERROR · ${errorText(reason)}`);
+      console.error('[ÁmpulaMP] YouTube.js-only playback failed', reason);
+      return false;
+    }
     status('YOUTUBE · FALLBACK');
     console.warn('[ÁmpulaMP] YouTube.js audio fallback', reason);
     return originalPlayIndex(index);
@@ -191,11 +198,17 @@
 
   async function playAudioFirst(index) {
     const library = readLibrary();
-    if (!library.length) return originalPlayIndex(index);
+    if (!library.length) {
+      if (YOUTUBEJS_ONLY) { status('YOUTUBEJS ERROR · LIBRARY EMPTY'); return false; }
+      return originalPlayIndex(index);
+    }
     const normalized = ((Number(index) % library.length) + library.length) % library.length;
     const track = library[normalized];
     const videoId = clean(track?.id);
-    if (!VIDEO_ID_RE.test(videoId)) return originalPlayIndex(index);
+    if (!VIDEO_ID_RE.test(videoId)) {
+      if (YOUTUBEJS_ONLY) { status('YOUTUBEJS ERROR · NO YOUTUBE ID'); return false; }
+      return originalPlayIndex(index);
+    }
 
     const request = ++generation;
     primeAudio();
@@ -231,9 +244,23 @@
     window.playIndex = playAudioFirst;
 
     $('playButton')?.addEventListener('click', (event) => {
+      if (YOUTUBEJS_ONLY) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (directActive) {
+          if (audio.paused) void audio.play(); else audio.pause();
+          return;
+        }
+        const rows = readLibrary();
+        if (!rows.length) { status('YOUTUBEJS ERROR · LIBRARY EMPTY'); return; }
+        const saved = savedIndex();
+        const index = Number.isInteger(saved) && saved >= 0 && saved < rows.length ? saved : 0;
+        void playAudioFirst(index);
+        return;
+      }
       if (!directActive) return;
       event.stopImmediatePropagation();
-      if (audio.paused) audio.play(); else audio.pause();
+      if (audio.paused) void audio.play(); else audio.pause();
     }, true);
     $('volume')?.addEventListener('input', () => {
       if (directActive) audio.volume = Math.max(0, Math.min(1, Number($('volume').value) / 100));
@@ -276,11 +303,17 @@
   });
 
   window.ampulaYouTubeJsAudio181 = {
+    onlyMode: YOUTUBEJS_ONLY,
     audio,
     resolveAudio,
     relayFetch,
     isActive: () => directActive,
     relay: RELAY_BASE,
   };
-  if (!install()) window.addEventListener('DOMContentLoaded', install, { once: true });
+  function installWithRetry(attempt = 0) {
+    if (install()) return;
+    if (attempt < 80) setTimeout(() => installWithRetry(attempt + 1), 50);
+  }
+  if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', () => installWithRetry(), { once: true });
+  else installWithRetry();
 })();
