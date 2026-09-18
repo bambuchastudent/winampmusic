@@ -11,16 +11,16 @@ for (const source of [runtime, loader]) {
   assert.match(source, /youtubejs/);
 }
 
-assert.match(fast, /YOUTUBEJS_ONLY/);
-assert.match(fast, /YOUTUBEJS ONLY · WAITING FOR ADAPTER/);
-assert.match(fast, /if \(YOUTUBEJS_ONLY\)[\s\S]*return window\.playIndex/);
-assert.match(fast, /if \(!YOUTUBEJS_ONLY\)[\s\S]*ensurePlayer\(\)/);
+assert.match(index, /__AMPULA_YOUTUBEJS_ONLY__=new URLSearchParams\(location\.search\)/);
+assert.match(fast, /if\(window\.__AMPULA_YOUTUBEJS_ONLY__\)return false/);
+assert.match(fast, /if\(!window\.__AMPULA_YOUTUBEJS_ONLY__\)scheduleIdle/);
 
 assert.match(runtime, /YOUTUBEJS_ONLY/);
 assert.match(runtime, /YOUTUBEJS ERROR/);
 assert.match(runtime, /test\.cors\.workers\.dev/);
 assert.match(runtime, /corsproxy\.io/);
 assert.match(runtime, /seep\.eu\.org/);
+assert.match(runtime, /youtubei\.googleapis\.com/);
 assert.match(runtime, /url:\s*format\.url/);
 assert.doesNotMatch(runtime, /audio\.crossOrigin/);
 assert.match(runtime, /if \(YOUTUBEJS_ONLY\)[\s\S]*return false/);
