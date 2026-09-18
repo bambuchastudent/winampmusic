@@ -8,12 +8,15 @@
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const YOUTUBEJS_ONLY = window.__AMPULA_YOUTUBEJS_ONLY__ === true || new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const MODULE_URL = 'https://esm.sh/youtubei.js@18.0.0/web?bundle';
-  const RELAY_BASE = 'https://seep.eu.org/';
+  const RELAY_BUILDERS = [
+    (url) => `https://test.cors.workers.dev/?${encodeURIComponent(url.href)}`,
+    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url.href)}`,
+    (url) => `https://seep.eu.org/${url.href}`,
+  ];
   const ALLOWED_HOST = /(^|\.)youtube\.com$|^youtubei\.googleapis\.com$|(^|\.)googlevideo\.com$|(^|\.)ytimg\.com$/i;
   const audio = new Audio();
   audio.preload = 'metadata';
   audio.playsInline = true;
-  audio.crossOrigin = 'anonymous';
 
   let innertubePromise = null;
   let directActive = false;
@@ -52,14 +55,14 @@
     }
   }
 
-  function relayUrl(value) {
+  function relayUrls(value) {
     const url = value instanceof URL ? value : new URL(String(value));
     if (!isAllowedTarget(url)) throw new Error(`YouTube.js blocked relay target: ${url.hostname}`);
-    return `${RELAY_BASE}${url.href}`;
+    return RELAY_BUILDERS.map((build) => build(url));
   }
 
   async function relayFetch(input, init = {}) {
-    const source = input instanceof Request ? input : new Request(input, init);
+    const source = input instanceof Request ? new Request(input, init) : new Request(input, init);
     const target = new URL(source.url);
     if (!isAllowedTarget(target)) throw new Error(`YouTube.js blocked request target: ${target.hostname}`);
 
@@ -69,22 +72,29 @@
       'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest'
     ]) headers.delete(header);
 
-    const method = String(init.method || source.method || 'GET').toUpperCase();
-    let body;
-    if (method !== 'GET' && method !== 'HEAD') {
-      if (init.body != null) body = init.body;
-      else body = await source.clone().arrayBuffer();
-    }
+    const method = String(source.method || 'GET').toUpperCase();
+    let bodyBytes = null;
+    if (method !== 'GET' && method !== 'HEAD') bodyBytes = await source.clone().arrayBuffer();
 
-    return fetch(relayUrl(target), {
-      method,
-      headers,
-      body,
-      cache: 'no-store',
-      credentials: 'omit',
-      redirect: 'follow',
-      referrerPolicy: 'no-referrer',
-    });
+    const failures = [];
+    for (const relay of relayUrls(target)) {
+      try {
+        const response = await fetch(relay, {
+          method,
+          headers: new Headers(headers),
+          body: bodyBytes ? bodyBytes.slice(0) : undefined,
+          cache: 'no-store',
+          credentials: 'omit',
+          redirect: 'follow',
+          referrerPolicy: 'no-referrer',
+        });
+        if (response.ok) return response;
+        failures.push(`${new URL(relay).hostname} HTTP ${response.status}`);
+      } catch (error) {
+        failures.push(`${new URL(relay).hostname} ${errorText(error)}`);
+      }
+    }
+    throw new Error(`all relays failed: ${failures.join(' | ')}`);
   }
 
   function installInterpreter(Platform) {
@@ -112,7 +122,7 @@
     const format = await yt.getStreamingData(videoId, { type: 'audio', quality: 'best' });
     if (!format?.url) throw new Error('YouTube.js returned no audio URL');
     return {
-      url: relayUrl(format.url),
+      url: format.url,
       mimeType: clean(format.mime_type || format.mimeType),
       bitrate: Number(format.bitrate) || 0,
     };
@@ -308,7 +318,7 @@
     resolveAudio,
     relayFetch,
     isActive: () => directActive,
-    relay: RELAY_BASE,
+    relays: RELAY_BUILDERS.map((build) => new URL(build(new URL('https://www.youtube.com/'))).hostname),
   };
   function installWithRetry(attempt = 0) {
     if (install()) return;
