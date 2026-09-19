@@ -6,6 +6,8 @@
 > are absent, invalid, or Cloudflare is unavailable, AMPULAMP publishes normally
 > with the canonical self-contained `?a=` share path and no relay dependency.
 
+The Worker also exposes a restricted `/youtubejs/*` browser transport for the optional YouTube.js playback adapter. This second route is not a short-link feature and stores nothing; it only forwards anonymous requests to a fixed YouTube-owned host allowlist so a static Pages client can satisfy browser CORS requirements.
+
 The relay implements the `relay` adapter of the alias contract in
 [`openspec/changes/short-share-links-v1.6.3/specs/short-link-alias/spec.md`](../../openspec/changes/short-share-links-v1.6.3/specs/short-link-alias/spec.md).
 Production wiring is specified by
@@ -23,6 +25,18 @@ independent.
 
 The relay never decodes, decompresses, rewrites, enriches or indexes musical content and stores no
 user, device or session identifier.
+
+## YouTube.js browser transport
+
+When this Worker is deployed, the Pages runtime uses the same public Worker origin as its preferred browser transport for YouTube.js. Requests have the shape:
+
+```text
+GET|POST|HEAD /youtubejs/<youtube-path>?__host=<allowed-youtube-host>
+```
+
+The Worker always reconstructs HTTPS upstream URLs, rejects unrelated hosts, forwards only the small anonymous YouTube.js header allowlist, and never forwards Cookie, Authorization or Proxy-Authorization. Resolved media URLs are played directly by the browser; audio bytes are not intentionally routed through this Worker.
+
+This route is playback infrastructure only. It is never recorded in Ámpula Core, track metadata, origin evidence or provider identity.
 
 ## API contract v1
 

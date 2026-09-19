@@ -8,6 +8,15 @@
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const YOUTUBEJS_ONLY = window.__AMPULA_YOUTUBEJS_ONLY__ === true || new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const MODULE_URL = 'https://esm.sh/youtubei.js@18.0.0/web?bundle';
+  const firstPartyRelayBase = () => clean(window.AMPULA_SHORT_LINK_RELAY);
+  const firstPartyRelay = (url) => {
+    const base = firstPartyRelayBase();
+    if (!base) return '';
+    const relay = new URL(`youtubejs${url.pathname}`, base.endsWith('/') ? base : `${base}/`);
+    relay.search = url.search;
+    relay.searchParams.set('__host', url.host);
+    return relay.href;
+  };
   const RELAY_BUILDERS = [
     (url) => `https://test.cors.workers.dev/?${encodeURIComponent(url.href)}`,
     (url) => `https://corsproxy.io/?url=${encodeURIComponent(url.href)}`,
@@ -58,7 +67,10 @@
   function requestCandidates(value, headers) {
     const url = value instanceof URL ? value : new URL(String(value));
     if (!isAllowedTarget(url)) throw new Error(`YouTube.js blocked relay target: ${url.hostname}`);
-    const candidates = [{ label: 'direct', url: url.href, headers: new Headers(headers) }];
+    const candidates = [];
+    const projectRelay = firstPartyRelay(url);
+    if (projectRelay) candidates.push({ label: 'first-party', url: projectRelay, headers: new Headers(headers) });
+    candidates.push({ label: 'direct', url: url.href, headers: new Headers(headers) });
 
     if (/\/youtubei\//.test(url.pathname)) {
       const googleapis = new URL(url.href);
@@ -337,7 +349,7 @@
     resolveAudio,
     relayFetch,
     isActive: () => directActive,
-    relays: ['direct', 'youtubei.googleapis.com', ...RELAY_BUILDERS.map((build) => new URL(build(new URL('https://www.youtube.com/'))).hostname)],
+    relays: ['first-party', 'direct', 'youtubei.googleapis.com', ...RELAY_BUILDERS.map((build) => new URL(build(new URL('https://www.youtube.com/'))).hostname)],
   };
   function installWithRetry(attempt = 0) {
     if (install()) return;
