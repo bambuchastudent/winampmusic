@@ -193,6 +193,6 @@ Production URL while the repository keeps its legacy slug:
 
 `https://bambuchastudent.github.io/winampmusic/`
 
-Optional end-user short-link creation is integrated into the same production workflow. To enable it, configure the repository Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; see [`relay/short-link/README.md`](./relay/short-link/README.md). Missing or broken relay credentials do not block Pages deployment or canonical Ámpula sharing.
+Optional Cloudflare helpers are integrated into the same production workflow. The short-link alias service and the separate browser YouTube.js relay are deployed independently when `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are configured; see [`relay/short-link/README.md`](./relay/short-link/README.md) and [`relay/youtubejs/README.md`](./relay/youtubejs/README.md). Missing or broken relay credentials do not block Pages deployment, canonical Ámpula sharing, or provider-independent identity.
 
 This project is independent and is not affiliated with YouTube, Apple Music, or Spotify.
