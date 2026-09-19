@@ -8,7 +8,7 @@ export function renderYoutubeJsRelayConfig(value) {
     ? `window.AMPULA_YOUTUBEJS_RELAY = window.AMPULA_YOUTUBEJS_RELAY || ${JSON.stringify(relay)};`
     : "window.AMPULA_YOUTUBEJS_RELAY = window.AMPULA_YOUTUBEJS_RELAY || '';";
 
-  return `(() => {\n  'use strict';\n  // Generated during production delivery. Contains public playback transport routing only.\n  ${assignment}\n})();\n`;
+  return `(() => {\n  'use strict';\n  // Generated during production delivery. Contains public playback transport routing only.\n  ${assignment}\n  window.__AMPULA_YOUTUBEJS_RELAY_CONFIG_READY__ = true;\n})();\n`;
 }
 
 function writeGithubOutput(relay) {
