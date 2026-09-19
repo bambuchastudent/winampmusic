@@ -8,15 +8,18 @@ on:
       - 'background-playback-v114.js'
       - 'youtubejs-audio-first-v181.js'
       - 'youtube-embed-retry-v182.js'
+      - 'relay/short-link/worker.js'
       - 'fast-release-v150.js'
       - 'tests/background-media-session-v114.mjs'
       - 'tests/youtubejs-audio-first-v181.mjs'
       - 'tests/youtubejs-browser-audio-v183.mjs'
       - 'tests/youtubejs-only-v184.mjs'
+      - 'tests/youtubejs-first-party-relay-v185.mjs'
       - 'tests/youtube-embed-retry-v182.mjs'
       - 'openspec/changes/youtubejs-background-playback/**'
       - 'openspec/changes/youtubejs-browser-audio-v183/**'
       - 'openspec/changes/youtubejs-only-v184/**'
+      - 'openspec/changes/youtubejs-first-party-relay-v185/**'
       - 'openspec/changes/youtube-embed-retry-v182/**'
       - 'THIRD_PARTY_NOTICES.md'
       - 'LICENSE'
@@ -34,8 +37,10 @@ jobs:
       - run: node --check background-playback-v114.js
       - run: node --check youtubejs-audio-first-v181.js
       - run: node --check youtube-embed-retry-v182.js
+      - run: node --check relay/short-link/worker.js
       - run: node tests/background-media-session-v114.mjs
       - run: node tests/youtubejs-audio-first-v181.mjs
       - run: node tests/youtubejs-browser-audio-v183.mjs
       - run: node tests/youtubejs-only-v184.mjs
+      - run: node tests/youtubejs-first-party-relay-v185.mjs
       - run: node tests/youtube-embed-retry-v182.mjs
