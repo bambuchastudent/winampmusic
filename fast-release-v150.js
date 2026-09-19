@@ -66,16 +66,20 @@
       script.setAttribute('data-ampula-youtubejs-audio-first-181', '1');
       document.head.appendChild(script);
     };
+    const ready = () => { window.__AMPULA_YOUTUBEJS_RELAY_CONFIG_READY__ = true; start(); };
     if (window.__AMPULA_YOUTUBEJS_RELAY_CONFIG_READY__) return start();
     let config = document.querySelector('script[data-ampula-youtubejs-relay-config]');
+    if (config && typeof window.AMPULA_YOUTUBEJS_RELAY === 'string') return ready();
     if (!config) {
       config = document.createElement('script');
       config.src = './youtubejs-relay-config.js?v=186';
       config.async = true;
       config.setAttribute('data-ampula-youtubejs-relay-config', '1');
+      config.addEventListener('load', ready, { once: true });
+      config.addEventListener('error', ready, { once: true });
       document.head.appendChild(config);
+      return;
     }
-    const ready = () => { window.__AMPULA_YOUTUBEJS_RELAY_CONFIG_READY__ = true; start(); };
     config.addEventListener('load', ready, { once: true });
     config.addEventListener('error', ready, { once: true });
   }
