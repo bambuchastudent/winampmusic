@@ -21,22 +21,6 @@ export const LIMITS = Object.freeze({
 const TOKEN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const PAYLOAD_RE = /^[gj]\.[A-Za-z0-9_-]{8,}$/;
 const TOKEN_RE = /^[A-Za-z0-9]{6,32}$/;
-const YOUTUBE_PROXY_PREFIX = '/youtubejs/';
-const YOUTUBE_PROXY_METHODS = new Set(['GET', 'POST', 'HEAD']);
-const YOUTUBE_PROXY_HEADERS = [
-  'accept',
-  'accept-language',
-  'content-type',
-  'range',
-  'user-agent',
-  'x-goog-api-format-version',
-  'x-goog-api-key',
-  'x-goog-visitor-id',
-  'x-origin',
-  'x-user-agent',
-  'x-youtube-client-name',
-  'x-youtube-client-version',
-];
 
 function json(body, status, extraHeaders) {
   return new Response(JSON.stringify(body), {
@@ -69,114 +53,6 @@ function corsHeaders(env) {
     'access-control-allow-headers': 'content-type',
     'access-control-max-age': '86400',
   };
-}
-
-function youtubeCorsHeaders(env) {
-  const origin = appOrigin(env);
-  return {
-    'access-control-allow-origin': origin || '*',
-    'access-control-allow-methods': 'GET,POST,HEAD,OPTIONS',
-    'access-control-allow-headers': YOUTUBE_PROXY_HEADERS.join(','),
-    'access-control-expose-headers': 'content-length,content-type,accept-ranges,content-range',
-    'access-control-max-age': '86400',
-    vary: 'Origin',
-  };
-}
-
-export function isAllowedYouTubeProxyHost(hostname) {
-  const host = String(hostname || '').toLowerCase();
-  return host === 'youtubei.googleapis.com'
-    || host === 'youtube.com'
-    || host.endsWith('.youtube.com')
-    || host === 'ytimg.com'
-    || host.endsWith('.ytimg.com')
-    || host === 'googlevideo.com'
-    || host.endsWith('.googlevideo.com');
-}
-
-function youtubeProxyTarget(requestUrl) {
-  const incoming = new URL(requestUrl);
-  const rawHost = String(incoming.searchParams.get('__host') || '').trim();
-  if (!rawHost || rawHost.includes('@') || rawHost.includes('/') || rawHost.includes('\\')) {
-    return { error: 'invalid_host', status: 400 };
-  }
-
-  let parsedHost;
-  try {
-    parsedHost = new URL(`https://${rawHost}`);
-  } catch {
-    return { error: 'invalid_host', status: 400 };
-  }
-  if (parsedHost.username || parsedHost.password || (parsedHost.port && parsedHost.port !== '443')) {
-    return { error: 'invalid_host', status: 400 };
-  }
-  if (!isAllowedYouTubeProxyHost(parsedHost.hostname)) {
-    return { error: 'host_not_allowed', status: 403 };
-  }
-
-  const target = new URL('https://youtube.invalid/');
-  target.hostname = parsedHost.hostname;
-  target.pathname = incoming.pathname.slice(YOUTUBE_PROXY_PREFIX.length - 1) || '/';
-  target.search = incoming.search;
-  target.searchParams.delete('__host');
-  return { target };
-}
-
-function copyAllowedYouTubeRequestHeaders(from) {
-  const headers = new Headers();
-  for (const name of YOUTUBE_PROXY_HEADERS) {
-    const value = from.get(name);
-    if (value) headers.set(name, value);
-  }
-  headers.delete('authorization');
-  headers.delete('cookie');
-  headers.delete('proxy-authorization');
-  return headers;
-}
-
-function copyYouTubeResponseHeaders(from, env) {
-  const headers = new Headers(youtubeCorsHeaders(env));
-  for (const name of [
-    'content-length',
-    'content-type',
-    'content-disposition',
-    'accept-ranges',
-    'content-range',
-    'cache-control',
-    'etag',
-    'last-modified',
-  ]) {
-    const value = from.get(name);
-    if (value) headers.set(name, value);
-  }
-  return headers;
-}
-
-async function handleYouTubeProxy(request, env) {
-  if (!YOUTUBE_PROXY_METHODS.has(request.method)) {
-    return json({ error: 'method_not_allowed' }, 405, youtubeCorsHeaders(env));
-  }
-
-  const resolved = youtubeProxyTarget(request.url);
-  if (!resolved.target) return json({ error: resolved.error }, resolved.status, youtubeCorsHeaders(env));
-
-  const init = {
-    method: request.method,
-    headers: copyAllowedYouTubeRequestHeaders(request.headers),
-    redirect: 'follow',
-  };
-  if (request.method === 'POST') init.body = await request.arrayBuffer();
-
-  try {
-    const response = await fetch(resolved.target, init);
-    return new Response(request.method === 'HEAD' ? null : response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: copyYouTubeResponseHeaders(response.headers, env),
-    });
-  } catch {
-    return json({ error: 'upstream_unavailable' }, 502, youtubeCorsHeaders(env));
-  }
 }
 
 export function mintToken(random = crypto) {
@@ -364,13 +240,7 @@ export default {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
-      const headers = url.pathname.startsWith(YOUTUBE_PROXY_PREFIX)
-        ? youtubeCorsHeaders(env)
-        : corsHeaders(env);
-      return new Response(null, { status: 204, headers });
-    }
-    if (url.pathname.startsWith(YOUTUBE_PROXY_PREFIX)) {
-      return handleYouTubeProxy(request, env);
+      return new Response(null, { status: 204, headers: corsHeaders(env) });
     }
     if (url.pathname === '/healthz') {
       return json({ ok: true, v: 1 }, 200, corsHeaders(env));
