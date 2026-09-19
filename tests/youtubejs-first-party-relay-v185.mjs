@@ -23,7 +23,8 @@ assert.match(workerSource, /GET,POST,HEAD,OPTIONS/);
 
 assert.match(workflow, /youtubejs-first-party-relay-v185\.mjs/);
 
-const worker = (await import('../relay/short-link/worker.js')).default;
+const workerModuleUrl = `data:text/javascript;base64,${Buffer.from(workerSource).toString('base64')}`;
+const worker = (await import(workerModuleUrl)).default;
 const env = { APP_URL: 'https://bambuchastudent.github.io/winampmusic/' };
 const originalFetch = globalThis.fetch;
 let upstream = null;
