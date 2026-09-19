@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 const runtime = fs.readFileSync('youtubejs-audio-first-v181.js', 'utf8');
 const loader = fs.readFileSync('fast-release-v150.js', 'utf8');
 
-assert.match(loader, /youtubejs-audio-first-v181\.js\?v=184/);
+assert.match(loader, /youtubejs-audio-first-v181\.js\?v=186/);
 assert.match(runtime, /youtubei\.js@18\.0\.0\/web/);
 assert.match(runtime, /seep\.eu\.org/);
 assert.match(runtime, /Innertube\.create\(\{[\s\S]*fetch:/);
