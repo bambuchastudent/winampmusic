@@ -8,7 +8,7 @@
   const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const YOUTUBEJS_ONLY = window.__AMPULA_YOUTUBEJS_ONLY__ === true || new URLSearchParams(window.location.search).get('playback') === 'youtubejs';
   const MODULE_URL = 'https://esm.sh/youtubei.js@18.0.0/web?bundle';
-  const firstPartyRelayBase = () => clean(window.AMPULA_SHORT_LINK_RELAY);
+  const firstPartyRelayBase = () => clean(window.AMPULA_YOUTUBEJS_RELAY);
   const firstPartyRelay = (url) => {
     const base = firstPartyRelayBase();
     if (!base) return '';

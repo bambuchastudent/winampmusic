@@ -57,7 +57,32 @@
   function loadPlaybackNavigation() { if (window.__AMPULA_PLAYBACK_NAVIGATION_178__ || document.querySelector('script[data-ampula-playback-navigation-178]')) return; const script = document.createElement('script'); script.src = './playback-navigation-v178.js?v=179'; script.async = true; script.setAttribute('data-ampula-playback-navigation-178', '1'); document.head.appendChild(script); }
   function loadBackground() { if (document.querySelector('script[data-amp-background-150]')) return; const script = document.createElement('script'); script.src = './fast-background-v150.js?v=178'; script.async = true; script.setAttribute('data-amp-background-150', '1'); document.head.appendChild(script); }
   function loadPlaybackContinuity() { if (document.querySelector('script[data-amp-playback-continuity-160]')) return; const script = document.createElement('script'); script.src = './playback-continuity-v160.js?v=160'; script.async = true; script.setAttribute('data-amp-playback-continuity-160', '1'); document.head.appendChild(script); }
-  function loadYoutubeJsAudioFirst() { if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return; const script = document.createElement('script'); script.src = './youtubejs-audio-first-v181.js?v=184'; script.async = true; script.setAttribute('data-ampula-youtubejs-audio-first-181', '1'); document.head.appendChild(script); }
+  function loadYoutubeJsAudioFirst() {
+    const start = () => {
+      if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return;
+      const script = document.createElement('script');
+      script.src = './youtubejs-audio-first-v181.js?v=186';
+      script.async = true;
+      script.setAttribute('data-ampula-youtubejs-audio-first-181', '1');
+      document.head.appendChild(script);
+    };
+    const ready = () => { window.__AMPULA_YOUTUBEJS_RELAY_CONFIG_READY__ = true; start(); };
+    if (window.__AMPULA_YOUTUBEJS_RELAY_CONFIG_READY__) return start();
+    let config = document.querySelector('script[data-ampula-youtubejs-relay-config]');
+    if (config && typeof window.AMPULA_YOUTUBEJS_RELAY === 'string') return ready();
+    if (!config) {
+      config = document.createElement('script');
+      config.src = './youtubejs-relay-config.js?v=186';
+      config.async = true;
+      config.setAttribute('data-ampula-youtubejs-relay-config', '1');
+      config.addEventListener('load', ready, { once: true });
+      config.addEventListener('error', ready, { once: true });
+      document.head.appendChild(config);
+      return;
+    }
+    config.addEventListener('load', ready, { once: true });
+    config.addEventListener('error', ready, { once: true });
+  }
   function loadYoutubeEmbedRetry() { if (document.querySelector('script[data-ampula-youtube-embed-retry-182]')) return; const script = document.createElement('script'); script.src = './youtube-embed-retry-v182.js?v=182'; script.async = true; script.setAttribute('data-ampula-youtube-embed-retry-182', '1'); document.head.appendChild(script); }
 
   loadPlaybackNavigation();
@@ -69,5 +94,5 @@
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 }); else setTimeout(loadBackground, 900);
 
   window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
-  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.4 · embed retry 1.8.2');
+  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.6 · embed retry 1.8.2');
 })();

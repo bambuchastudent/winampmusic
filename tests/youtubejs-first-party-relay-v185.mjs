@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const runtime = fs.readFileSync('youtubejs-audio-first-v181.js', 'utf8');
-const workerSource = fs.readFileSync('relay/short-link/worker.js', 'utf8');
+const workerSource = fs.readFileSync('relay/youtubejs/worker.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/background-media-session-v114.yml', 'utf8');
 
-assert.match(runtime, /AMPULA_SHORT_LINK_RELAY/);
+assert.match(runtime, /AMPULA_YOUTUBEJS_RELAY/);
 assert.match(runtime, /youtubejs/);
 assert.match(runtime, /first-party/i);
 assert.match(runtime, /url:\s*format\.url/);

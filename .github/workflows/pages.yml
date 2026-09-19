@@ -79,10 +79,10 @@ jobs:
             rate_salt="$(openssl rand -hex 32)"
             echo "::add-mask::$rate_salt"
             echo "RATE_SALT=$rate_salt" >> "$GITHUB_ENV"
-            echo "Cloudflare credentials present; short-link relay deployment enabled."
+            echo "Cloudflare credentials present; optional relay deployments enabled."
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Cloudflare credentials absent; canonical Ámpula links remain active."
+            echo "Cloudflare credentials absent; optional relays remain disabled."
           fi
 
       - name: Deploy optional Ámpula short-link relay
@@ -119,6 +119,38 @@ jobs:
           else
             echo "::warning::Short-link relay health check failed; publishing with canonical share fallback."
             RELAY_DEPLOYMENT_URL='' RELAY_COMMAND_OUTPUT='' node scripts/generate-short-link-config.mjs ampula-short-link-config.js
+          fi
+
+      - name: Deploy optional YouTube.js browser relay
+        id: youtubejs_relay_deploy
+        if: steps.relay_gate.outputs.enabled == 'true'
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: relay/youtubejs
+          wranglerVersion: "4.102.0"
+          command: deploy
+
+      - name: Generate YouTube.js relay runtime config
+        id: youtubejs_relay_config
+        env:
+          RELAY_DEPLOYMENT_URL: ${{ steps.youtubejs_relay_deploy.outputs.deployment-url }}
+          RELAY_COMMAND_OUTPUT: ${{ steps.youtubejs_relay_deploy.outputs.command-output }}
+        run: node scripts/generate-youtubejs-relay-config.mjs youtubejs-relay-config.js
+
+      - name: Verify optional YouTube.js browser relay
+        if: steps.youtubejs_relay_config.outputs.relay_url != ''
+        env:
+          RELAY_URL: ${{ steps.youtubejs_relay_config.outputs.relay_url }}
+        run: |
+          set -u
+          if curl --fail --silent --show-error --retry 4 --retry-delay 2 "${RELAY_URL}healthz" >/dev/null; then
+            echo "YouTube.js relay is healthy: $RELAY_URL"
+          else
+            echo "::warning::YouTube.js relay health check failed; publishing with browser fallback diagnostics."
+            RELAY_DEPLOYMENT_URL='' RELAY_COMMAND_OUTPUT='' node scripts/generate-youtubejs-relay-config.mjs youtubejs-relay-config.js
           fi
 
       - name: Stamp footer build revision
