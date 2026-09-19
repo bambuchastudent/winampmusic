@@ -26,9 +26,10 @@ assert.match(runtime, /AMPULA_YOUTUBEJS_RELAY/);
 assert.doesNotMatch(runtime, /AMPULA_SHORT_LINK_RELAY/);
 assert.match(loader, /youtubejs-relay-config\.js/);
 
-const configAt = loader.indexOf('youtubejs-relay-config.js');
-const runtimeAt = loader.indexOf('youtubejs-audio-first-v181.js');
-assert.ok(configAt >= 0 && runtimeAt > configAt, 'relay config loader must be defined before YouTube.js runtime loader');
+assert.match(loader, /config\.src = '\.\/youtubejs-relay-config\.js\?v=186'/);
+assert.match(loader, /config\.addEventListener\('load', ready[\s\S]*document\.head\.appendChild\(config\)/);
+assert.match(loader, /const ready = \(\) => \{[\s\S]*start\(\); \}/);
+assert.match(loader, /if \(window\.__AMPULA_YOUTUBEJS_RELAY_CONFIG_READY__\) return start\(\)/);
 
 assert.match(pages, /workingDirectory:\s*relay\/youtubejs/);
 assert.match(pages, /generate-youtubejs-relay-config\.mjs/);
