@@ -61,7 +61,7 @@
     const start = () => {
       if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return;
       const script = document.createElement('script');
-      script.src = './youtubejs-audio-first-v181.js?v=186';
+      script.src = './youtubejs-audio-first-v181.js?v=187';
       script.async = true;
       script.setAttribute('data-ampula-youtubejs-audio-first-181', '1');
       document.head.appendChild(script);
@@ -94,5 +94,5 @@
   if ('requestIdleCallback' in window) requestIdleCallback(loadBackground, { timeout: 2200 }); else setTimeout(loadBackground, 900);
 
   window.ampMusicFullYoutubeFallback162 = { isAppleTrack, hasRealYouTubeHandle, wrapDirectPlayback, forceAppleResolution };
-  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.6 · embed retry 1.8.2');
+  console.info('[AmpMusic] release 1.5.0 adapter ready · playback navigation 1.7.9 · YouTube.js audio-first 1.8.7 · embed retry 1.8.2');
 })();
