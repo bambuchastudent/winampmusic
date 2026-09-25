@@ -13,6 +13,7 @@
   let intent = null;
   let shuffleEnabled = false;
   let pendingPlaybackIntent = false;
+  let reservedNext = null;
 
   try { shuffleEnabled = localStorage.getItem(SHUFFLE_KEY) === '1'; } catch {}
 
@@ -59,6 +60,64 @@
     }
   }
 
+  function libraryRows() {
+    try { const rows = JSON.parse(localStorage.getItem('winampmusic.library.v1') || '[]'); return Array.isArray(rows) ? rows : []; }
+    catch { return []; }
+  }
+
+  function ready(track) {
+    const queueReady = window.ampulaPlaybackQueue170?.isReady;
+    if (queueReady) return queueReady(track);
+    if (!/^[A-Za-z0-9_-]{11}$/.test(clean(track?.id))) return false;
+    const badges = Array.isArray(track?.badges) ? track.badges : [];
+    const fromSongService = track?.spotifyTrackId || track?.appleTrackId || track?.spotifyPlaylistId ||
+      badges.some((badge) => /^(Spotify|Apple Music)$/.test(clean(badge))) ||
+      /(?:open\.spotify\.com|music\.apple\.com)/i.test(clean(track?.originUrl || track?.sourceUrl));
+    return !fromSongService || clean(track.youtubeMatchFinalTrustVersion) === 'music-only-v1.6.7';
+  }
+
+  function currentPosition(rows) {
+    const index = Number(localStorage.getItem('winampmusic.fast.current.v1'));
+    return Number.isInteger(index) && index >= 0 && index < rows.length ? index : -1;
+  }
+
+  function nextPreview() {
+    const rows = libraryRows();
+    const current = currentPosition(rows);
+    if (current < 0 || rows.length < 2) return null;
+    let index = -1;
+    if (shuffleEnabled) {
+      const candidates = rows.map((track, i) => i !== current && ready(track) ? `${i}:${clean(track.id)}` : '').filter(Boolean).join('|');
+      if (reservedNext?.current === current && reservedNext.candidates === candidates) index = reservedNext.index;
+      else {
+        index = chooseShuffleIndex(rows, current, ready);
+        reservedNext = { current, candidates, index };
+      }
+    } else {
+      reservedNext = null;
+      for (let offset = 1; offset < rows.length; offset++) {
+        const candidate = (current + offset) % rows.length;
+        if (ready(rows[candidate])) { index = candidate; break; }
+      }
+    }
+    return index < 0 ? null : { index, number: index + 1, total: rows.length, title: clean(rows[index].title) || 'Unknown track', artist: clean(rows[index].artist) };
+  }
+
+  function renderNext() {
+    const mode = ensureModeLine();
+    let line = document.getElementById('nextTrackStatus');
+    if (!line) {
+      line = document.createElement('div');
+      line.id = 'nextTrackStatus';
+      line.className = 'playback-mode-status';
+      line.style.cssText = 'margin-top:3px;color:#acc6a7;font:700 10px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:normal';
+    }
+    if (mode?.parentElement && line.previousElementSibling !== mode) mode.insertAdjacentElement('afterend', line);
+    const next = nextPreview();
+    const value = next ? `NEXT · #${next.number}/${next.total} · ${next.title}${next.artist ? ` — ${next.artist}` : ''}` : 'NEXT · WAITING FOR A PLAYABLE TRACK';
+    if (line.textContent !== value) line.textContent = value;
+  }
+
   function render() {
     if (shuffleButton) {
       shuffleButton.setAttribute('aria-pressed', shuffleEnabled ? 'true' : 'false');
@@ -69,11 +128,13 @@
     const line = ensureModeLine();
     const text = shuffleEnabled ? 'SHUFFLE · ON · NEXT · RANDOM' : 'SHUFFLE · OFF · ORDER · SEQUENTIAL';
     if (line && clean(line.textContent) !== text) line.textContent = text;
+    renderNext();
     normalizePendingPlaybackControl();
   }
 
   function setShuffleEnabled(value) {
     shuffleEnabled = Boolean(value);
+    reservedNext = null;
     try { localStorage.setItem(SHUFFLE_KEY, shuffleEnabled ? '1' : '0'); } catch {}
     render();
     try { window.dispatchEvent(new CustomEvent('ampula:shufflechange', { detail: { enabled: shuffleEnabled } })); } catch {}
@@ -92,6 +153,12 @@
       if (isReady(rows[index])) candidates.push(index);
     }
     if (!candidates.length) return -1;
+    const fingerprint = candidates.map((index) => `${index}:${clean(rows[index].id)}`).join('|');
+    if (reservedNext?.current === currentIndex && reservedNext.candidates === fingerprint && candidates.includes(reservedNext.index)) {
+      const chosen = reservedNext.index;
+      reservedNext = null;
+      return chosen;
+    }
     const slot = Math.min(candidates.length - 1, Math.floor(Math.max(0, Math.min(0.999999999, Number(Math.random()) || 0)) * candidates.length));
     return candidates[slot];
   }
@@ -143,11 +210,12 @@
     observer.observe(playButton, { childList: true, characterData: true, subtree: true });
   }
   if (status) {
-    const observer = new MutationObserver(() => queueMicrotask(normalizePendingPlaybackControl));
+    const observer = new MutationObserver(() => queueMicrotask(render));
     observer.observe(status, { childList: true, characterData: true, subtree: true });
   }
   window.addEventListener('pageshow', render);
   window.addEventListener('focus', render);
+  window.addEventListener('ampula:librarychange', render);
 
   window.ampulaPlaybackNavigation178 = {
     version: VERSION,
@@ -156,6 +224,7 @@
     isShuffleEnabled,
     setShuffleEnabled,
     chooseShuffleIndex,
+    nextPreview,
     isPendingPlaybackIntent: () => pendingPlaybackIntent,
     refresh: render,
   };

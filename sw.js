@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.7.11';
-const CACHE = 'winampmusic-shell-v1711-skip-ad-session';
+const BUILD = 'ampmusic-v1.8.8';
+const CACHE = 'winampmusic-shell-v188-lockscreen-next';
 const CORE = [
   './',
   './index.html',

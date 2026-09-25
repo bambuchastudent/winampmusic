@@ -1,0 +1,5 @@
+# Design
+
+The existing navigation runtime owns shuffle and a reserved next row, scoped to the current library position and playable candidates. The queue consumes this reservation for automatic/Next continuation; direct row selection and Previous stay exact. A second line under the playback mode states the candidate and its one-based position. The background runtime includes it in MediaMetadata.album, installs standard Previous/Next handlers, and makes a single delayed resume attempt if the page becomes hidden with prior playing intent and the iframe reports PAUSED within a short lock window. Media Session Pause clears that intent synchronously. Native audio remains preferred where available; fallback preserves playback when extraction fails.
+
+The platform may suspend timers or reject iframe autoplay; on these devices the lockscreen Play control remains the recovery path. The preview is recalculated when current track, library availability, or shuffle changes. Unknown resolution never turns into a guessed recording.

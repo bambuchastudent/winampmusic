@@ -20,6 +20,9 @@
 
   let intendedPlaying = String(status.textContent || '').toUpperCase() === 'PLAYING';
   let resumeInFlight = false;
+  let lockWindowUntil = 0;
+  let lockRecoveryUsed = false;
+  let lockRecoveryPending = false;
 
   const readJson = (key, fallback) => {
     try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
@@ -45,6 +48,9 @@
     const library = readJson(LIBRARY_KEY, []);
     if (!Array.isArray(library) || !library.length) return null;
 
+    const index = Number(localStorage.getItem(CURRENT_KEY));
+    if (Number.isInteger(index) && index >= 0 && index < library.length) return library[index];
+
     const state = readJson(PLAYER_STATE_KEY, {});
     const currentId = String(state?.currentId || '').trim();
     if (currentId) {
@@ -52,8 +58,7 @@
       if (byId) return byId;
     }
 
-    const index = Number(localStorage.getItem(CURRENT_KEY));
-    return Number.isInteger(index) && index >= 0 && index < library.length ? library[index] : null;
+    return null;
   }
 
   function saveSnapshot() {
@@ -79,11 +84,14 @@
     const session = mediaSession();
     const track = currentTrack();
     if (!session || !track || typeof window.MediaMetadata !== 'function') return;
+    const next = window.ampulaPlaybackNavigation178?.nextPreview?.();
+    const mode = window.ampulaPlaybackNavigation178?.isShuffleEnabled?.() ? 'Shuffle on' : 'Shuffle off';
+    const position = next ? `Next #${next.number}/${next.total} ${next.title}` : 'Next pending';
     try {
       session.metadata = new MediaMetadata({
         title: track.title || `YouTube ${track.id}`,
         artist: track.artist || 'YouTube',
-        album: track.playlist || 'ÁmpulaMP',
+        album: `${track.album || track.playlist || 'ÁmpulaMP'} · ${mode} · ${position}`,
         artwork: track.thumbnail ? [{ src: track.thumbnail }] : [],
       });
     } catch {}
@@ -127,7 +135,21 @@
 
   function requestPause() {
     intendedPlaying = false;
+    lockWindowUntil = 0;
     if (stateText() === 'PLAYING') play.click();
+  }
+
+  function recoverLockPause() {
+    if (lockRecoveryUsed || lockRecoveryPending || !intendedPlaying ||
+      document.visibilityState !== 'hidden' || Date.now() > lockWindowUntil || stateText() !== 'PAUSED') return;
+    lockRecoveryPending = true;
+    setTimeout(() => {
+      lockRecoveryPending = false;
+      if (lockRecoveryUsed || !intendedPlaying || document.visibilityState !== 'hidden' ||
+        Date.now() > lockWindowUntil || stateText() !== 'PAUSED') return;
+      lockRecoveryUsed = true;
+      requestPlay();
+    }, 250);
   }
 
   function installMediaSessionHandlers() {
@@ -177,20 +199,29 @@
     // last explicit playback intent in that case; Media Session pause already
     // clears intendedPlaying synchronously via requestPause().
     if (text === 'PAUSED' && document.visibilityState !== 'hidden') intendedPlaying = false;
+    if (text === 'PAUSED') recoverLockPause();
     syncMetadata();
     syncPlaybackState();
   });
   observer.observe(status, { childList: true, characterData: true, subtree: true });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveSnapshot();
-    else setTimeout(resumeSnapshot, 250);
+    if (document.visibilityState === 'hidden') {
+      lockWindowUntil = intendedPlaying ? Date.now() + 2500 : 0;
+      lockRecoveryUsed = false;
+      saveSnapshot();
+      recoverLockPause();
+    } else {
+      lockWindowUntil = 0;
+      setTimeout(resumeSnapshot, 250);
+    }
     syncMetadata();
     syncPlaybackState();
   });
   window.addEventListener('pagehide', saveSnapshot);
   window.addEventListener('freeze', saveSnapshot);
   window.addEventListener('pageshow', () => setTimeout(resumeSnapshot, 300));
+  window.addEventListener('ampula:shufflechange', syncMetadata);
 
   installMediaSessionHandlers();
   syncMetadata();
