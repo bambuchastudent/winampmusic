@@ -163,6 +163,8 @@ Included today:
 - collapsible PRE + 10-band equalizer UI; for provider-owned playback such as YouTube/Apple Music it is explicitly visual/stateful only because that audio cannot be routed through ÁmpulaMP filters;
 - playback-preserving background imports;
 - Media Session integration where supported;
+- current and next track position in the local library, including a reserved shuffle candidate; Media Session metadata and previous/next actions where the browser supports them;
+- one recovery attempt when an embedded provider pauses at screen lock while playback was active (browser and provider restrictions can still require tapping Play on the lock screen);
 - Ámpula v1 self-contained link sharing;
 - dialogless Share with optional short-link aliases and automatic fallback to the self-contained link;
 - inline, listen-first received Ámpula playback without automatic library mutation;

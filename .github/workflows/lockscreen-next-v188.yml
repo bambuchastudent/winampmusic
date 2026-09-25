@@ -1,0 +1,31 @@
+name: Lockscreen and next preview v1.8.8
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'fast-background-v150.js'
+      - 'playback-navigation-v178.js'
+      - 'fast-release-v150.js'
+      - 'index.html'
+      - 'sw.js'
+      - 'tests/lockscreen-next-preview-v188.mjs'
+      - 'openspec/changes/lockscreen-continuity-next-preview-v1.8.8/**'
+      - '.github/workflows/lockscreen-next-v188.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - run: |
+          node tests/lockscreen-next-preview-v188.mjs
+          node tests/playback-order-shuffle-continuity-v178.mjs
+          node tests/background-v150.mjs

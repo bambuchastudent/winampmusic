@@ -127,8 +127,8 @@ assert.match(headerSource, /script\.addEventListener\('load', loadResolverMusicR
 assert.match(headerSource, /script\.addEventListener\('load', loadTrackDiagnostics/);
 assert.match(swSource, /resolver-trust-v167\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);
-assert.match(swSource, /winampmusic-shell-v1711-skip-ad-session/);
-assert.match(swSource, /ampmusic-v1\.7\.11/);
+assert.match(swSource, /winampmusic-shell-v188-lockscreen-next/);
+assert.match(swSource, /ampmusic-v1\.8\.8/);
 assert.match(swSource, /playback-navigation-v178\.js/);
 assert.match(swSource, /playback-bridge-guard-v1711\.js/);
 assert.match(swSource, /playback-queue-v170\.js/);
