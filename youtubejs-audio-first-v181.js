@@ -41,6 +41,14 @@
   const savedIndex = () => Number(localStorage.getItem(CURRENT_KEY));
   const errorText = (error) => clean(error?.message || error || 'unknown error').slice(0, 120);
 
+  function hasFirstPartyRelay() {
+    try {
+      return new URL(firstPartyRelayBase()).protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   function setUi(index, track, playing) {
     currentIndex = index;
     try { localStorage.setItem(CURRENT_KEY, String(index)); } catch {}
@@ -281,6 +289,15 @@
   function install() {
     if (window.__AMPULA_YOUTUBEJS_AUDIO_FIRST_181_INSTALLED__ || typeof window.playIndex !== 'function') return false;
     window.__AMPULA_YOUTUBEJS_AUDIO_FIRST_181_INSTALLED__ = true;
+    if (!hasFirstPartyRelay()) {
+      if (YOUTUBEJS_ONLY) {
+        status('YOUTUBEJS ERROR · RELAY NOT CONFIGURED');
+        console.error('[ÁmpulaMP] YouTube.js-only playback requires the dedicated relay');
+      } else {
+        console.info('[ÁmpulaMP] YouTube.js relay unavailable; keeping YouTube iframe playback');
+      }
+      return true;
+    }
     originalPlayIndex = window.playIndex.bind(window);
     window.playIndex = playAudioFirst;
 
