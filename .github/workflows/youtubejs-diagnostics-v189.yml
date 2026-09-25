@@ -1,0 +1,31 @@
+name: YouTube.js diagnostics v1.8.9
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'youtubejs-audio-first-v181.js'
+      - 'fast-release-v150.js'
+      - 'index.html'
+      - 'sw.js'
+      - 'tests/youtubejs-diagnostics-v189.mjs'
+      - 'openspec/changes/youtubejs-stream-diagnostics-v1.8.9/**'
+      - '.github/workflows/youtubejs-diagnostics-v189.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - run: |
+          node --check youtubejs-audio-first-v181.js
+          node tests/youtubejs-diagnostics-v189.mjs
+          node tests/youtubejs-relay-availability-v187.mjs
+          node tests/youtubejs-browser-audio-v183.mjs

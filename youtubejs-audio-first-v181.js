@@ -33,6 +33,7 @@
   let currentIndex = -1;
   let originalPlayIndex = null;
   let primeObjectUrl = '';
+  let lastDiagnostics = null;
 
   const $ = (id) => document.getElementById(id);
   const clean = (v) => String(v ?? '').replace(/\s+/g, ' ').trim();
@@ -40,6 +41,51 @@
   const readLibrary = () => { try { const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
   const savedIndex = () => Number(localStorage.getItem(CURRENT_KEY));
   const errorText = (error) => clean(error?.message || error || 'unknown error').slice(0, 120);
+
+  function errorCode(error) {
+    const message = clean(error?.message || error);
+    if (/Streaming data not available/i.test(message)) return 'STREAM_DATA_UNAVAILABLE';
+    if (/no audio URL/i.test(message)) return 'AUDIO_URL_MISSING';
+    if (/all relays failed/i.test(message)) return 'RELAY_UNAVAILABLE';
+    if (/decipher|signature|No valid URL/i.test(message)) return 'URL_DECIPHER_FAILED';
+    return 'RESOLUTION_FAILED';
+  }
+
+  function playabilityCode(value) {
+    const code = clean(value);
+    return /^[A-Z_]{2,32}$/.test(code) ? code : 'UNKNOWN';
+  }
+
+  function diagnosticView() {
+    let details = $('youtubeJsDiagnostics');
+    if (details) return details;
+    const screen = $('status')?.closest('.screen');
+    if (!screen) return null;
+    details = document.createElement('details');
+    details.id = 'youtubeJsDiagnostics';
+    details.style.cssText = 'margin-top:8px;color:#aeb7c4;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Audio diagnostics';
+    details.appendChild(summary);
+    const content = document.createElement('pre');
+    content.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 0';
+    details.appendChild(content);
+    screen.appendChild(details);
+    return details;
+  }
+
+  function showDiagnostics() {
+    const details = diagnosticView();
+    if (!details || !lastDiagnostics) return;
+    details.hidden = false;
+    details.querySelector('pre').textContent = JSON.stringify(lastDiagnostics, null, 2);
+  }
+
+  function clearDiagnostics() {
+    lastDiagnostics = null;
+    const details = $('youtubeJsDiagnostics');
+    if (details) details.hidden = true;
+  }
 
   function hasFirstPartyRelay() {
     try {
@@ -151,15 +197,44 @@
           retrieve_player: true,
           enable_session_cache: true,
         });
-      });
+      }).catch((error) => { innertubePromise = null; throw error; });
     }
     return innertubePromise;
   }
 
-  async function resolveAudio(videoId) {
-    const yt = await getInnertube();
-    const format = await yt.getStreamingData(videoId, { type: 'audio', quality: 'best' });
-    if (!format?.url) throw new Error('YouTube.js returned no audio URL');
+  async function resolveAudio(videoId, suppliedInnertube) {
+    const report = { videoId: VIDEO_ID_RE.test(videoId) ? videoId : 'INVALID', stage: 'resolution', attempts: [], errorCode: null };
+    lastDiagnostics = report;
+    let format;
+    try {
+      const yt = suppliedInnertube || await getInnertube();
+      const primary = { client: 'WEB', playability: 'UNKNOWN', audioFormats: null, errorCode: null };
+      report.attempts.push(primary);
+      try {
+        format = await yt.getStreamingData(videoId, { type: 'audio', quality: 'best' });
+      } catch (error) {
+        primary.errorCode = errorCode(error);
+        if (primary.errorCode !== 'STREAM_DATA_UNAVAILABLE') throw error;
+        let info;
+        try { info = await yt.getBasicInfo(videoId); }
+        catch { throw error; }
+        primary.playability = playabilityCode(info?.playability_status?.status);
+        const formats = info?.streaming_data;
+        primary.audioFormats = [...(formats?.adaptive_formats || []), ...(formats?.formats || [])]
+          .filter((item) => item?.has_audio || /^audio\//i.test(clean(item?.mime_type || item?.mimeType))).length;
+        if (primary.playability !== 'OK' || primary.audioFormats !== 0) throw error;
+
+        const music = { client: 'YTMUSIC', playability: 'UNKNOWN', audioFormats: null, errorCode: null };
+        report.attempts.push(music);
+        try { format = await yt.getStreamingData(videoId, { type: 'audio', quality: 'best', client: 'YTMUSIC' }); }
+        catch (musicError) { music.errorCode = errorCode(musicError); throw musicError; }
+      }
+      if (!format?.url) throw new Error('YouTube.js returned no audio URL');
+    } catch (error) {
+      report.errorCode = errorCode(error);
+      if (lastDiagnostics === report) showDiagnostics();
+      throw error;
+    }
     return {
       url: format.url,
       mimeType: clean(format.mime_type || format.mimeType),
@@ -229,6 +304,9 @@
   }
 
   async function fallback(index, reason) {
+    if (!lastDiagnostics) lastDiagnostics = { videoId: clean(readLibrary()[index]?.id).slice(0, 11), stage: 'media', attempts: [], errorCode: null };
+    if (!lastDiagnostics.errorCode) lastDiagnostics.errorCode = lastDiagnostics.stage === 'media' ? 'MEDIA_PLAY_FAILED' : errorCode(reason);
+    showDiagnostics();
     directActive = false;
     audio.loop = false;
     audio.pause();
@@ -236,16 +314,16 @@
     audio.load();
     clearPrimeUrl();
     if (YOUTUBEJS_ONLY) {
-      status(`YOUTUBEJS ERROR · ${errorText(reason)}`);
-      console.error('[ÁmpulaMP] YouTube.js-only playback failed', reason);
+      status(`YOUTUBEJS ERROR · ${lastDiagnostics.errorCode}`);
+      console.error('[ÁmpulaMP] YouTube.js-only playback failed', lastDiagnostics);
       return false;
     }
     status('YOUTUBE · FALLBACK');
-    console.warn('[ÁmpulaMP] YouTube.js audio fallback', reason);
+    console.warn('[ÁmpulaMP] YouTube.js audio fallback', lastDiagnostics);
     return originalPlayIndex(index);
   }
 
-  async function playAudioFirst(index) {
+  async function playAudioFirst(index, suppliedInnertube) {
     const library = readLibrary();
     if (!library.length) {
       if (YOUTUBEJS_ONLY) { status('YOUTUBEJS ERROR · LIBRARY EMPTY'); return false; }
@@ -265,7 +343,7 @@
     status('YOUTUBEJS · RESOLVING AUDIO…');
 
     try {
-      const resolved = await resolveAudio(videoId);
+      const resolved = await resolveAudio(videoId, suppliedInnertube);
       if (request !== generation) return;
 
       window.ampMusicYouTube150?.suspend?.();
@@ -274,11 +352,13 @@
       audio.volume = Math.max(0, Math.min(1, (Number($('volume')?.value) || 75) / 100));
       mediaMetadata(track);
       bindMediaSession();
+      if (lastDiagnostics) lastDiagnostics.stage = 'media';
       await audio.play();
       clearPrimeUrl();
       if (request !== generation) { audio.pause(); return; }
 
       directActive = true;
+      clearDiagnostics();
       setUi(normalized, track, true);
       status('PLAYING · YOUTUBEJS · AUDIO');
     } catch (error) {
@@ -357,13 +437,17 @@
     if (directActive) $('nextButton')?.click();
   });
   audio.addEventListener('error', () => {
-    if (directActive) void fallback(currentIndex, new Error('native audio playback error'));
+    if (directActive) {
+      lastDiagnostics = { videoId: VIDEO_ID_RE.test(clean(readLibrary()[currentIndex]?.id)) ? clean(readLibrary()[currentIndex].id) : 'INVALID', stage: 'media', attempts: [], errorCode: `MEDIA_ERROR_${Math.max(0, Math.min(4, Number(audio.error?.code) || 0))}` };
+      void fallback(currentIndex, new Error('native audio playback error'));
+    }
   });
 
   window.ampulaYouTubeJsAudio181 = {
     onlyMode: YOUTUBEJS_ONLY,
     audio,
     resolveAudio,
+    diagnostics: () => lastDiagnostics ? JSON.parse(JSON.stringify(lastDiagnostics)) : null,
     relayFetch,
     isActive: () => directActive,
     relays: ['first-party', 'direct', 'youtubei.googleapis.com', ...RELAY_BUILDERS.map((build) => new URL(build(new URL('https://www.youtube.com/'))).hostname)],
