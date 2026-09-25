@@ -1,5 +1,5 @@
-const BUILD = 'ampmusic-v1.8.8';
-const CACHE = 'winampmusic-shell-v188-lockscreen-next';
+const BUILD = 'ampmusic-v1.8.9';
+const CACHE = 'winampmusic-shell-v189-youtubejs-diagnostics';
 const CORE = [
   './',
   './index.html',

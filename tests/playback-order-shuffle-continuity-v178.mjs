@@ -9,7 +9,7 @@ const releaseSource = fs.readFileSync('fast-release-v150.js', 'utf8');
 const swSource = fs.readFileSync('sw.js', 'utf8');
 
 assert.match(releaseSource, /playback-navigation-v178\.js\?v=188/, 'release adapter must load latest deterministic navigation runtime');
-assert.match(swSource, /ampmusic-v1\.8\.8/, 'service worker build must include current playback semantics');
+assert.match(swSource, /ampmusic-v1\.8\.9/, 'service worker build must include current playback semantics');
 assert.match(swSource, /playback-navigation-v178\.js/, 'navigation runtime must be available offline');
 
 const KEY = 'winampmusic.library.v1';

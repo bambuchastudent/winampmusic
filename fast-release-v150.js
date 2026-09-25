@@ -61,7 +61,7 @@
     const start = () => {
       if (document.querySelector('script[data-ampula-youtubejs-audio-first-181]')) return;
       const script = document.createElement('script');
-      script.src = './youtubejs-audio-first-v181.js?v=187';
+      script.src = './youtubejs-audio-first-v181.js?v=189';
       script.async = true;
       script.setAttribute('data-ampula-youtubejs-audio-first-181', '1');
       document.head.appendChild(script);
