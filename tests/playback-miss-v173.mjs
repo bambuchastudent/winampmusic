@@ -19,7 +19,7 @@ assert.match(trustSource, /metadataWithRejected/, 'final trust wrapper must inje
 assert.match(headerSource, /playback-miss-v173\.js\?v=175/, 'runtime must load MISS control');
 assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/, 'MISS recovery must hand off to deep music recall after final trust');
 assert.match(headerSource, /playback-bridge-guard-v1711\.js\?v=1711/);
-assert.match(swSource, /ampmusic-v1\.8\.9/);
+assert.match(swSource, /ampmusic-v1\.9\.0/);
 assert.match(swSource, /playback-navigation-v178\.js/);
 assert.match(swSource, /playback-bridge-guard-v1711\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);

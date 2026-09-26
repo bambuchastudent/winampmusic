@@ -199,3 +199,11 @@ Production URL while the repository keeps its legacy slug:
 Optional Cloudflare helpers are integrated into the same production workflow. The short-link alias service and the separate browser YouTube.js relay are deployed independently when `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are configured; see [`relay/short-link/README.md`](./relay/short-link/README.md) and [`relay/youtubejs/README.md`](./relay/youtubejs/README.md). Missing or broken relay credentials do not block Pages deployment, canonical Ámpula sharing, or provider-independent identity.
 
 This project is independent and is not affiliated with YouTube, Apple Music, or Spotify.
+
+## YouTube authorization research (stage 1)
+
+The opt-in [YouTube TV authorization experiment](./experiments/youtube-auth/README.md) compares anonymous and personally authorized TV metadata requests using an operator-owned OAuth client. Its dedicated relay is configured separately and is not automatically deployed by the normal Pages workflow. OAuth success, provider response, stream metadata, and verified media playback are distinct outcomes; the experiment does not enable signed-in production playback.
+
+The normal player's Audio diagnostics include safe restriction categories, check time, and observed request transport when attribution is unambiguous. A temporary failure is not a permanent track restriction or an offline-availability flag.
+
+The [stage 1 agent journal](./docs/agent-runs/youtube-auth-stage1.md) records requested agent models, task identifiers, contributions, verification results, and remaining manual checks.

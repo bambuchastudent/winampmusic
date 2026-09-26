@@ -11,7 +11,7 @@ assert.match(header, /playback-bridge-guard-v1711\.js\?v=1711/);
 assert.match(header, /ad-indicator-v170\.js\?v=1711/);
 assert.match(header, /playback-queue-v170\.js\?v=1711/);
 assert.match(header, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(sw, /ampmusic-v1\.8\.9/);
+assert.match(sw, /ampmusic-v1\.9\.0/);
 assert.match(sw, /playback-navigation-v178\.js/);
 assert.match(sw, /playback-bridge-guard-v1711\.js/);
 assert.match(sw, /resolver-music-recall-v174\.js/);

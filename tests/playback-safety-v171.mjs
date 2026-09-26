@@ -24,7 +24,7 @@ assert.match(headerSource, /track-diagnostics-v164\.js\?v=1711/);
 assert.match(headerSource, /playback-queue-v170\.js\?v=1711/);
 assert.match(headerSource, /playback-miss-v173\.js\?v=175/);
 assert.match(headerSource, /resolver-music-recall-v174\.js\?v=175/);
-assert.match(swSource, /ampmusic-v1\.8\.9/);
+assert.match(swSource, /ampmusic-v1\.9\.0/);
 assert.match(swSource, /playback-navigation-v178\.js/);
 assert.match(swSource, /playback-bridge-guard-v1711\.js/);
 assert.match(swSource, /resolver-music-recall-v174\.js/);

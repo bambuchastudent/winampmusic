@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Operator YouTube TV authorization experiment</title>
+<style>
+  :root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; background: #131820; color: #e9eef5 }
+  body { max-width: 52rem; margin: 2rem auto; padding: 0 1.2rem }
+  h1 { line-height: 1.2 } label { display: block; margin: 1rem 0 }
+  input { display: block; box-sizing: border-box; width: 100%; padding: .6rem; background: #202b37; border: 1px solid #697a8c; border-radius: .3rem; color: inherit }
+  button, a.action { display: inline-block; padding: .55rem .9rem; margin: .3rem .3rem .3rem 0; background: #345f95; color: white; border: 0; border-radius: .3rem; cursor: pointer }
+  button:disabled { opacity: .45; cursor: default } a { color: #92c6ff }
+  pre { white-space: pre-wrap; word-break: break-word; padding: 1rem; background: #202b37; border-radius: .3rem }
+  .note { border-left: 3px solid #88a6c6; padding-left: 1rem }
+</style>
+<h1>YouTube TV metadata authorization experiment</h1>
+<p class="note">Manual operator research. Supply your own Google TV/Limited Input OAuth client and a dedicated HTTPS relay configured for this page’s exact origin. This requests <code>youtube.readonly</code>. Google authorization, TV InnerTube acceptance, returned audio formats, and playable audio are different outcomes. This page only tests metadata; playback remains untested.</p>
+<p>Credentials and device codes stay in this tab’s memory. Closing or reloading discards them. Your client secret and tokens travel only to your configured relay and the relay’s fixed Google endpoints. Only use a relay you control.</p>
+<label>Dedicated relay HTTPS origin <input id="relay" type="url" required placeholder="https://your-isolated-relay.example"></label>
+<label>Operator-owned OAuth client ID <input id="client" type="text" required autocomplete="off" spellcheck="false" placeholder="…apps.googleusercontent.com"></label>
+<label>Client secret, if your Google client has one <input id="secret" type="password" autocomplete="off" spellcheck="false"></label>
+<button id="start">Start device authorization</button><button id="cancel" disabled>Cancel / clear this tab</button><button id="logout" disabled>Sign out and revoke</button>
+<section id="verification" hidden><h2>Complete authorization at Google</h2><p>Open <a id="verify" href="https://www.google.com/device" target="_blank" rel="noopener noreferrer">google.com/device</a> and enter this code:</p><strong id="code"></strong><p id="countdown"></p></section>
+<label>YouTube video ID (11 characters) <input id="video" type="text" maxlength="11" autocomplete="off" spellcheck="false" placeholder="dQw4w9WgXcQ"></label>
+<button id="probe" disabled>Compare TV metadata</button><button id="export" disabled>Download redacted report</button>
+<p role="status" id="status">Ready. Nothing has been sent.</p>
+<h2>Redacted result</h2><pre id="report">No report yet.</pre>
+<script type="module">
+  import { createExperiment } from './experiment.mjs';
+  const $ = (id) => document.getElementById(id);
+  let experiment = null;
+  let timer = null;
+  let generation = 0;
+  const clearTimer = () => { if (timer) clearTimeout(timer); timer = null; };
+  const render = () => {
+    const state = experiment?.report();
+    const waiting = experiment?.pending();
+    $('verification').hidden = !waiting;
+    $('code').textContent = waiting?.user_code || '';
+    $('countdown').textContent = waiting ? `Code expires in about ${waiting.expires_in} seconds.` : '';
+    $('report').textContent = state ? JSON.stringify(state, null, 2) : 'No report yet.';
+    $('probe').disabled = !experiment || !['authorized', 'failed', 'signed_out', 'canceled', 'not_started'].includes(state.oauth) && state.oauth !== 'pending';
+    $('export').disabled = !state || state.stage !== 'complete';
+    $('cancel').disabled = !experiment;
+    $('logout').disabled = !experiment || state.oauth !== 'authorized';
+  };
+  const status = (message) => { $('status').textContent = message; };
+  function schedule(instance, current) {
+    if (experiment !== instance || current !== generation || instance.report().oauth !== 'pending') return;
+    timer = setTimeout(async () => {
+      if (experiment !== instance || current !== generation) return;
+      await instance.pollOnce();
+      if (experiment !== instance || current !== generation) return;
+      render();
+      const state = instance.report().oauth;
+      status(state === 'authorized' ? 'Google OAuth authorized. TV acceptance is still unknown.' : state === 'pending' ? 'Waiting for Google authorization…' : `Authorization: ${state}.`);
+      schedule(instance, current);
+    }, 1000);
+  }
+  function discard() {
+    ++generation; clearTimer();
+    experiment?.cancel(); experiment = null;
+    $('secret').value = '';
+    render();
+  }
+  $('start').addEventListener('click', async () => {
+    const settings = { base: $('relay').value.trim(), clientId: $('client').value.trim(), clientSecret: $('secret').value };
+    discard();
+    try {
+      const instance = createExperiment(settings);
+      experiment = instance;
+      $('secret').value = '';
+      const current = generation;
+      status('Requesting device code…'); render();
+      await instance.start();
+      if (experiment !== instance || current !== generation) return;
+      render();
+      status(instance.report().oauth === 'pending' ? 'Enter the code at Google. Polling at Google’s requested interval.' : 'Device authorization could not start. Check the relay and OAuth client.');
+      schedule(instance, current);
+    } catch { status('Invalid relay HTTPS origin or OAuth client ID.'); render(); }
+  });
+  $('cancel').addEventListener('click', () => { discard(); status('Canceled and cleared this tab’s session.'); });
+  $('logout').addEventListener('click', async () => {
+    if (!experiment) return;
+    const instance = experiment;
+    ++generation; clearTimer();
+    await instance.logout();
+    if (experiment !== instance) return;
+    experiment = null; $('secret').value = ''; render();
+    status('Signed out locally. The relay attempted Google revocation.');
+  });
+  $('probe').addEventListener('click', async () => {
+    if (!experiment) return;
+    const instance = experiment;
+    const current = generation;
+    status('Probing anonymous and authorized TV metadata…');
+    try {
+      await instance.compare($('video').value.trim());
+      if (experiment !== instance || current !== generation) return;
+      render(); status('Metadata comparison complete. No media was fetched or played.');
+    } catch { status('Enter one 11-character YouTube video ID.'); }
+  });
+  $('export').addEventListener('click', () => {
+    if (!experiment || experiment.report().stage !== 'complete') return;
+    const blob = new Blob([JSON.stringify(experiment.report(), null, 2) + '\n'], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'youtube-tv-metadata-report.json'; anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  window.addEventListener('pagehide', () => { clearTimer(); experiment?.cancel(); experiment = null; });
+</script>
+</html>

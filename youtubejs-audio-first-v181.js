@@ -34,6 +34,10 @@
   let originalPlayIndex = null;
   let primeObjectUrl = '';
   let lastDiagnostics = null;
+  let playerRequestSequence = 0;
+  const playerTransportEvents = [];
+  const activePlayerRequests = new Map();
+  const activePlayerLookups = new Map();
 
   const $ = (id) => document.getElementById(id);
   const clean = (v) => String(v ?? '').replace(/\s+/g, ' ').trim();
@@ -41,6 +45,32 @@
   const readLibrary = () => { try { const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
   const savedIndex = () => Number(localStorage.getItem(CURRENT_KEY));
   const errorText = (error) => clean(error?.message || error || 'unknown error').slice(0, 120);
+
+  function restrictionCategory(status, ...texts) {
+    const code = clean(status).toUpperCase();
+    const evidence = texts.map((text) => clean(text).slice(0, 500)).join(' ').toLowerCase();
+    if (/captcha|verify (?:that )?you(?:'|’)re not a bot|confirm (?:that )?you(?:'|’)re not a bot|prove you(?:'|’)re not a bot/.test(evidence)) return 'BOT_CONFIRMATION_REQUIRED';
+    if (code === 'AGE_CHECK_REQUIRED' || /age[- ]restricted|confirm your age|verify your age|age verification/.test(evidence)) return 'AGE_CONFIRMATION_REQUIRED';
+    if (code === 'LOGIN_REQUIRED' || /sign[ -]in to (?:continue|confirm|watch)|please sign in|log[ -]in required/.test(evidence)) return 'SIGN_IN_REQUIRED';
+    return 'UNKNOWN';
+  }
+
+  function routeId(label) {
+    if (label === 'first-party' || label === 'direct' || label === 'youtubei.googleapis.com') return label;
+    return 'public-relay';
+  }
+
+  function recordPlayerTransport(videoId, transport, ambiguous) {
+    if (!VIDEO_ID_RE.test(videoId)) return;
+    playerTransportEvents.push({ sequence: ++playerRequestSequence, videoId, transport: routeId(transport), ambiguous });
+    if (playerTransportEvents.length > 128) playerTransportEvents.splice(0, playerTransportEvents.length - 128);
+  }
+
+  function correlatedPlayerTransport(videoId, afterSequence) {
+    const matches = playerTransportEvents.filter((event) => event.sequence > afterSequence && event.videoId === videoId);
+    if (matches.length !== 1 || matches[0].ambiguous) return 'UNKNOWN';
+    return matches[0].transport;
+  }
 
   function errorCode(error) {
     const message = clean(error?.message || error);
@@ -159,27 +189,55 @@
 
     const method = String(source.method || 'GET').toUpperCase();
     let bodyBytes = null;
-    if (method !== 'GET' && method !== 'HEAD') bodyBytes = await source.clone().arrayBuffer();
-
-    const failures = [];
-    for (const candidate of requestCandidates(target, headers)) {
+    let bodyText = '';
+    if (method !== 'GET' && method !== 'HEAD') {
+      const bodyClone = source.clone();
+      bodyBytes = await bodyClone.arrayBuffer();
+      try { bodyText = await source.clone().text(); } catch {}
+    }
+    let playerVideoId = '';
+    if (/\/youtubei\/(?:v\d+\/)?player(?:\?|$)/i.test(target.pathname)) {
       try {
-        const response = await fetch(candidate.url, {
-          method,
-          headers: candidate.headers,
-          body: bodyBytes ? bodyBytes.slice(0) : undefined,
-          cache: 'no-store',
-          credentials: 'omit',
-          redirect: 'follow',
-          referrerPolicy: 'no-referrer',
-        });
-        if (response.ok) return response;
-        failures.push(`${candidate.label} HTTP ${response.status}`);
-      } catch (error) {
-        failures.push(`${candidate.label} ${errorText(error)}`);
+        const parsed = method === 'GET' ? target.searchParams.get('videoId') : JSON.parse(bodyText || '{}')?.videoId;
+        if (VIDEO_ID_RE.test(parsed || '')) playerVideoId = parsed;
+      } catch {}
+    }
+    const concurrentAtStart = playerVideoId ? (activePlayerRequests.get(playerVideoId) || 0) > 0 : false;
+    if (playerVideoId) activePlayerRequests.set(playerVideoId, (activePlayerRequests.get(playerVideoId) || 0) + 1);
+    const failures = [];
+    try {
+      for (const candidate of requestCandidates(target, headers)) {
+        try {
+          const response = await fetch(candidate.url, {
+            method,
+            headers: candidate.headers,
+            body: bodyBytes ? bodyBytes.slice(0) : undefined,
+            cache: 'no-store',
+            credentials: 'omit',
+            redirect: 'follow',
+            referrerPolicy: 'no-referrer',
+          });
+          if (response.ok) {
+            if (playerVideoId) recordPlayerTransport(
+              playerVideoId,
+              candidate.label,
+              concurrentAtStart || (activePlayerRequests.get(playerVideoId) || 0) > 1 || (activePlayerLookups.get(playerVideoId)?.size || 0) > 1,
+            );
+            return response;
+          }
+          failures.push(`${candidate.label} HTTP ${response.status}`);
+        } catch (error) {
+          failures.push(`${candidate.label} ${errorText(error)}`);
+        }
+      }
+      throw new Error(`all relays failed: ${failures.join(' | ')}`);
+    } finally {
+      if (playerVideoId) {
+        const active = (activePlayerRequests.get(playerVideoId) || 1) - 1;
+        if (active > 0) activePlayerRequests.set(playerVideoId, active);
+        else activePlayerRequests.delete(playerVideoId);
       }
     }
-    throw new Error(`all relays failed: ${failures.join(' | ')}`);
   }
 
   function installInterpreter(Platform) {
@@ -203,7 +261,7 @@
   }
 
   async function resolveAudio(videoId, suppliedInnertube) {
-    const report = { videoId: VIDEO_ID_RE.test(videoId) ? videoId : 'INVALID', stage: 'resolution', attempts: [], errorCode: null };
+    const report = { videoId: VIDEO_ID_RE.test(videoId) ? videoId : 'INVALID', checkedAt: new Date().toISOString(), restrictionCategory: 'UNKNOWN', playerTransport: 'UNKNOWN', stage: 'resolution', attempts: [], errorCode: null };
     lastDiagnostics = report;
     let format;
     try {
@@ -216,9 +274,30 @@
         primary.errorCode = errorCode(error);
         if (primary.errorCode !== 'STREAM_DATA_UNAVAILABLE') throw error;
         let info;
+        const routeStart = playerRequestSequence;
+        let activeLookups = activePlayerLookups.get(videoId);
+        if (!activeLookups) {
+          activeLookups = new Set();
+          activePlayerLookups.set(videoId, activeLookups);
+        }
+        const lookupContext = { report, ambiguous: activeLookups.size > 0 };
+        if (lookupContext.ambiguous) {
+          for (const active of activeLookups) {
+            active.ambiguous = true;
+            active.report.playerTransport = 'UNKNOWN';
+          }
+        }
+        activeLookups.add(lookupContext);
         try { info = await yt.getBasicInfo(videoId); }
         catch { throw error; }
-        primary.playability = playabilityCode(info?.playability_status?.status);
+        finally {
+          activeLookups.delete(lookupContext);
+          if (activeLookups.size === 0) activePlayerLookups.delete(videoId);
+        }
+        report.playerTransport = lookupContext.ambiguous ? 'UNKNOWN' : correlatedPlayerTransport(videoId, routeStart);
+        const playability = info?.playability_status;
+        primary.playability = playabilityCode(playability?.status);
+        report.restrictionCategory = restrictionCategory(playability?.status, playability?.reason, playability?.error_screen?.reason, playability?.error_screen?.subreason);
         const formats = info?.streaming_data;
         primary.audioFormats = [...(formats?.adaptive_formats || []), ...(formats?.formats || [])]
           .filter((item) => item?.has_audio || /^audio\//i.test(clean(item?.mime_type || item?.mimeType))).length;
