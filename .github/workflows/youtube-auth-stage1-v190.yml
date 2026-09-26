@@ -1,0 +1,42 @@
+name: YouTube authorization stage 1 v1.9.0
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'experiments/youtube-auth/**'
+      - 'relay/youtube-auth/**'
+      - 'youtubejs-audio-first-v181.js'
+      - 'fast-release-v150.js'
+      - 'index.html'
+      - 'sw.js'
+      - 'tests/youtube*'
+      - 'openspec/changes/youtube-auth-experiment-v190/**'
+      - 'openspec/changes/youtubejs-diagnostics-v190/**'
+      - '.github/workflows/youtube-auth-stage1-v190.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --prefer-offline --no-audit --no-fund jsdom@26
+      - name: Diagnostics and isolated authorization contracts
+        run: |
+          node --check youtubejs-audio-first-v181.js
+          node --check experiments/youtube-auth/experiment.mjs
+          node --check relay/youtube-auth/worker.js
+          node scripts/run-node-tests.mjs --jobs 4 \
+            tests/youtubejs-diagnostics-v189.mjs \
+            tests/youtubejs-diagnostics-v190.mjs \
+            tests/youtube-auth-experiment-v190.mjs \
+            tests/youtubejs-relay-availability-v187.mjs \
+            tests/youtubejs-browser-audio-v183.mjs \
+            tests/youtubejs-first-party-relay-v185.mjs \
+            tests/youtubejs-dedicated-relay-v186.mjs

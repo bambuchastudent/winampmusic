@@ -1,0 +1,6 @@
+name = "ampula-youtube-auth-experiment"
+main = "worker.js"
+compatibility_date = "2026-09-19"
+
+# No APP_ORIGIN default. Set this to the exact HTTPS origin of the standalone
+# experiment page in the operator's deployment environment before use.

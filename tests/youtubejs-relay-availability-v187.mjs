@@ -75,6 +75,6 @@ assert.equal(diagnostic.status.textContent, 'YOUTUBEJS ERROR · RELAY NOT CONFIG
 
 assert.match(source, /AMPULA_YOUTUBEJS_RELAY/);
 assert.match(source, /RELAY NOT CONFIGURED/);
-assert.match(loader, /youtubejs-audio-first-v181\.js\?v=189/);
+assert.match(loader, /youtubejs-audio-first-v181\.js\?v=190/);
 
 console.log('YouTube.js relay availability v1.8.7 contract OK');
